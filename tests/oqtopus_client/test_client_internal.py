@@ -85,7 +85,7 @@ def test_async_client_accepts_default_headers_and_token_file(tmp_path: Path) -> 
         default_headers={"X-Test": "1"},
     )
     try:
-        assert client._headers["Authorization"] == "Bearer from-file"
+        assert client._headers["q-api-token"] == "from-file"
         assert client._headers["X-Test"] == "1"
     finally:
         asyncio.run(client.close())

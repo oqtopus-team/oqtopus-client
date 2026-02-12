@@ -21,6 +21,8 @@ pip install -e .
 - `api_token`: direct token string
 - `api_token_file`: load token from file
 
+The token is sent using the `q-api-token` request header.
+
 Supported token file formats:
 
 ```text

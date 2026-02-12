@@ -12,7 +12,7 @@ class OqtopusConfig:
 
     Attributes:
         base_url: OQTOPUS API base URL.
-        api_token: Bearer token string.
+        api_token: API token string.
         api_token_file: Path to a token file (mutually exclusive with ``api_token``).
         timeout: HTTP request timeout seconds.
         retry_max_attempts: Max retry attempts for retryable requests.

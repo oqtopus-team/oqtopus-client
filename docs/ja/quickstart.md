@@ -14,7 +14,7 @@ pip install -e .
 
 ## 認証
 
-`OqtopusClient` は以下のいずれかで Bearer トークンを設定できます。
+`OqtopusClient` は以下のいずれかで API トークンを設定できます（リクエストでは `q-api-token` ヘッダーとして送信）。
 
 - `api_token`: トークン文字列を直接指定
 - `api_token_file`: ファイルから読み込み

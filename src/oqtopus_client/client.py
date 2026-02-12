@@ -110,7 +110,7 @@ class _AsyncOqtopusClient:
             self.set_api_token(token)
 
     def set_api_token(self, api_token: str) -> None:
-        self._headers["Authorization"] = f"Bearer {api_token}"
+        self._headers["q-api-token"] = api_token
 
     async def close(self) -> None:
         if self._owns_client:

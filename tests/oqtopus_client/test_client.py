@@ -64,7 +64,7 @@ def test_submit_job_sends_auth_and_payload() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.method == "POST"
         assert request.url.path == "/jobs"
-        assert request.headers["Authorization"] == "Bearer token"
+        assert request.headers["q-api-token"] == "token"
         assert json.loads(request.content)["job_type"] == "sampling"
         return httpx.Response(200, json={"job_id": "job-1"})
 
