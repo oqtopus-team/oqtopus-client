@@ -1,0 +1,945 @@
+from __future__ import annotations
+
+import asyncio
+import base64
+import json
+import os
+import threading
+from concurrent.futures import ThreadPoolExecutor
+from collections.abc import Callable
+from collections.abc import Mapping
+from collections.abc import Sequence
+from datetime import datetime
+from enum import Enum
+from importlib.metadata import PackageNotFoundError, version
+from pathlib import Path
+from time import monotonic
+from typing import Any
+from typing import TYPE_CHECKING
+from typing import cast
+from urllib.parse import quote
+
+import httpx
+from pydantic import BaseModel, TypeAdapter, ValidationError
+
+from . import models
+from .config import OqtopusConfig
+from .errors import ResponseValidationError, UserApiError
+from .job_spec import OqtopusJobSpec
+from .job_results import (
+    OqtopusEstimationJobResult,
+    OqtopusJobResult,
+    OqtopusMultiManualJobResult,
+    OqtopusSamplingJobResult,
+    OqtopusSseJobResult,
+)
+from .device import (
+    OqtopusDevice,
+)
+
+if TYPE_CHECKING:
+    from .job_handle import OqtopusJobHandle
+
+PACKAGE_NAME = "oqtopus-client"
+_SubmitJobInput = models.JobsSubmitJobRequest | Mapping[str, Any] | OqtopusJobSpec
+_RunInput = _SubmitJobInput
+
+
+def _resolve_user_agent() -> str:
+    try:
+        package_version = version(PACKAGE_NAME)
+    except PackageNotFoundError:
+        package_version = "unknown"
+    return f"{PACKAGE_NAME}/{package_version}"
+
+
+class _AsyncRuntime:
+    def __init__(self) -> None:
+        self._loop = asyncio.new_event_loop()
+        self._thread = threading.Thread(target=self._run_loop, daemon=True)
+        self._thread.start()
+
+    def _run_loop(self) -> None:
+        asyncio.set_event_loop(self._loop)
+        self._loop.run_forever()
+
+    def run(self, coro: Any) -> Any:
+        fut = asyncio.run_coroutine_threadsafe(coro, self._loop)
+        return fut.result()
+
+    def close(self) -> None:
+        self._loop.call_soon_threadsafe(self._loop.stop)
+        self._thread.join(timeout=5.0)
+
+
+class _AsyncOqtopusClient:
+    def __init__(
+        self,
+        config: OqtopusConfig,
+        client: httpx.AsyncClient | None = None,
+        default_headers: Mapping[str, str] | None = None,
+        user_agent: str | None = None,
+    ) -> None:
+        if not config.base_url and not self._is_sse_container():
+            raise ValueError("config.base_url is required.")
+
+        self.base_url = config.base_url.rstrip("/") if config.base_url else ""
+        self._client = client or httpx.AsyncClient(timeout=config.timeout)
+        self._owns_client = client is None
+        self._headers: dict[str, str] = {"User-Agent": user_agent or _resolve_user_agent()}
+
+        if config.retry_max_attempts < 1:
+            raise ValueError("retry_max_attempts must be >= 1.")
+        if config.retry_backoff_seconds < 0:
+            raise ValueError("retry_backoff_seconds must be >= 0.")
+        self._retry_max_attempts = config.retry_max_attempts
+        self._retry_backoff_seconds = config.retry_backoff_seconds
+        self._retry_status_codes = set(config.retry_status_codes or {429, 500, 502, 503, 504})
+        self._retry_methods = {m.upper() for m in (config.retry_methods or {"GET", "DELETE"})}
+
+        if default_headers:
+            self._headers.update(default_headers)
+
+        token = config.api_token
+        token_file = config.api_token_file
+        if token and token_file:
+            raise ValueError("Specify either api_token or api_token_file, not both.")
+        if token_file:
+            token = self._load_api_token_from_file(token_file)
+        if token:
+            self.set_api_token(token)
+
+    def set_api_token(self, api_token: str) -> None:
+        self._headers["Authorization"] = f"Bearer {api_token}"
+
+    async def close(self) -> None:
+        if self._owns_client:
+            await self._client.aclose()
+
+    @staticmethod
+    def _load_api_token_from_file(api_token_file: str | Path) -> str:
+        text = Path(api_token_file).read_text(encoding="utf-8").strip()
+        if not text:
+            raise ValueError(f"API token file is empty: {api_token_file}")
+
+        token = text
+        try:
+            payload = json.loads(text)
+            if isinstance(payload, str):
+                token = payload
+            elif isinstance(payload, dict):
+                token = payload.get("api_token") or payload.get("api_token_secret") or payload.get("token") or ""
+        except json.JSONDecodeError:
+            token = text
+
+        token = token.strip()
+        if token.startswith("Bearer "):
+            token = token[len("Bearer ") :].strip()
+        if not token:
+            raise ValueError(f"API token not found in file: {api_token_file}")
+        return token
+
+    def _serialize_value(self, value: Any) -> Any:
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return value.isoformat()
+        if isinstance(value, Enum):
+            return value.value
+        if isinstance(value, list):
+            return [self._serialize_value(v) for v in value]
+        return value
+
+    @staticmethod
+    def _path_param(value: str) -> str:
+        return quote(value, safe="")
+
+    @staticmethod
+    def _job_type_of(job: models.JobsSubmitJobRequest | Mapping[str, Any] | OqtopusJobSpec) -> str | None:
+        if isinstance(job, OqtopusJobSpec):
+            spec_job_type = job.job_type
+            if isinstance(spec_job_type, models.JobsJobType):
+                return spec_job_type.value
+            if isinstance(spec_job_type, str):
+                return spec_job_type
+            return None
+        if isinstance(job, models.JobsSubmitJobRequest):
+            return job.job_type.value
+        mapping_job_type = job.get("job_type")
+        if isinstance(mapping_job_type, models.JobsJobType):
+            return mapping_job_type.value
+        if isinstance(mapping_job_type, str):
+            return mapping_job_type
+        return None
+
+    @staticmethod
+    def _coerce_submit_job_request(
+        job: _RunInput,
+    ) -> models.JobsSubmitJobRequest:
+        if isinstance(job, models.JobsSubmitJobRequest):
+            return job
+        if isinstance(job, OqtopusJobSpec):
+            return job.to_submit_job_request()
+        return models.JobsSubmitJobRequest.model_validate(dict(job))
+
+    @classmethod
+    def _validate_run_job_type(
+        cls,
+        job: models.JobsSubmitJobRequest | Mapping[str, Any] | OqtopusJobSpec,
+        expected: models.JobsJobType,
+    ) -> None:
+        actual = cls._job_type_of(job)
+        if actual != expected.value:
+            raise ValueError(f"job_type must be '{expected.value}' for this helper (got {actual!r}).")
+
+    def _json_body(self, body: BaseModel | dict[str, Any] | None) -> dict[str, Any] | None:
+        if body is None:
+            return None
+        if isinstance(body, BaseModel):
+            return body.model_dump(by_alias=True, exclude_none=True)
+        return body
+
+    async def _request(
+        self,
+        method: str,
+        path: str,
+        *,
+        params: dict[str, Any] | None = None,
+        body: BaseModel | dict[str, Any] | None = None,
+        expected_statuses: tuple[int, ...] = (200,),
+        parse_as: Any = None,
+    ) -> Any:
+        query = None
+        if params is not None:
+            query = {k: self._serialize_value(v) for k, v in params.items() if v is not None}
+
+        request_url = f"{self.base_url}{path}"
+        method_upper = method.upper()
+        last_network_error: httpx.HTTPError | None = None
+        response: httpx.Response | None = None
+
+        for attempt in range(1, self._retry_max_attempts + 1):
+            try:
+                response = await self._client.request(
+                    method_upper,
+                    request_url,
+                    headers=self._headers,
+                    params=query,
+                    json=self._json_body(body),
+                )
+            except httpx.HTTPError as exc:
+                last_network_error = exc
+                if not self._should_retry_network_error(method_upper, attempt):
+                    raise UserApiError(
+                        0,
+                        f"network error: {exc}",
+                        payload={"exception": exc.__class__.__name__, "detail": str(exc)},
+                    ) from exc
+                await self._sleep_before_retry(attempt)
+                continue
+
+            if response.status_code in expected_statuses:
+                break
+            if self._should_retry_response(method_upper, response.status_code, attempt):
+                await self._sleep_before_retry(attempt)
+                continue
+            break
+
+        if response is None:
+            assert last_network_error is not None
+            raise UserApiError(
+                0,
+                f"network error: {last_network_error}",
+                payload={
+                    "exception": last_network_error.__class__.__name__,
+                    "detail": str(last_network_error),
+                },
+            ) from last_network_error
+
+        if response.status_code not in expected_statuses:
+            payload = self._safe_json(response)
+            message = self._extract_error_message(payload) or response.text or "request failed"
+            raise UserApiError(response.status_code, message or "request failed", payload)
+
+        if parse_as is None:
+            return None
+
+        payload = self._safe_json(response)
+        try:
+            return TypeAdapter(parse_as).validate_python(payload)
+        except ValidationError as exc:
+            raise ResponseValidationError(str(exc), payload) from exc
+
+    def _should_retry_network_error(self, method: str, attempt: int) -> bool:
+        return method in self._retry_methods and attempt < self._retry_max_attempts
+
+    def _should_retry_response(self, method: str, status_code: int, attempt: int) -> bool:
+        return method in self._retry_methods and status_code in self._retry_status_codes and attempt < self._retry_max_attempts
+
+    async def _sleep_before_retry(self, attempt: int) -> None:
+        if self._retry_backoff_seconds <= 0:
+            return
+        await asyncio.sleep(self._retry_backoff_seconds * (2 ** (attempt - 1)))
+
+    @staticmethod
+    def _safe_json(response: httpx.Response) -> Any:
+        if not response.content:
+            return None
+        try:
+            return response.json()
+        except ValueError:
+            return response.text
+
+    @staticmethod
+    def _extract_error_message(payload: Any) -> str | None:
+        if isinstance(payload, dict):
+            message = payload.get("message")
+            if isinstance(message, str) and message.strip():
+                return message
+            error = payload.get("error")
+            if isinstance(error, str) and error.strip():
+                return error
+            if isinstance(error, dict):
+                detail = error.get("message")
+                if isinstance(detail, str) and detail.strip():
+                    return detail
+        if isinstance(payload, str):
+            text = payload.strip()
+            return text or None
+        return None
+
+    @staticmethod
+    def _is_sse_container() -> bool:
+        return os.getenv("OQTOPUS_ENV") == "sse_container"
+
+    async def _run_sse_container_job(
+        self,
+        request: models.JobsSubmitJobRequest,
+    ) -> models.JobsJobDef:
+        try:
+            import sse_sampler  # type: ignore[import-not-found]  # noqa: PLC0415
+        except ModuleNotFoundError as exc:
+            raise UserApiError(
+                0,
+                "sse_container mode requires 'sse_sampler' module.",
+                payload={"mode": "sse_container"},
+            ) from exc
+
+        try:
+            response = sse_sampler.req_transpile_and_exec(  # type: ignore[attr-defined]
+                request.job_info.program,
+                request.shots,
+                request.transpiler_info or {},
+            )
+        except Exception as exc:  # pragma: no cover - surfaced as API error
+            raise UserApiError(
+                0,
+                f"sse_container execution failed: {exc}",
+                payload={"mode": "sse_container", "job_type": request.job_type.value},
+            ) from exc
+
+        response_payload: Any = response
+        # Accept pydantic model instances returned by external runtime modules,
+        # including models generated from a different package version.
+        if hasattr(response, "model_dump_json") and callable(response.model_dump_json):
+            response_payload = json.loads(response.model_dump_json())
+        elif hasattr(response, "json") and callable(response.json):
+            response_payload = json.loads(response.json())
+        elif hasattr(response, "model_dump") and callable(response.model_dump):
+            response_payload = response.model_dump(mode="json")
+        elif hasattr(response, "dict") and callable(response.dict):
+            response_payload = response.dict()
+
+        try:
+            return TypeAdapter(models.JobsJobDef).validate_python(response_payload)
+        except ValidationError as exc:
+            try:
+                return models.JobsJobDef.model_validate(response, from_attributes=True)
+            except ValidationError:
+                raise ResponseValidationError(str(exc), response_payload) from exc
+
+    async def list_devices(self) -> list[models.DevicesDeviceInfo]:
+        return await self._request("GET", "/devices", parse_as=list[models.DevicesDeviceInfo])
+
+    async def get_device(self, device_id: str) -> models.DevicesDeviceInfo:
+        return await self._request("GET", f"/devices/{self._path_param(device_id)}", parse_as=models.DevicesDeviceInfo)
+
+    async def list_jobs(
+        self,
+        *,
+        fields: str | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        q: str | None = None,
+        page: int | None = None,
+        size: int | None = None,
+        order: str | None = None,
+    ) -> list[models.JobsGetJobsResponse]:
+        params: dict[str, Any] = {
+            "fields": fields,
+            "start_time": start_time,
+            "q": q,
+            "page": page,
+            "size": size,
+            "order": order,
+        }
+        if end_time is not None:
+            params["end_time"] = end_time
+        return await self._request("GET", "/jobs", params=params, parse_as=list[models.JobsGetJobsResponse])
+
+    async def submit_job(self, body: _SubmitJobInput) -> models.JobsSubmitJobResponse:
+        payload: models.JobsSubmitJobRequest | dict[str, Any]
+        if isinstance(body, OqtopusJobSpec):
+            payload = body.to_submit_job_request()
+        elif isinstance(body, models.JobsSubmitJobRequest):
+            payload = body
+        else:
+            payload = dict(body)
+        return await self._request("POST", "/jobs", body=payload, parse_as=models.JobsSubmitJobResponse)
+
+    async def run_job(self, job: _SubmitJobInput, **kwargs: Any) -> models.JobsJobDef:
+        request = self._coerce_submit_job_request(job)
+        if self._is_sse_container():
+            if request.job_type in {
+                models.JobsJobType.SAMPLING,
+                models.JobsJobType.MULTI_MANUAL,
+                models.JobsJobType.SSE,
+            }:
+                return await self._run_sse_container_job(request)
+            raise UserApiError(
+                0,
+                f"job_type '{request.job_type.value}' is not supported in sse_container mode.",
+                payload={"mode": "sse_container", "job_type": request.job_type.value},
+            )
+
+        response = await self.submit_job(request)
+        return await self.wait_for_job(response.job_id, **kwargs)
+
+    async def run_sampling(self, job: _RunInput, **kwargs: Any) -> models.JobsJobDef:
+        request = self._coerce_submit_job_request(job)
+        self._validate_run_job_type(request, models.JobsJobType.SAMPLING)
+        return await self.run_job(request, **kwargs)
+
+    async def run_estimation(self, job: _RunInput, **kwargs: Any) -> models.JobsJobDef:
+        request = self._coerce_submit_job_request(job)
+        self._validate_run_job_type(request, models.JobsJobType.ESTIMATION)
+        return await self.run_job(request, **kwargs)
+
+    async def run_multi_manual(self, job: _RunInput, **kwargs: Any) -> models.JobsJobDef:
+        request = self._coerce_submit_job_request(job)
+        self._validate_run_job_type(request, models.JobsJobType.MULTI_MANUAL)
+        return await self.run_job(request, **kwargs)
+
+    async def run_sse(self, job: _RunInput, **kwargs: Any) -> models.JobsJobDef:
+        request = self._coerce_submit_job_request(job)
+        self._validate_run_job_type(request, models.JobsJobType.SSE)
+        return await self.run_job(request, **kwargs)
+
+    @staticmethod
+    def build_sse_job_request(
+        file_path: str | Path,
+        *,
+        device_id: str,
+        name: str | None = None,
+        description: str | None = None,
+        transpiler_info: dict[str, Any] | None = None,
+        simulator_info: dict[str, Any] | None = None,
+        mitigation_info: dict[str, Any] | None = None,
+        shots: int = 1,
+        max_encoded_file_size: int = 10 * 1024 * 1024,
+    ) -> models.JobsSubmitJobRequest:
+        path = Path(file_path)
+        if not path.exists():
+            raise ValueError(f"The file does not exist: {path}")
+        if not path.is_file():
+            raise ValueError(f"The path is not a file: {path}")
+        if path.suffix != ".py":
+            raise ValueError(f"The file is not python file: {path}")
+
+        encoded = base64.b64encode(path.read_bytes())
+        if len(encoded) >= max_encoded_file_size:
+            raise ValueError(f"size of the base64 encoded file is larger than {max_encoded_file_size}")
+
+        return models.JobsSubmitJobRequest(
+            name=name,
+            description=description,
+            device_id=device_id,
+            job_type=models.JobsJobType.SSE,
+            job_info=models.JobsSubmitJobInfo(program=[encoded.decode("utf-8")]),
+            transpiler_info=transpiler_info or {},
+            simulator_info=simulator_info or {},
+            mitigation_info=mitigation_info or {},
+            shots=shots,
+        )
+
+    async def run_sse_file(self, *, file_path: str | Path, device_id: str, **kwargs: Any) -> models.JobsJobDef:
+        request = self.build_sse_job_request(
+            file_path=file_path,
+            device_id=device_id,
+            name=kwargs.pop("name", None),
+            description=kwargs.pop("description", None),
+            transpiler_info=kwargs.pop("transpiler_info", None),
+            simulator_info=kwargs.pop("simulator_info", None),
+            mitigation_info=kwargs.pop("mitigation_info", None),
+            shots=kwargs.pop("shots", 1),
+            max_encoded_file_size=kwargs.pop("max_encoded_file_size", 10 * 1024 * 1024),
+        )
+        return await self.run_sse(request, **kwargs)
+
+    async def get_job(self, job_id: str) -> models.JobsJobDef:
+        return await self._request("GET", f"/jobs/{self._path_param(job_id)}", parse_as=models.JobsJobDef)
+
+    async def wait_for_job(
+        self,
+        job_id: str,
+        *,
+        interval: float = 1.0,
+        interval_backoff: float = 1.0,
+        max_interval: float | None = None,
+        timeout: float | None = 300.0,
+        terminal_statuses: set[models.JobsJobStatus] | None = None,
+        failure_statuses: set[models.JobsJobStatus] | None = None,
+        on_status: Callable[[models.JobsGetJobStatusResponse], None] | None = None,
+    ) -> models.JobsJobDef:
+        if interval <= 0:
+            raise ValueError("interval must be greater than 0.")
+        if interval_backoff < 1.0:
+            raise ValueError("interval_backoff must be >= 1.0.")
+        if max_interval is not None and max_interval <= 0:
+            raise ValueError("max_interval must be greater than 0 or None.")
+        if timeout is not None and timeout <= 0:
+            raise ValueError("timeout must be greater than 0 or None.")
+
+        terminal = terminal_statuses or {models.JobsJobStatus.SUCCEEDED, models.JobsJobStatus.FAILED, models.JobsJobStatus.CANCELLED}
+        failed = failure_statuses or {models.JobsJobStatus.FAILED, models.JobsJobStatus.CANCELLED}
+
+        deadline = monotonic() + timeout if timeout is not None else None
+        next_interval = interval
+
+        while True:
+            status_response = await self.get_job_status(job_id)
+            if on_status is not None:
+                on_status(status_response)
+            current = status_response.status
+            if current in terminal:
+                job = await self.get_job(job_id)
+                if current in failed:
+                    raise UserApiError(0, f"job {job_id} finished with status '{current.value}'", payload={"job_id": job_id, "status": current.value})
+                return job
+
+            if deadline is not None and monotonic() >= deadline:
+                raise TimeoutError(f"Timed out waiting for job {job_id} after {timeout} seconds.")
+
+            sleep_for = next_interval
+            if deadline is not None:
+                remaining = deadline - monotonic()
+                if remaining <= 0:
+                    raise TimeoutError(f"Timed out waiting for job {job_id} after {timeout} seconds.")
+                sleep_for = min(sleep_for, remaining)
+
+            await asyncio.sleep(sleep_for)
+            next_interval *= interval_backoff
+            if max_interval is not None:
+                next_interval = min(next_interval, max_interval)
+
+    async def delete_job(self, job_id: str) -> models.SuccessSuccessResponse:
+        return await self._request("DELETE", f"/jobs/{self._path_param(job_id)}", parse_as=models.SuccessSuccessResponse)
+
+    async def get_job_status(self, job_id: str) -> models.JobsGetJobStatusResponse:
+        return await self._request("GET", f"/jobs/{self._path_param(job_id)}/status", parse_as=models.JobsGetJobStatusResponse)
+
+    async def cancel_job(self, job_id: str) -> models.SuccessSuccessResponse:
+        return await self._request("POST", f"/jobs/{self._path_param(job_id)}/cancel", parse_as=models.SuccessSuccessResponse)
+
+    async def get_sselog(self, job_id: str) -> models.JobsGetSselogResponse:
+        return await self._request("GET", f"/jobs/{self._path_param(job_id)}/sselog", parse_as=models.JobsGetSselogResponse)
+
+    async def create_api_token(self) -> models.ApiTokenApiToken:
+        return await self._request("POST", "/api-token", parse_as=models.ApiTokenApiToken)
+
+    async def delete_api_token(self) -> None:
+        await self._request("DELETE", "/api-token", expected_statuses=(200, 204), parse_as=None)
+
+    async def get_api_token_status(self) -> models.ApiTokenApiTokenStatus:
+        return await self._request("GET", "/api-token/status", parse_as=models.ApiTokenApiTokenStatus)
+
+    async def get_announcements_list(self) -> models.AnnouncementsGetAnnouncementsListResponse:
+        return await self._request("GET", "/announcements", parse_as=models.AnnouncementsGetAnnouncementsListResponse)
+
+    async def get_announcement(self, announcement_id: int) -> models.AnnouncementsGetAnnouncementResponse:
+        return await self._request("GET", f"/announcements/{self._path_param(str(announcement_id))}", parse_as=models.AnnouncementsGetAnnouncementResponse)
+
+    async def get_current_user(self) -> models.UsersGetOneUserResponse:
+        return await self._request("GET", "/users/me", parse_as=models.UsersGetOneUserResponse)
+
+
+class OqtopusClient:
+    """Synchronous public client; internal HTTP calls are executed asynchronously."""
+
+    def __init__(
+        self,
+        config: OqtopusConfig,
+        client: httpx.AsyncClient | None = None,
+        default_headers: Mapping[str, str] | None = None,
+        user_agent: str | None = None,
+    ) -> None:
+        """Initialize the synchronous OQTOPUS client.
+
+        Args:
+            config (Required): Client configuration bundle.
+            client (Optional): Pre-configured async HTTP client. If omitted, SDK creates one.
+            default_headers (Optional): Additional headers merged into every request.
+            user_agent (Optional): Custom User-Agent header value.
+        """
+        self._runtime = _AsyncRuntime()
+
+        async def _build() -> _AsyncOqtopusClient:
+            return _AsyncOqtopusClient(
+                config=config,
+                client=client,
+                default_headers=default_headers,
+                user_agent=user_agent,
+            )
+
+        self._async = self._runtime.run(_build())
+        self.base_url = self._async.base_url
+        self.timeout = config.timeout
+        self.retry_max_attempts = config.retry_max_attempts
+        self.retry_backoff_seconds = config.retry_backoff_seconds
+        self.retry_status_codes = frozenset(config.retry_status_codes or {429, 500, 502, 503, 504})
+        self.retry_methods = frozenset(m.upper() for m in (config.retry_methods or {"GET", "DELETE"}))
+
+    def _call(self, method_name: str, *args: Any, **kwargs: Any) -> Any:
+        async def _run() -> Any:
+            method = getattr(self._async, method_name)
+            return await method(*args, **kwargs)
+
+        return self._runtime.run(_run())
+
+    def _to_result(self, job: models.JobsJobDef) -> OqtopusJobResult:
+        raw = job.job_info.result if job.job_info is not None else None
+        if job.job_type == models.JobsJobType.MULTI_MANUAL:
+            return OqtopusMultiManualJobResult(raw, job_id=job.job_id, job_type=job.job_type, client=self)
+        if job.job_type == models.JobsJobType.SSE:
+            return OqtopusSseJobResult(raw, job_id=job.job_id, job_type=job.job_type, client=self)
+        if job.job_type == models.JobsJobType.SAMPLING:
+            return OqtopusSamplingJobResult(raw, job_id=job.job_id, job_type=job.job_type, client=self)
+        if job.job_type == models.JobsJobType.ESTIMATION:
+            return OqtopusEstimationJobResult(raw, job_id=job.job_id, job_type=job.job_type, client=self)
+        return OqtopusJobResult(raw, job_id=job.job_id, job_type=job.job_type, client=self)
+
+    @staticmethod
+    def _to_device(device: models.DevicesDeviceInfo) -> OqtopusDevice:
+        return OqtopusDevice(raw=device)
+
+    def __enter__(self) -> "OqtopusClient":
+        """Enter context manager."""
+        return self
+
+    def __exit__(self, exc_type: object, exc: object, tb: object) -> None:
+        """Exit context manager and close internal resources."""
+        self.close()
+
+    def set_api_token(self, api_token: str) -> None:
+        """Set or overwrite bearer token used in subsequent requests."""
+        self._async.set_api_token(api_token)
+
+    def close(self) -> None:
+        """Close underlying async HTTP client and runtime thread."""
+        self._runtime.run(self._async.close())
+        self._runtime.close()
+
+    def list_devices(self) -> list[OqtopusDevice]:
+        """List available devices."""
+        return [self._to_device(device) for device in self._call("list_devices")]
+
+    def get_device(self, device_id: str) -> OqtopusDevice:
+        """Get one device by id."""
+        return self._to_device(self._call("get_device", device_id))
+
+    def list_jobs(self, **kwargs: Any) -> list["OqtopusJobHandle"]:
+        """List jobs with optional filters."""
+        from .job_handle import OqtopusJobHandle
+
+        jobs = self._call("list_jobs", **kwargs)
+        return [OqtopusJobHandle(client=self, job_id=job.job_id) for job in jobs]
+
+    def submit_job(self, body: OqtopusJobSpec) -> "OqtopusJobHandle":
+        """Submit one job and return submitted job handle.
+
+        Args:
+            body (Required): `OqtopusJobSpec`.
+        """
+        from .job_handle import OqtopusJobHandle
+
+        if not isinstance(body, OqtopusJobSpec):
+            raise TypeError("submit_job expects OqtopusJobSpec.")
+        submitted = self._call("submit_job", body)
+        return OqtopusJobHandle(client=self, job_id=submitted.job_id)
+
+    def submit_jobs(
+        self,
+        jobs: Sequence[OqtopusJobSpec],
+        *,
+        max_workers: int = 4,
+    ) -> list["OqtopusJobHandle"]:
+        """Submit multiple jobs in parallel.
+
+        Args:
+            jobs (Required): List of `OqtopusJobSpec`.
+            max_workers (Optional): Submission concurrency. Default is ``4``.
+        """
+        if max_workers < 1:
+            raise ValueError("max_workers must be >= 1.")
+        if any(not isinstance(job, OqtopusJobSpec) for job in jobs):
+            raise TypeError("submit_jobs expects a list of OqtopusJobSpec.")
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            return list(executor.map(self.submit_job, jobs))
+
+    @staticmethod
+    def _ensure_job_spec(job: OqtopusJobSpec, *, expected: models.JobsJobType | None = None, method: str = "run_job") -> OqtopusJobSpec:
+        if not isinstance(job, OqtopusJobSpec):
+            raise TypeError(f"{method} expects OqtopusJobSpec.")
+        if expected is not None and models.JobsJobType(job.job_type) != expected:
+            raise ValueError(f"job.job_type must be '{expected.value}' for {method} (got {job.job_type!r}).")
+        return job
+
+    def run_job(self, job: OqtopusJobSpec, **kwargs: Any) -> OqtopusJobResult:
+        """Submit one job spec, wait until completion, and return typed result.
+
+        Args:
+            job (Required): `OqtopusJobSpec`.
+            kwargs (Optional): ``interval``, ``interval_backoff``, ``max_interval``, ``timeout``,
+                ``terminal_statuses``, ``failure_statuses``.
+        """
+        spec = self._ensure_job_spec(job, method="run_job")
+        finished_job = self._call("run_job", spec.to_submit_job_request(), **kwargs)
+        return self._to_result(finished_job)
+
+    def run_sampling(self, job: OqtopusJobSpec, **kwargs: Any) -> OqtopusSamplingJobResult:
+        """Run a sampling job and return sampling-typed SDK result.
+
+        Args:
+            job (Required): `OqtopusJobSpec` with ``job_type='sampling'``.
+            kwargs (Optional): ``interval``, ``interval_backoff``, ``max_interval``, ``timeout``,
+                ``terminal_statuses``, ``failure_statuses``.
+        """
+        spec = self._ensure_job_spec(job, expected=models.JobsJobType.SAMPLING, method="run_sampling")
+        finished_job = self._call("run_sampling", spec.to_submit_job_request(), **kwargs)
+        result = self._to_result(finished_job)
+        if not isinstance(result, OqtopusSamplingJobResult):
+            raise ResponseValidationError("run_sampling returned non-sampling job result", finished_job.model_dump())
+        return cast(OqtopusSamplingJobResult, result)
+
+    def run_estimation(self, job: OqtopusJobSpec, **kwargs: Any) -> OqtopusEstimationJobResult:
+        """Run an estimation job and return estimation-typed SDK result.
+
+        Args:
+            job (Required): `OqtopusJobSpec` with ``job_type='estimation'``.
+            kwargs (Optional): ``interval``, ``interval_backoff``, ``max_interval``, ``timeout``,
+                ``terminal_statuses``, ``failure_statuses``.
+        """
+        spec = self._ensure_job_spec(job, expected=models.JobsJobType.ESTIMATION, method="run_estimation")
+        finished_job = self._call("run_estimation", spec.to_submit_job_request(), **kwargs)
+        result = self._to_result(finished_job)
+        if not isinstance(result, OqtopusEstimationJobResult):
+            raise ResponseValidationError("run_estimation returned non-estimation job result", finished_job.model_dump())
+        return cast(OqtopusEstimationJobResult, result)
+
+    def run_multi_manual(self, job: OqtopusJobSpec, **kwargs: Any) -> OqtopusMultiManualJobResult:
+        """Run a multi-manual job and return multi-manual-typed SDK result.
+
+        Args:
+            job (Required): `OqtopusJobSpec` with ``job_type='multi_manual'``.
+            kwargs (Optional): ``interval``, ``interval_backoff``, ``max_interval``, ``timeout``,
+                ``terminal_statuses``, ``failure_statuses``.
+        """
+        spec = self._ensure_job_spec(job, expected=models.JobsJobType.MULTI_MANUAL, method="run_multi_manual")
+        finished_job = self._call("run_multi_manual", spec.to_submit_job_request(), **kwargs)
+        result = self._to_result(finished_job)
+        if not isinstance(result, OqtopusMultiManualJobResult):
+            raise ResponseValidationError("run_multi_manual returned non-multi_manual job result", finished_job.model_dump())
+        return cast(OqtopusMultiManualJobResult, result)
+
+    def run_sse(self, job: OqtopusJobSpec, **kwargs: Any) -> OqtopusSseJobResult:
+        """Run an SSE job and return SSE-typed SDK result.
+
+        Args:
+            job (Required): `OqtopusJobSpec` with ``job_type='sse'``.
+            kwargs (Optional): ``interval``, ``interval_backoff``, ``max_interval``, ``timeout``,
+                ``terminal_statuses``, ``failure_statuses``.
+        """
+        spec = self._ensure_job_spec(job, expected=models.JobsJobType.SSE, method="run_sse")
+        finished_job = self._call("run_sse", spec.to_submit_job_request(), **kwargs)
+        result = self._to_result(finished_job)
+        if not isinstance(result, OqtopusSseJobResult):
+            raise ResponseValidationError("run_sse returned non-sse job result", finished_job.model_dump())
+        return cast(OqtopusSseJobResult, result)
+
+    def run_sse_file(self, *, file_path: str | Path, device_id: str, **kwargs: Any) -> OqtopusSseJobResult:
+        """Build and run an SSE job directly from a script file and return SSE result.
+
+        Args:
+            file_path (Required): Path to the Python script.
+            device_id (Required): Target device ID.
+            kwargs (Optional): ``name``, ``description``, ``shots``, ``interval``, ``interval_backoff``,
+                ``max_interval``, ``timeout``, ``terminal_statuses``, ``failure_statuses``.
+        """
+        finished_job = self._call("run_sse_file", file_path=file_path, device_id=device_id, **kwargs)
+        result = self._to_result(finished_job)
+        if not isinstance(result, OqtopusSseJobResult):
+            raise ResponseValidationError("run_sse_file returned non-sse job result", finished_job.model_dump())
+        return cast(OqtopusSseJobResult, result)
+
+    def get_job(self, job_id: str) -> "OqtopusJobHandle":
+        """Fetch one job by id and return its job handle.
+
+        Args:
+            job_id (Required): Target job ID to fetch.
+        """
+        from .job_handle import OqtopusJobHandle
+
+        job = self._call("get_job", job_id)
+        return OqtopusJobHandle(client=self, job_id=job.job_id)
+
+    def get_job_result(self, job_id: str) -> OqtopusJobResult:
+        """Fetch one job by id and convert to typed SDK result.
+
+        Args:
+            job_id (Required): Target job ID to fetch.
+        """
+        return self._to_result(self._call("get_job", job_id))
+
+    def wait_for_job(self, job_id: str, **kwargs: Any) -> OqtopusJobResult:
+        """Poll one job until terminal status/timeout and return typed result.
+
+        Args:
+            job_id (Required): Target job ID to wait for.
+            kwargs (Optional): ``interval``, ``interval_backoff``, ``max_interval``, ``timeout``,
+                ``terminal_statuses``, ``failure_statuses``.
+        """
+        return self._to_result(self._call("wait_for_job", job_id, **kwargs))
+
+    def wait_for_jobs(
+        self,
+        job_ids: list[str],
+        *,
+        interval: float = 1.0,
+        interval_backoff: float = 1.0,
+        max_interval: float | None = None,
+        timeout: float | None = 300.0,
+        max_workers: int = 4,
+    ) -> list[OqtopusJobResult]:
+        """Wait multiple jobs in parallel.
+
+        Args:
+            job_ids (Required): List of job IDs to wait for.
+            interval (Optional): Polling interval in seconds.
+            interval_backoff (Optional): Backoff multiplier for polling interval.
+            max_interval (Optional): Upper bound of polling interval in seconds.
+            timeout (Optional): Timeout in seconds.
+            max_workers (Optional): Waiting concurrency. Default is ``4``.
+        """
+        if max_workers < 1:
+            raise ValueError("max_workers must be >= 1.")
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            return list(
+                executor.map(
+                    lambda job_id: self.wait_for_job(
+                        job_id,
+                        interval=interval,
+                        interval_backoff=interval_backoff,
+                        max_interval=max_interval,
+                        timeout=timeout,
+                    ),
+                    job_ids,
+                )
+            )
+
+    def run_jobs_batch(
+        self,
+        jobs: list[OqtopusJobSpec],
+        *,
+        submit_workers: int = 4,
+        wait_workers: int = 4,
+        interval: float = 1.0,
+        interval_backoff: float = 1.0,
+        max_interval: float | None = None,
+        timeout: float | None = 300.0,
+    ) -> list[OqtopusJobResult]:
+        """Submit multiple jobs, then wait for all of them.
+
+        Args:
+            jobs (Required): List of `OqtopusJobSpec`.
+            submit_workers (Optional): Submission concurrency. Default is ``4``.
+            wait_workers (Optional): Waiting concurrency. Default is ``4``.
+            interval (Optional): Polling interval in seconds.
+            interval_backoff (Optional): Backoff multiplier for polling interval.
+            max_interval (Optional): Upper bound of polling interval in seconds.
+            timeout (Optional): Timeout in seconds.
+        """
+        if submit_workers < 1:
+            raise ValueError("submit_workers must be >= 1.")
+        if any(not isinstance(job, OqtopusJobSpec) for job in jobs):
+            raise TypeError("run_jobs_batch expects a list of OqtopusJobSpec.")
+        submitted = self.submit_jobs(jobs, max_workers=submit_workers)
+        return self.wait_for_jobs(
+            [job.job_id for job in submitted],
+            interval=interval,
+            interval_backoff=interval_backoff,
+            max_interval=max_interval,
+            timeout=timeout,
+            max_workers=wait_workers,
+        )
+
+    def delete_job(self, job_id: str) -> models.SuccessSuccessResponse:
+        """Delete a job by id.
+
+        Args:
+            job_id (Required): Target job ID to delete.
+        """
+        return self._call("delete_job", job_id)
+
+    def get_job_status(self, job_id: str) -> models.JobsGetJobStatusResponse:
+        """Get current status for one job.
+
+        Args:
+            job_id (Required): Target job ID to get status for.
+        """
+        return self._call("get_job_status", job_id)
+
+    def cancel_job(self, job_id: str) -> models.SuccessSuccessResponse:
+        """Cancel a job by id.
+
+        Args:
+            job_id (Required): Target job ID to cancel.
+        """
+        return self._call("cancel_job", job_id)
+
+    def get_sselog(self, job_id: str) -> models.JobsGetSselogResponse:
+        """Get encoded SSE log archive for one job."""
+        return self._call("get_sselog", job_id)
+
+    def create_api_token(self) -> models.ApiTokenApiToken:
+        """Create an API token."""
+        return self._call("create_api_token")
+
+    def delete_api_token(self) -> None:
+        """Delete current API token."""
+        self._call("delete_api_token")
+
+    def get_api_token_status(self) -> models.ApiTokenApiTokenStatus:
+        """Get current API token status."""
+        return self._call("get_api_token_status")
+
+    def get_announcements_list(self) -> models.AnnouncementsGetAnnouncementsListResponse:
+        """List service announcements."""
+        return self._call("get_announcements_list")
+
+    def get_announcement(self, announcement_id: int) -> models.AnnouncementsGetAnnouncementResponse:
+        """Get one announcement by id."""
+        return self._call("get_announcement", announcement_id)
+
+    def get_current_user(self) -> models.UsersGetOneUserResponse:
+        """Get current authenticated user profile."""
+        return self._call("get_current_user")

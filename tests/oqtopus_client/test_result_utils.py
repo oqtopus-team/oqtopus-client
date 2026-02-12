@@ -1,0 +1,36 @@
+from __future__ import annotations
+
+import pytest
+
+from oqtopus_client import bitstring_dict_to_int_keys, bitstring_to_int, models, normalize_sampling_result
+
+
+def test_bitstring_to_int_accepts_binary_and_prefixed_values() -> None:
+    assert bitstring_to_int("0101") == 5
+    assert bitstring_to_int("0b0101") == 5
+    assert bitstring_to_int(" 1_0  ") == 2
+
+
+def test_bitstring_to_int_rejects_invalid_values() -> None:
+    with pytest.raises(ValueError):
+        bitstring_to_int("xyz")
+
+
+def test_bitstring_dict_to_int_keys_converts_mapping() -> None:
+    assert bitstring_dict_to_int_keys({"00": 3, "01": 4}) == {0: 3, 1: 4}
+
+
+def test_normalize_sampling_result_from_model() -> None:
+    sampling = models.JobsSamplingResult(
+        counts={"00": 8, "11": 2},
+        divided_counts={"00": 0.8, "11": 0.2},
+    )
+
+    normalized = normalize_sampling_result(sampling)
+    assert normalized == {"counts": {0: 8, 3: 2}, "divided_counts": {0: 0.8, 3: 0.2}}
+
+
+def test_normalize_sampling_result_from_mapping_and_none() -> None:
+    normalized = normalize_sampling_result({"counts": {"01": 5}})
+    assert normalized == {"counts": {1: 5}, "divided_counts": {}}
+    assert normalize_sampling_result(None) == {"counts": {}, "divided_counts": {}}

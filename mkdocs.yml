@@ -1,0 +1,94 @@
+site_name: "OQTOPUS Client"
+site_description: "Python SDK for OQTOPUS Cloud User API"
+repo_name: oqtopus-client
+repo_url: "https://github.com/oqtopus-team/oqtopus-client"
+
+nav:
+  - Home: index.md
+  - Usage:
+      - Getting started: usage/getting_started.md
+      - OQTOPUS Client Examples: "https://github.com/oqtopus-team/oqtopus-client/tree/main/examples"
+  - API reference:
+      - Overview: reference/index.md
+      - client: reference/client.md
+      - config: reference/config.md
+      - device: reference/device.md
+      - errors: reference/errors.md
+      - estimation_operator: reference/estimation_operator.md
+      - job_handle: reference/job_handle.md
+      - job_results: reference/job_results.md
+      - job_spec: reference/job_spec.md
+      - models: reference/models.md
+  - Developer Guidelines:
+      - Development Flow: developer_guidelines/index.md
+      - Setup Development Environment: developer_guidelines/setup.md
+      - How to Contribute: CONTRIBUTING.md
+      - Code of Conduct: "https://oqtopus-team.github.io/code-of-conduct/"
+      - Security: "https://oqtopus-team.github.io/security-policy/"
+  - Languages:
+      - English:
+          - Home: en/index.md
+          - Quickstart: en/quickstart.md
+          - API Guide: en/api.md
+          - Models Guide: en/models.md
+          - Examples: en/examples.md
+      - 日本語:
+          - ホーム: ja/index.md
+          - クイックスタート: ja/quickstart.md
+          - API ガイド: ja/api.md
+          - Models ガイド: ja/models.md
+          - Examples: ja/examples.md
+
+exclude_docs: |
+  /api.md
+  /models.md
+  /quickstart.md
+  /examples.md
+  /cmd_*.md
+
+theme:
+  name: material
+  palette:
+    primary: "indigo"
+    accent: "indigo"
+  font:
+    text: "Roboto"
+    code: "Roboto Mono"
+  logo: asset/oqtopus-black_symbol.svg
+  favicon: asset/favicon.png
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - toc.follow
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            show_source: true
+            show_root_heading: true
+            show_signature_annotations: true
+            separate_signature: true
+            docstring_style: google
+            show_if_no_docstring: true
+            members_order: alphabetical
+            show_category_heading: true
+            filters:
+              - "!^_"
+
+markdown_extensions:
+  - admonition
+  - footnotes
+  - codehilite
+  - toc:
+      permalink: true
+
+extra_css:
+  - "https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+  - "css/custom.css"
+
+extra_javascript:
+  - "js/custom.js"
