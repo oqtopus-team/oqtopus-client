@@ -6,6 +6,8 @@
 pip install oqtopus-client
 ```
 
+コアクライアントは、他の量子ソフトウェア SDK へ依存せずに利用できます。
+
 ローカル開発時は以下のように利用できます。
 
 ```bash
@@ -28,6 +30,8 @@ pip install -e .
 ```json
 {"api_token_secret":"<token>"}
 ```
+
+一般的なユースケースでは、`OqtopusJobSpec` や `run_*` ヘルパーを使うことで、OpenAPI 生成のリクエストモデルを手動で組み立てずに実行できます。
 
 ## 最小例
 
