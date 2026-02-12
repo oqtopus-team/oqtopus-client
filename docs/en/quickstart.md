@@ -6,6 +6,8 @@
 pip install oqtopus-client
 ```
 
+The core client works without depending on other quantum software SDKs.
+
 For local development:
 
 ```bash
@@ -28,6 +30,8 @@ Supported token file formats:
 ```json
 {"api_token_secret":"<token>"}
 ```
+
+For common workflows, you can use `OqtopusJobSpec` and `run_*` helpers so you do not need to build generated OpenAPI request models manually.
 
 ## Minimal Example
 

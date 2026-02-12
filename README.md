@@ -1,26 +1,21 @@
 # oqtopus-client
 
-OQTOPUS Cloud User API 向けの Python SDK です。
+Python SDK for the OQTOPUS Cloud User API.
 
-## 使い方
+## Key Characteristics
 
-```bash
-make download-oas
-make generate-models
-```
+- Core client usage has no runtime dependency on other quantum software SDKs.
+- Optional integration examples may require extra packages (for example, `qiskit` or `quri-parts`).
+- OpenAPI-generated models are used internally, while helper APIs such as `OqtopusJobSpec` and `run_*` keep common usage simple.
+- HTTP communication is executed asynchronously inside the client runtime, while a synchronous API is exposed for ease of use.
+- Built-in retry/backoff controls and typed result wrappers improve operational robustness.
 
-必要なら生成元や出力先を上書きできます。
-
-```bash
-make -C spec download-oas OAS_URL=https://raw.githubusercontent.com/oqtopus-team/oqtopus-cloud/develop/backend/oas/user/openapi.yaml
-make -C spec generate-models OAS_FILE=openapi.yaml MODEL_OUTPUT_DIR=../src/oqtopus_client/models/generated/models
-```
+## Quick Example
 
 ```python
 from oqtopus_client import OqtopusJobSpec, OqtopusClient, OqtopusConfig
 
 with OqtopusClient(OqtopusConfig(base_url="https://api.example.com", api_token="<token>")) as client:
-    devices = client.list_devices()
     req = OqtopusJobSpec.sampling(
         device_id="Kawasaki",
         program="OPENQASM 3; qubit[2] q; bit[2] c; h q[0]; cx q[0], q[1]; c = measure q;",
@@ -30,7 +25,35 @@ with OqtopusClient(OqtopusConfig(base_url="https://api.example.com", api_token="
     print(final_job.status)
 ```
 
-環境変数から初期化する場合は `OqtopusConfig.from_env()` を使います。
+## Installation
+
+```bash
+pip install oqtopus-client
+```
+
+For local development:
+
+```bash
+pip install -e ".[dev]"
+```
+
+## Usage
+
+Generate/download OAS-derived models:
+
+```bash
+make download-oas
+make generate-models
+```
+
+If needed, you can override the source URL and output destination.
+
+```bash
+make -C spec download-oas OAS_URL=https://raw.githubusercontent.com/oqtopus-team/oqtopus-cloud/develop/backend/oas/user/openapi.yaml
+make -C spec generate-models OAS_FILE=openapi.yaml MODEL_OUTPUT_DIR=../src/oqtopus_client/models/generated/models
+```
+
+To initialize from environment variables, use `OqtopusConfig.from_env()`.
 
 ```bash
 export OQTOPUS_BASE_URL="https://api.example.com"
@@ -44,7 +67,7 @@ with OqtopusClient(OqtopusConfig.from_env()) as client:
     print(client.list_devices())
 ```
 
-再試行ポリシーは初期化引数で調整できます（既定: `GET/DELETE` を 429/5xx で再試行）。
+You can tune retry behavior via initialization arguments (default: retry `GET/DELETE` on 429/5xx).
 
 ```python
 from oqtopus_client import OqtopusClient
@@ -61,7 +84,7 @@ with OqtopusClient(
     print(client.list_devices())
 ```
 
-既定ヘッダの追加や `User-Agent` 上書きも可能です。
+You can also add default headers and override `User-Agent`.
 
 ```python
 from oqtopus_client import OqtopusClient, OqtopusConfig
@@ -76,13 +99,13 @@ with OqtopusClient(
 
 ## examples
 
-`examples/` には Python スクリプトの実行例を用意しています。
+`examples/` contains runnable Python examples.
 
 - `get_devices.py`
 - `run_sampling.py (run_sampling)`
 - `run_estimation.py (run_estimation)`
 - `run_multi_manual.py (run_multi_manual)`
-- `run_sse_file.py (run_sse_file, SSEログは既定メモリ内処理。保存は `download_log(..., persist=True)` を明示指定)`
+- `run_sse_file.py (run_sse_file, SSE logs are handled in memory by default. Persist explicitly with `download_log(..., persist=True)`)`
 - `run_sampling_qiskit.py`
 - `run_sampling_quri_parts.py`
 - `submit_jobs_parallel.py (OqtopusClient.submit_jobs / wait_for_jobs)`
@@ -98,7 +121,7 @@ with OqtopusClient(
 - `get_job.py`
 - `cancel_job.py`
 
-基本の書き方は以下です。
+Basic style:
 
 ```python
 from oqtopus_client import OqtopusClient, OqtopusConfig
@@ -107,19 +130,19 @@ with OqtopusClient(OqtopusConfig.from_file("oqtopus-dev")) as client:
     print(client.list_devices())
 ```
 
-実行例:
+Run example:
 
 ```bash
 python examples/get_devices.py
 ```
 
-IBM Qiskit 回路から submit する example は、以下の追加依存が必要です。
+The Qiskit-based submission example requires this extra dependency.
 
 ```bash
 pip install qiskit
 ```
 
-サンプリング結果の bitstring キーを整数キーへ変換するユーティリティも利用できます。
+You can also use a utility that converts sampling-result bitstring keys to integer keys.
 
 ```python
 from oqtopus_client import normalize_sampling_result
@@ -128,7 +151,7 @@ normalized = normalize_sampling_result(final_job.job_info.result.sampling)
 print(normalized["counts"])
 ```
 
-トークンファイルを排他更新するユーティリティも利用できます。
+A utility for lock-safe API token file updates is also available.
 
 ```python
 from oqtopus_client import write_api_token_file
@@ -136,14 +159,14 @@ from oqtopus_client import write_api_token_file
 write_api_token_file("credentials/token.json", "new-token", as_json=True)
 ```
 
-複数ジョブの submit/wait を並列化するヘルパークラスも用意しています。
+A helper class is available to parallelize submit/wait across multiple jobs.
 
 ```python
 responses = client.submit_jobs([req1, req2], max_workers=2)
 final_jobs = client.wait_for_jobs([r.job_id for r in responses], max_workers=2)
 ```
 
-提出済みジョブを段階的に扱う場合は `OqtopusJobHandle` を使えます。
+Use `OqtopusJobHandle` when you want to manage an already-submitted job step by step.
 
 ```python
 from oqtopus_client import OqtopusJobHandle
@@ -155,7 +178,7 @@ final_job = job.wait(interval=1.0, interval_backoff=1.2, max_interval=5.0, timeo
 print(final_job.status)
 ```
 
-submit + wait をまとめたワンショット実行やバッチ実行ヘルパーも提供しています。
+One-shot submit+wait and batch helper APIs are also provided.
 
 ```python
 final_job = client.run_job(req, timeout=300.0)
@@ -179,7 +202,7 @@ make check
 
 ## docs
 
-docstring から API ドキュメントを自動生成できます。
+API documentation can be generated automatically from docstrings.
 
 ```bash
 pip install -e ".[dev]"
@@ -189,20 +212,20 @@ pip install -e ".[dev]"
 make docs
 ```
 
-ローカルプレビュー:
+Local preview:
 
 ```bash
 make docs-serve
 ```
 
-## 構成
+## Project layout
 
-- `spec/openapi.yaml`: モデル生成元の OAS
-- `spec/Makefile`: `download-oas`（最新版取得）と `openapi-generator` 実行
-- `Makefile`: `spec/Makefile` のラッパー
-- `docs/`: API / 利用方法ドキュメント
-- `mkdocs.yml`: ドキュメント生成設定
-- `src/oqtopus_client/models/generated/`: 生成済みモデル（openapi-generator出力）
-- `src/oqtopus_client/client.py`: 生成モデルを利用する SDK クライアント
-- `examples/`: SDK 利用例
-- `tests/`: SDK テスト
+- `spec/openapi.yaml`: source OAS used for model generation
+- `spec/Makefile`: runs `download-oas` (latest OAS fetch) and `openapi-generator`
+- `Makefile`: wrapper for `spec/Makefile`
+- `docs/`: API and usage documentation
+- `mkdocs.yml`: documentation build settings
+- `src/oqtopus_client/models/generated/`: generated models (openapi-generator output)
+- `src/oqtopus_client/client.py`: SDK client using generated models
+- `examples/`: SDK usage examples
+- `tests/`: SDK tests

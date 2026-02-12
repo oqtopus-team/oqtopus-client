@@ -6,7 +6,11 @@
 pip install oqtopus-client
 ```
 
+The core client works without depending on other quantum software SDKs.
+
 ## Basic usage
+
+You can start with `OqtopusJobSpec` helper methods and run jobs without manually constructing generated OpenAPI models.
 
 ```python
 from oqtopus_client import OqtopusClient, OqtopusConfig, OqtopusJobSpec

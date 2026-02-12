@@ -32,11 +32,11 @@ nav:
           - API Guide: en/api.md
           - Models Guide: en/models.md
           - Examples: en/examples.md
-      - 日本語:
-          - ホーム: ja/index.md
-          - クイックスタート: ja/quickstart.md
-          - API ガイド: ja/api.md
-          - Models ガイド: ja/models.md
+      - Japanese:
+          - Home: ja/index.md
+          - Quickstart: ja/quickstart.md
+          - API Guide: ja/api.md
+          - Models Guide: ja/models.md
           - Examples: ja/examples.md
 
 exclude_docs: |
