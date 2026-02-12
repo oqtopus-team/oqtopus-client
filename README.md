@@ -136,29 +136,6 @@ Run example:
 python examples/get_devices.py
 ```
 
-The Qiskit-based submission example requires this extra dependency.
-
-```bash
-pip install qiskit
-```
-
-You can also use a utility that converts sampling-result bitstring keys to integer keys.
-
-```python
-from oqtopus_client import normalize_sampling_result
-
-normalized = normalize_sampling_result(finished_job.job_info.result.sampling)
-print(normalized["counts"])
-```
-
-A utility for lock-safe API token file updates is also available.
-
-```python
-from oqtopus_client import write_api_token_file
-
-write_api_token_file("credentials/token.json", "new-token", as_json=True)
-```
-
 A helper class is available to parallelize submit/wait across multiple jobs.
 
 ```python
