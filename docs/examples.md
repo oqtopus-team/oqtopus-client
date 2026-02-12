@@ -36,8 +36,8 @@ python examples/get_devices.py
 from oqtopus_client import OqtopusClient, OqtopusConfig
 
 with OqtopusClient(OqtopusConfig.from_file("oqtopus-dev")) as client:
-    final_job = client.run_job(request, timeout=300.0)
-    print(final_job.status)
+    finished_job = client.run_job(request, timeout=300.0)
+    print(finished_job.status)
 ```
 
 セクション名・ファイルパスを変える場合は、各スクリプト内の
@@ -53,6 +53,6 @@ with OqtopusClient(OqtopusConfig.from_file("oqtopus-dev")) as client:
 ```python
 from oqtopus_client import normalize_sampling_result
 
-normalized = normalize_sampling_result(final_job.job_info.result.sampling)
+normalized = normalize_sampling_result(finished_job.job_info.result.sampling)
 print(normalized["counts"])
 ```

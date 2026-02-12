@@ -83,8 +83,8 @@ req = models.JobsSubmitJobRequest(
 )
 
 with OqtopusClient(OqtopusConfig(base_url="https://api.example.com", api_token="<token>")) as client:
-    final_job = client.run_job(req, timeout=300.0)
-    print(final_job.status)
+    finished_job = client.run_job(req, timeout=300.0)
+    print(finished_job.status)
 ```
 
 `job_type` ごとのショートカットも使えます（不一致時は `ValueError`）。
@@ -105,7 +105,7 @@ submitted_job = client.submit_job(req)
 job = OqtopusJobHandle(client, submitted_job.job_id)
 print(job.job_id)
 print(job.status())
-final_job = job.wait(interval=1.0, interval_backoff=1.2, max_interval=5.0, timeout=300.0)
+finished_job = job.wait(interval=1.0, interval_backoff=1.2, max_interval=5.0, timeout=300.0)
 ```
 
 ## 言語

@@ -28,8 +28,8 @@
 from oqtopus_client import OqtopusClient, OqtopusConfig
 
 with OqtopusClient(OqtopusConfig.from_file("oqtopus-dev")) as client:
-    final_job = client.run_job(request, timeout=300.0)
-    print(final_job.status)
+    finished_job = client.run_job(request, timeout=300.0)
+    print(finished_job.status)
 ```
 
 実行例:
@@ -54,8 +54,8 @@ from oqtopus_client import OqtopusClient, OqtopusConfig
 
 with OqtopusClient(OqtopusConfig.from_env()) as client:
     submitted_job = client.submit_job(request)
-    final_job = client.wait_for_job(submitted_job.job_id, interval=2.0, timeout=300.0)
-    print(final_job.status)
+    finished_job = client.wait_for_job(submitted_job.job_id, interval=2.0, timeout=300.0)
+    print(finished_job.status)
 ```
 
 結果整形ユーティリティ:
@@ -63,7 +63,7 @@ with OqtopusClient(OqtopusConfig.from_env()) as client:
 ```python
 from oqtopus_client import normalize_sampling_result
 
-normalized = normalize_sampling_result(final_job.job_info.result.sampling)
+normalized = normalize_sampling_result(finished_job.job_info.result.sampling)
 print(normalized["counts"])
 ```
 

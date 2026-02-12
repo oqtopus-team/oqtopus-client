@@ -21,8 +21,8 @@ with OqtopusClient(OqtopusConfig(base_url="https://api.example.com", api_token="
         program="OPENQASM 3; qubit[2] q; bit[2] c; h q[0]; cx q[0], q[1]; c = measure q;",
         shots=1000,
     )
-    final_job = client.run_sampling(req, interval=2.0, timeout=300.0)
-    print(final_job.status)
+    finished_job = client.run_sampling(req, interval=2.0, timeout=300.0)
+    print(finished_job.status)
 ```
 
 ## Installation
@@ -147,7 +147,7 @@ You can also use a utility that converts sampling-result bitstring keys to integ
 ```python
 from oqtopus_client import normalize_sampling_result
 
-normalized = normalize_sampling_result(final_job.job_info.result.sampling)
+normalized = normalize_sampling_result(finished_job.job_info.result.sampling)
 print(normalized["counts"])
 ```
 
@@ -163,7 +163,7 @@ A helper class is available to parallelize submit/wait across multiple jobs.
 
 ```python
 responses = client.submit_jobs([req1, req2], max_workers=2)
-final_jobs = client.wait_for_jobs([r.job_id for r in responses], max_workers=2)
+finished_jobs = client.wait_for_jobs([r.job_id for r in responses], max_workers=2)
 ```
 
 Use `OqtopusJobHandle` when you want to manage an already-submitted job step by step.
@@ -174,14 +174,14 @@ from oqtopus_client import OqtopusJobHandle
 submitted_job = client.submit_job(req)
 job = OqtopusJobHandle(client, submitted_job.job_id)
 print(job.status())
-final_job = job.wait(interval=1.0, interval_backoff=1.2, max_interval=5.0, timeout=300.0)
-print(final_job.status)
+finished_job = job.wait(interval=1.0, interval_backoff=1.2, max_interval=5.0, timeout=300.0)
+print(finished_job.status)
 ```
 
 One-shot submit+wait and batch helper APIs are also provided.
 
 ```python
-final_job = client.run_job(req, timeout=300.0)
+finished_job = client.run_job(req, timeout=300.0)
 batch_results = client.run_jobs_batch([req1, req2], submit_workers=2, wait_workers=2)
 ```
 
