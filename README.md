@@ -84,19 +84,6 @@ with OqtopusClient(
     print(client.list_devices())
 ```
 
-You can also add default headers and override `User-Agent`.
-
-```python
-from oqtopus_client import OqtopusClient, OqtopusConfig
-
-with OqtopusClient(
-    OqtopusConfig(base_url="https://api.example.com", api_token="<token>"),
-    default_headers={"X-Trace-ID": "trace-123"},
-    user_agent="my-app/1.0.0",
-) as client:
-    print(client.get_current_user())
-```
-
 ## examples
 
 `examples/` contains runnable Python examples.
