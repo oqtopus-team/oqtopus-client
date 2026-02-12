@@ -133,8 +133,6 @@ class _AsyncOqtopusClient:
             token = text
 
         token = token.strip()
-        if token.startswith("Bearer "):
-            token = token[len("Bearer ") :].strip()
         if not token:
             raise ValueError(f"API token not found in file: {api_token_file}")
         return token

@@ -78,7 +78,7 @@ def test_async_client_allows_empty_base_url_in_sse_container(monkeypatch: pytest
 
 def test_async_client_accepts_default_headers_and_token_file(tmp_path: Path) -> None:
     token_file = tmp_path / "token.txt"
-    token_file.write_text("Bearer from-file", encoding="utf-8")
+    token_file.write_text("from-file", encoding="utf-8")
     client = _AsyncOqtopusClient(
         OqtopusConfig(base_url="http://test", api_token_file=token_file),
         client=_async_client(httpx.MockTransport(lambda request: httpx.Response(200, json=[]))),
@@ -93,7 +93,7 @@ def test_async_client_accepts_default_headers_and_token_file(tmp_path: Path) -> 
 
 def test_load_api_token_from_file_formats(tmp_path: Path) -> None:
     plain = tmp_path / "plain.txt"
-    plain.write_text("Bearer plain-token\n", encoding="utf-8")
+    plain.write_text("plain-token\n", encoding="utf-8")
     assert _AsyncOqtopusClient._load_api_token_from_file(plain) == "plain-token"
 
     json_str = tmp_path / "json_string.txt"
