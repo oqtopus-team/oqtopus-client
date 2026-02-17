@@ -92,7 +92,8 @@ class _AsyncOqtopusClient:
             raise ValueError("config.base_url is required.")
 
         self.base_url = config.base_url.rstrip("/") if config.base_url else ""
-        self._client = client or httpx.AsyncClient(timeout=config.timeout)
+        self._proxy = config.proxy
+        self._client = client or httpx.AsyncClient(timeout=config.timeout, proxy=config.proxy)
         self._owns_client = client is None
         self._use_generated_api = client is None
         self._headers: dict[str, str] = {"User-Agent": user_agent or _resolve_user_agent()}
@@ -140,6 +141,7 @@ class _AsyncOqtopusClient:
             return
         generated_host = self.base_url or "http://localhost"
         self._generated_config = GeneratedConfiguration(host=generated_host)
+        self._generated_config.proxy = self._proxy
         self._generated_config.retries = self._retry_max_attempts if self._retry_max_attempts > 1 else None
         self._generated_client = GeneratedApiClient(configuration=self._generated_config)
         self._generated_client.user_agent = self._headers["User-Agent"]

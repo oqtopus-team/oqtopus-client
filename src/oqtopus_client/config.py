@@ -3,10 +3,11 @@ from __future__ import annotations
 import configparser
 import os
 from dataclasses import dataclass
+from dataclasses import field
 from pathlib import Path
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, init=False)
 class OqtopusConfig:
     """Shared client configuration bundle.
 
@@ -24,11 +25,41 @@ class OqtopusConfig:
     base_url: str
     api_token: str | None = None
     api_token_file: str | Path | None = None
+    proxy: str | None = None
     timeout: float = 30.0
     retry_max_attempts: int = 3
     retry_backoff_seconds: float = 0.2
     retry_status_codes: frozenset[int] | None = None
     retry_methods: frozenset[str] | None = None
+    url: str = field(init=False)
+
+    def __init__(
+        self,
+        base_url: str | None = None,
+        api_token: str | None = None,
+        api_token_file: str | Path | None = None,
+        proxy: str | None = None,
+        timeout: float = 30.0,
+        retry_max_attempts: int = 3,
+        retry_backoff_seconds: float = 0.2,
+        retry_status_codes: frozenset[int] | None = None,
+        retry_methods: frozenset[str] | None = None,
+        *,
+        url: str | None = None,
+    ) -> None:
+        resolved_base_url = base_url if base_url is not None else url
+        if resolved_base_url is None:
+            raise ValueError("base_url (or url) is required.")
+        object.__setattr__(self, "base_url", resolved_base_url)
+        object.__setattr__(self, "url", resolved_base_url)
+        object.__setattr__(self, "api_token", api_token)
+        object.__setattr__(self, "api_token_file", api_token_file)
+        object.__setattr__(self, "proxy", proxy)
+        object.__setattr__(self, "timeout", timeout)
+        object.__setattr__(self, "retry_max_attempts", retry_max_attempts)
+        object.__setattr__(self, "retry_backoff_seconds", retry_backoff_seconds)
+        object.__setattr__(self, "retry_status_codes", retry_status_codes)
+        object.__setattr__(self, "retry_methods", retry_methods)
 
     @classmethod
     def from_file(
@@ -58,7 +89,7 @@ class OqtopusConfig:
             raise ValueError(f"Section '{section}' not found in config file: {expanded}")
 
         cfg = parser[section]
-        base_url = cfg.get("base_url") or cfg.get("url")
+        base_url = cfg.get("url") or cfg.get("base_url")
         if not base_url:
             raise ValueError(
                 f"Section '{section}' in {expanded} must define 'base_url' or 'url'."
@@ -66,12 +97,14 @@ class OqtopusConfig:
 
         api_token = cfg.get("api_token")
         api_token_file = cfg.get("api_token_file")
+        proxy = cfg.get("proxy")
         timeout = cfg.getfloat("timeout", fallback=30.0)
 
         return cls(
             base_url=base_url,
             api_token=api_token,
             api_token_file=Path(api_token_file) if api_token_file else None,
+            proxy=proxy,
             timeout=timeout,
         )
 
@@ -80,6 +113,7 @@ class OqtopusConfig:
         cls,
         *,
         base_url_env: str = "OQTOPUS_BASE_URL",
+        proxy_env: str = "OQTOPUS_PROXY",
         api_token_env: str = "OQTOPUS_API_TOKEN",
         api_token_file_env: str = "OQTOPUS_API_TOKEN_FILE",
     ) -> "OqtopusConfig":
@@ -94,4 +128,5 @@ class OqtopusConfig:
             base_url=base_url,
             api_token=api_token,
             api_token_file=Path(api_token_file_value) if api_token_file_value else None,
+            proxy=os.getenv(proxy_env),
         )

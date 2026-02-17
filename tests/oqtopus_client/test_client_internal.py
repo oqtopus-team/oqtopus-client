@@ -91,6 +91,31 @@ def test_async_client_accepts_default_headers_and_token_file(tmp_path: Path) -> 
         asyncio.run(client.close())
 
 
+def test_async_client_applies_proxy_to_internal_clients(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, Any] = {}
+
+    class _FakeAsyncClient:
+        def __init__(self, **kwargs: Any) -> None:
+            captured.update(kwargs)
+
+        async def aclose(self) -> None:
+            return None
+
+    monkeypatch.setattr("oqtopus_client.client.httpx.AsyncClient", _FakeAsyncClient)
+
+    client = _AsyncOqtopusClient(
+        OqtopusConfig(base_url="http://test.local", proxy="http://proxy.local:8080"),
+    )
+    try:
+        assert captured["timeout"] == 30.0
+        assert captured["proxy"] == "http://proxy.local:8080"
+        asyncio.run(client._ensure_generated_api())
+        assert client._generated_config is not None
+        assert client._generated_config.proxy == "http://proxy.local:8080"
+    finally:
+        asyncio.run(client.close())
+
+
 def test_load_api_token_from_file_formats(tmp_path: Path) -> None:
     plain = tmp_path / "plain.txt"
     plain.write_text("plain-token\n", encoding="utf-8")

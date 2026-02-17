@@ -43,8 +43,31 @@ def test_from_file_supports_url_fallback_and_token_file(tmp_path: Path) -> None:
 
     config = OqtopusConfig.from_file("profile", config_file)
     assert config.base_url == "https://api.example.com"
+    assert config.url == "https://api.example.com"
     assert config.api_token_file == token_path
     assert config.timeout == 12.5
+
+
+def test_constructor_accepts_url_alias() -> None:
+    config = OqtopusConfig(url="https://api.example.com", api_token="token")
+    assert config.base_url == "https://api.example.com"
+    assert config.url == "https://api.example.com"
+    assert config.api_token == "token"
+
+
+def test_from_file_reads_proxy(tmp_path: Path) -> None:
+    config_file = tmp_path / "oqtopus.ini"
+    config_file.write_text(
+        (
+            "[profile]\n"
+            "url=https://api.example.com\n"
+            "api_token=t\n"
+            "proxy=http://proxy.local:8080\n"
+        ),
+        encoding="utf-8",
+    )
+    config = OqtopusConfig.from_file("profile", config_file)
+    assert config.proxy == "http://proxy.local:8080"
 
 
 def test_from_env_requires_base_url(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -58,11 +81,14 @@ def test_from_env_reads_token_file_path(monkeypatch: pytest.MonkeyPatch, tmp_pat
     monkeypatch.setenv("OQTOPUS_BASE_URL", "https://api.example.com")
     monkeypatch.setenv("OQTOPUS_API_TOKEN", "secret")
     monkeypatch.setenv("OQTOPUS_API_TOKEN_FILE", str(token_path))
+    monkeypatch.setenv("OQTOPUS_PROXY", "http://proxy.local:8080")
 
     config = OqtopusConfig.from_env()
     assert config.base_url == "https://api.example.com"
+    assert config.url == "https://api.example.com"
     assert config.api_token == "secret"
     assert config.api_token_file == token_path
+    assert config.proxy == "http://proxy.local:8080"
 
 
 def test_from_file_returns_empty_config_in_sse_container(monkeypatch: pytest.MonkeyPatch) -> None:
