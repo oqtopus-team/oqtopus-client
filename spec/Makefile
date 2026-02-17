@@ -5,7 +5,7 @@ SHELL := bash
 OAS_FILE ?= openapi.yaml
 OAS_URL ?= https://raw.githubusercontent.com/oqtopus-team/oqtopus-cloud/main/backend/oas/user/openapi.yaml
 OPENAPI_GENERATOR_IMAGE ?= openapitools/openapi-generator-cli:v7.8.0
-MODEL_OUTPUT_DIR ?= ../src/oqtopus_client/models/generated/models
+MODEL_OUTPUT_DIR ?= ../src/oqtopus_client/models
 GEN_TMP_DIR ?= .openapi-generator-output
 
 .PHONY: download-oas generate-models
@@ -27,4 +27,4 @@ generate-models:
 		--global-property=models,modelDocs=false,modelTests=false,apis=false,apiDocs=false,apiTests=false \
 		--additional-properties=packageName=oqtopus_client.models.generated,projectName=oqtopus-client,hideGenerationTimestamp=true
 	mkdir -p $(MODEL_OUTPUT_DIR)
-	rsync -a $(GEN_TMP_DIR)/oqtopus_client/models/generated/models/ $(MODEL_OUTPUT_DIR)/
+	rsync -a $(GEN_TMP_DIR)/oqtopus_client/models/ $(MODEL_OUTPUT_DIR)/
