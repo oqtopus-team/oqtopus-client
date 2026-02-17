@@ -596,9 +596,9 @@ def test_run_job_accepts_attribute_based_response_in_sse_container(monkeypatch: 
             self.device_id = "sse"
             self.shots = 1
             self.job_info = ForeignJobInfo()
-            self.transpiler_info = {}
-            self.simulator_info = {}
-            self.mitigation_info = {}
+            self.transpiler_info: dict[str, Any] = {}
+            self.simulator_info: dict[str, Any] = {}
+            self.mitigation_info: dict[str, Any] = {}
 
     fake_module = types.SimpleNamespace(
         req_transpile_and_exec=lambda program, shots, transpiler_info: ForeignJobDef()

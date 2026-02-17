@@ -39,14 +39,6 @@ OpenAPI から自動生成された Pydantic モデルです。
 
 ::: oqtopus_client.models.generated.DevicesDeviceInfo
 
-### 5) ユーザー情報
-
-ユーザー情報の取得・更新で使うモデルです。
-
-::: oqtopus_client.models.generated.UsersGetOneUserResponse
-
-::: oqtopus_client.models.generated.UsersUpdateUserRequest
-
 ## 最小利用例
 
 ```python

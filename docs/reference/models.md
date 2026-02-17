@@ -31,12 +31,6 @@ This page lists commonly used models first, then provides the full generated mod
 
 ::: oqtopus_client.models.generated.DevicesDeviceInfo
 
-### 5) User profile
-
-::: oqtopus_client.models.generated.UsersGetOneUserResponse
-
-::: oqtopus_client.models.generated.UsersUpdateUserRequest
-
 ## Minimal Model Usage
 
 ```python

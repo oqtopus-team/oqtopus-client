@@ -36,7 +36,7 @@ typecheck:
 check: lint typecheck test
 
 docs:
-	@if [ -x .venv/bin/python ]; then \
+	@if [ -x .venv/bin/python ] && .venv/bin/python -c "import mkdocs, mkdocstrings, mkdocstrings_handlers.python" >/dev/null 2>&1; then \
 		PYTHONPATH=src .venv/bin/python -m mkdocs build --strict; \
 	elif python3 -c "import mkdocs, mkdocstrings, mkdocstrings_handlers.python" >/dev/null 2>&1; then \
 		PYTHONPATH=src python3 -m mkdocs build --strict; \
@@ -48,7 +48,7 @@ docs:
 	fi
 
 docs-serve:
-	@if [ -x .venv/bin/python ]; then \
+	@if [ -x .venv/bin/python ] && .venv/bin/python -c "import mkdocs, mkdocstrings, mkdocstrings_handlers.python" >/dev/null 2>&1; then \
 		PYTHONPATH=src .venv/bin/python -m mkdocs serve -a $(DOCS_ADDR); \
 	elif python3 -c "import mkdocs, mkdocstrings, mkdocstrings_handlers.python" >/dev/null 2>&1; then \
 		PYTHONPATH=src python3 -m mkdocs serve -a $(DOCS_ADDR); \
