@@ -24,7 +24,7 @@ generate-models:
 		-g python \
 		-i /local/spec/$(OAS_FILE) \
 		-o /local/out \
-		--global-property=models,modelDocs=false,modelTests=false,apis=false,apiDocs=false,apiTests=false \
-		--additional-properties=packageName=oqtopus_client.models.generated,projectName=oqtopus-client,hideGenerationTimestamp=true
+		--global-property=models,apis,supportingFiles,modelDocs=false,modelTests=false,apiDocs=false,apiTests=false \
+		--additional-properties=packageName=oqtopus_client.models.generated,projectName=oqtopus-client,hideGenerationTimestamp=true,library=asyncio
 	mkdir -p $(MODEL_OUTPUT_DIR)
 	rsync -a $(GEN_TMP_DIR)/oqtopus_client/models/ $(MODEL_OUTPUT_DIR)/

@@ -28,10 +28,9 @@ class ApiTokenApiToken(BaseModel):
     """
     ApiTokenApiToken
     """ # noqa: E501
-    api_token_id: Optional[StrictStr] = Field(default=None, description="The api token id")
     api_token_secret: Optional[StrictStr] = Field(default=None, description="The api token secret")
     api_token_expiration: Optional[datetime] = Field(default=None, description="The expiration date of the api token")
-    __properties: ClassVar[List[str]] = ["api_token_id", "api_token_secret", "api_token_expiration"]
+    __properties: ClassVar[List[str]] = ["api_token_secret", "api_token_expiration"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -84,7 +83,6 @@ class ApiTokenApiToken(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "api_token_id": obj.get("api_token_id"),
             "api_token_secret": obj.get("api_token_secret"),
             "api_token_expiration": obj.get("api_token_expiration")
         })

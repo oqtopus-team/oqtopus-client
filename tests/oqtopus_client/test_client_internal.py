@@ -629,8 +629,6 @@ def test_async_run_helpers_and_endpoint_wrappers() -> None:
             return httpx.Response(200, json={"job_id": body.get("name", "job-1")})
         if request.method == "GET" and request.url.path.endswith("/sselog"):
             return httpx.Response(200, json={"file_name": "x.zip", "file": "eA=="})
-        if request.method == "GET" and request.url.path == "/api-token/status":
-            return httpx.Response(200, json={"api_token_expiration": None})
         if request.method == "GET" and request.url.path.endswith("/status"):
             job_id = request.url.path.split("/")[-2]
             return httpx.Response(200, json={"job_id": job_id, "status": statuses[job_id]})
@@ -653,7 +651,9 @@ def test_async_run_helpers_and_endpoint_wrappers() -> None:
         if request.method == "POST" and request.url.path.endswith("/cancel"):
             return httpx.Response(200, json={"message": "ok"})
         if request.method == "POST" and request.url.path == "/api-token":
-            return httpx.Response(200, json={"api_token_secret": "s"})
+            return httpx.Response(200, json=[{"api_token_secret": "s"}])
+        if request.method == "GET" and request.url.path == "/api-token":
+            return httpx.Response(200, json=[{"api_token_secret": "s"}])
         if request.method == "GET" and request.url.path == "/announcements":
             return httpx.Response(200, json={"announcements": []})
         if request.method == "GET" and request.url.path.startswith("/announcements/"):
@@ -668,8 +668,6 @@ def test_async_run_helpers_and_endpoint_wrappers() -> None:
                     "publishable": True,
                 },
             )
-        if request.method == "GET" and request.url.path == "/users/me":
-            return httpx.Response(200, json={"email": "a@example.com"})
         if request.method == "GET" and request.url.path.startswith("/devices/"):
             return httpx.Response(
                 200,
@@ -714,10 +712,9 @@ def test_async_run_helpers_and_endpoint_wrappers() -> None:
         assert asyncio.run(client.cancel_job("job-1")).message == "ok"
         assert asyncio.run(client.get_sselog("job-1")).file_name == "x.zip"
         assert asyncio.run(client.create_api_token()).api_token_secret == "s"
-        assert asyncio.run(client.get_api_token_status()).api_token_expiration is None
+        assert asyncio.run(client.get_api_token())[0].api_token_secret == "s"
         assert asyncio.run(client.get_announcements_list()).announcements == []
         assert asyncio.run(client.get_announcement(1)).id == 1
-        assert asyncio.run(client.get_current_user()).email == "a@example.com"
         assert asyncio.run(client.get_device("K")).device_id == "K"
     finally:
         asyncio.run(client.close())
@@ -821,9 +818,9 @@ def test_sync_wrappers_delegate_to_call(monkeypatch: pytest.MonkeyPatch) -> None
         if name == "get_sselog":
             return models.JobsGetSselogResponse(file="Zm9v", file_name="x.zip")
         if name == "create_api_token":
-            return models.ApiTokenApiToken(api_token_secret="secret", api_token_id="id-1", api_token_expiration=None)
-        if name == "get_api_token_status":
-            return models.ApiTokenApiTokenStatus(api_token_expiration=None)
+            return models.ApiTokenApiToken(api_token_secret="secret", api_token_expiration=None)
+        if name == "get_api_token":
+            return [models.ApiTokenApiToken(api_token_expiration=None)]
         if name == "get_announcements_list":
             return models.AnnouncementsGetAnnouncementsListResponse(
                 announcements=[
@@ -845,15 +842,6 @@ def test_sync_wrappers_delegate_to_call(monkeypatch: pytest.MonkeyPatch) -> None
                 start_time=datetime(2025, 1, 1, tzinfo=timezone.utc),
                 end_time=datetime(2025, 12, 31, tzinfo=timezone.utc),
                 publishable=True,
-            )
-        if name == "get_current_user":
-            return models.UsersGetOneUserResponse(
-                id=1,
-                email="a@example.com",
-                name="A",
-                organization="Org",
-                created_at=datetime(2025, 1, 1, tzinfo=timezone.utc),
-                login_events=[],
             )
         return "ok"
 
@@ -884,14 +872,13 @@ def test_sync_wrappers_delegate_to_call(monkeypatch: pytest.MonkeyPatch) -> None
     assert isinstance(client.cancel_job("j"), models.SuccessSuccessResponse)
     assert isinstance(client.get_sselog("j"), models.JobsGetSselogResponse)
     assert isinstance(client.create_api_token(), models.ApiTokenApiToken)
+    assert isinstance(client.get_api_token(), list)
     client.delete_api_token()
-    assert isinstance(client.get_api_token_status(), models.ApiTokenApiTokenStatus)
     assert isinstance(client.get_announcements_list(), models.AnnouncementsGetAnnouncementsListResponse)
     assert isinstance(client.get_announcement(1), models.AnnouncementsGetAnnouncementResponse)
-    assert isinstance(client.get_current_user(), models.UsersGetOneUserResponse)
     client.set_api_token("token")
 
     methods = {name for name, _, _ in called}
     assert "get_device" in methods
-    assert "get_current_user" in methods
+    assert "get_api_token" in methods
     client._async.set_api_token.assert_called_once_with("token")

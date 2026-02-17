@@ -28,6 +28,11 @@ dependencies = [
   "httpx>=0.27.0",
   "pydantic>=2.7.0",
   "pyyaml>=6.0.0",
+  "python-dateutil>=2.5.3",
+  "typing-extensions>=4.7.1",
+  "urllib3>=1.25.3,<2.1.0",
+  "aiohttp>=3.0.0",
+  "aiohttp-retry>=2.8.3",
 ]
 
 [project.urls]
@@ -45,6 +50,7 @@ dev = [
   "pytest-cov>=5.0.0",
   "ruff>=0.6.0",
   "types-PyYAML>=6.0.12.20241230",
+  "types-python-dateutil>=2.9.0.20250516",
 ]
 
 [tool.pytest.ini_options]
@@ -64,6 +70,10 @@ lint.ignore = ["E402", "E501"]
 [tool.mypy]
 files = ["src", "tests", "examples"]
 exclude = "src/oqtopus_client/models/generated/.*"
+
+[[tool.mypy.overrides]]
+module = ["oqtopus_client.models.generated.*"]
+ignore_errors = true
 
 [tool.setuptools.package-dir]
 "" = "src"

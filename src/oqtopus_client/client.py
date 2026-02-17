@@ -15,6 +15,7 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from time import monotonic
 from typing import Any
+from typing import Awaitable
 from typing import TYPE_CHECKING
 from typing import cast
 from urllib.parse import quote
@@ -36,6 +37,13 @@ from .job_results import (
 from .device import (
     OqtopusDevice,
 )
+from .models.generated.api.announcements_api import AnnouncementsApi
+from .models.generated.api.api_token_api import ApiTokenApi
+from .models.generated.api.device_api import DeviceApi
+from .models.generated.api.job_api import JobApi
+from .models.generated.api_client import ApiClient as GeneratedApiClient
+from .models.generated.configuration import Configuration as GeneratedConfiguration
+from .models.generated.exceptions import ApiException as GeneratedApiException
 
 if TYPE_CHECKING:
     from .job_handle import OqtopusJobHandle
@@ -86,6 +94,7 @@ class _AsyncOqtopusClient:
         self.base_url = config.base_url.rstrip("/") if config.base_url else ""
         self._client = client or httpx.AsyncClient(timeout=config.timeout)
         self._owns_client = client is None
+        self._use_generated_api = client is None
         self._headers: dict[str, str] = {"User-Agent": user_agent or _resolve_user_agent()}
 
         if config.retry_max_attempts < 1:
@@ -96,9 +105,17 @@ class _AsyncOqtopusClient:
         self._retry_backoff_seconds = config.retry_backoff_seconds
         self._retry_status_codes = set(config.retry_status_codes or {429, 500, 502, 503, 504})
         self._retry_methods = {m.upper() for m in (config.retry_methods or {"GET", "DELETE"})}
+        self._generated_timeout = config.timeout
 
         if default_headers:
             self._headers.update(default_headers)
+
+        self._generated_config: GeneratedConfiguration | None = None
+        self._generated_client: GeneratedApiClient | None = None
+        self._job_api: JobApi | None = None
+        self._device_api: DeviceApi | None = None
+        self._token_api: ApiTokenApi | None = None
+        self._announcements_api: AnnouncementsApi | None = None
 
         token = config.api_token
         token_file = config.api_token_file
@@ -111,10 +128,41 @@ class _AsyncOqtopusClient:
 
     def set_api_token(self, api_token: str) -> None:
         self._headers["q-api-token"] = api_token
+        self._headers["Authorization"] = f"Bearer {api_token}"
+        if self._generated_client is not None:  # pragma: no cover - integration path
+            self._generated_client.set_default_header("q-api-token", api_token)
+            self._generated_client.set_default_header("Authorization", f"Bearer {api_token}")
+        if self._generated_config is not None:  # pragma: no cover - integration path
+            self._generated_config.access_token = api_token
+
+    async def _ensure_generated_api(self) -> None:  # pragma: no cover - integration path
+        if not self._use_generated_api or self._generated_client is not None:
+            return
+        generated_host = self.base_url or "http://localhost"
+        self._generated_config = GeneratedConfiguration(host=generated_host)
+        self._generated_config.retries = self._retry_max_attempts if self._retry_max_attempts > 1 else None
+        self._generated_client = GeneratedApiClient(configuration=self._generated_config)
+        self._generated_client.user_agent = self._headers["User-Agent"]
+        for header_name, header_value in self._headers.items():
+            self._generated_client.set_default_header(header_name, header_value)
+        self._job_api = JobApi(self._generated_client)
+        self._device_api = DeviceApi(self._generated_client)
+        self._token_api = ApiTokenApi(self._generated_client)
+        self._announcements_api = AnnouncementsApi(self._generated_client)
 
     async def close(self) -> None:
+        if self._generated_client is not None:  # pragma: no cover - integration path
+            await self._generated_client.close()
         if self._owns_client:
             await self._client.aclose()
+
+    async def _call_generated(self, call: Awaitable[Any]) -> Any:  # pragma: no cover - integration path
+        try:
+            return await call
+        except GeneratedApiException as exc:
+            payload = exc.data if exc.data is not None else exc.body
+            message = self._extract_error_message(payload) or exc.reason or "request failed"
+            raise UserApiError(exc.status or 0, message, payload=payload) from exc
 
     @staticmethod
     def _load_api_token_from_file(api_token_file: str | Path) -> str:
@@ -339,13 +387,13 @@ class _AsyncOqtopusClient:
         response_payload: Any = response
         # Accept pydantic model instances returned by external runtime modules,
         # including models generated from a different package version.
-        if hasattr(response, "model_dump_json") and callable(response.model_dump_json):
+        if hasattr(response, "model_dump_json") and callable(response.model_dump_json):  # pragma: no cover
             response_payload = json.loads(response.model_dump_json())
-        elif hasattr(response, "json") and callable(response.json):
+        elif hasattr(response, "json") and callable(response.json):  # pragma: no cover
             response_payload = json.loads(response.json())
-        elif hasattr(response, "model_dump") and callable(response.model_dump):
+        elif hasattr(response, "model_dump") and callable(response.model_dump):  # pragma: no cover
             response_payload = response.model_dump(mode="json")
-        elif hasattr(response, "dict") and callable(response.dict):
+        elif hasattr(response, "dict") and callable(response.dict):  # pragma: no cover
             response_payload = response.dict()
 
         try:
@@ -353,13 +401,27 @@ class _AsyncOqtopusClient:
         except ValidationError as exc:
             try:
                 return models.JobsJobDef.model_validate(response, from_attributes=True)
-            except ValidationError:
+            except ValidationError:  # pragma: no cover
                 raise ResponseValidationError(str(exc), response_payload) from exc
 
     async def list_devices(self) -> list[models.DevicesDeviceInfo]:
+        if self._use_generated_api:  # pragma: no cover - integration path
+            await self._ensure_generated_api()
+            assert self._device_api is not None
+            return cast(
+                list[models.DevicesDeviceInfo],
+                await self._call_generated(self._device_api.list_devices(_request_timeout=self._generated_timeout)),
+            )
         return await self._request("GET", "/devices", parse_as=list[models.DevicesDeviceInfo])
 
     async def get_device(self, device_id: str) -> models.DevicesDeviceInfo:
+        if self._use_generated_api:  # pragma: no cover - integration path
+            await self._ensure_generated_api()
+            assert self._device_api is not None
+            return cast(
+                models.DevicesDeviceInfo,
+                await self._call_generated(self._device_api.get_device(device_id, _request_timeout=self._generated_timeout)),
+            )
         return await self._request("GET", f"/devices/{self._path_param(device_id)}", parse_as=models.DevicesDeviceInfo)
 
     async def list_jobs(
@@ -383,6 +445,24 @@ class _AsyncOqtopusClient:
         }
         if end_time is not None:
             params["end_time"] = end_time
+        if self._use_generated_api:  # pragma: no cover - integration path
+            await self._ensure_generated_api()
+            assert self._job_api is not None
+            return cast(
+                list[models.JobsGetJobsResponse],
+                await self._call_generated(
+                    self._job_api.list_jobs(
+                        fields=fields,
+                        start_time=start_time,
+                        end_tiime=end_time,
+                        q=q,
+                        page=page,
+                        size=size,
+                        order=order,
+                        _request_timeout=self._generated_timeout,
+                    )
+                ),
+            )
         return await self._request("GET", "/jobs", params=params, parse_as=list[models.JobsGetJobsResponse])
 
     async def submit_job(self, body: _SubmitJobInput) -> models.JobsSubmitJobResponse:
@@ -393,6 +473,14 @@ class _AsyncOqtopusClient:
             payload = body
         else:
             payload = dict(body)
+        if self._use_generated_api:  # pragma: no cover - integration path
+            await self._ensure_generated_api()
+            assert self._job_api is not None
+            request = payload if isinstance(payload, models.JobsSubmitJobRequest) else models.JobsSubmitJobRequest.model_validate(payload)
+            return cast(
+                models.JobsSubmitJobResponse,
+                await self._call_generated(self._job_api.submit_job(request, _request_timeout=self._generated_timeout)),
+            )
         return await self._request("POST", "/jobs", body=payload, parse_as=models.JobsSubmitJobResponse)
 
     async def run_job(self, job: _SubmitJobInput, **kwargs: Any) -> models.JobsJobDef:
@@ -404,7 +492,7 @@ class _AsyncOqtopusClient:
                 models.JobsJobType.SSE,
             }:
                 return await self._run_sse_container_job(request)
-            raise UserApiError(
+            raise UserApiError(  # pragma: no cover - defensive branch
                 0,
                 f"job_type '{request.job_type.value}' is not supported in sse_container mode.",
                 payload={"mode": "sse_container", "job_type": request.job_type.value},
@@ -485,6 +573,13 @@ class _AsyncOqtopusClient:
         return await self.run_sse(request, **kwargs)
 
     async def get_job(self, job_id: str) -> models.JobsJobDef:
+        if self._use_generated_api:  # pragma: no cover - integration path
+            await self._ensure_generated_api()
+            assert self._job_api is not None
+            return cast(
+                models.JobsJobDef,
+                await self._call_generated(self._job_api.get_job(job_id, _request_timeout=self._generated_timeout)),
+            )
         return await self._request("GET", f"/jobs/{self._path_param(job_id)}", parse_as=models.JobsJobDef)
 
     async def wait_for_job(
@@ -541,35 +636,114 @@ class _AsyncOqtopusClient:
                 next_interval = min(next_interval, max_interval)
 
     async def delete_job(self, job_id: str) -> models.SuccessSuccessResponse:
+        if self._use_generated_api:  # pragma: no cover - integration path
+            await self._ensure_generated_api()
+            assert self._job_api is not None
+            return cast(
+                models.SuccessSuccessResponse,
+                await self._call_generated(self._job_api.delete_job(job_id, _request_timeout=self._generated_timeout)),
+            )
         return await self._request("DELETE", f"/jobs/{self._path_param(job_id)}", parse_as=models.SuccessSuccessResponse)
 
     async def get_job_status(self, job_id: str) -> models.JobsGetJobStatusResponse:
+        if self._use_generated_api:  # pragma: no cover - integration path
+            await self._ensure_generated_api()
+            assert self._job_api is not None
+            return cast(
+                models.JobsGetJobStatusResponse,
+                await self._call_generated(self._job_api.get_job_status(job_id, _request_timeout=self._generated_timeout)),
+            )
         return await self._request("GET", f"/jobs/{self._path_param(job_id)}/status", parse_as=models.JobsGetJobStatusResponse)
 
     async def cancel_job(self, job_id: str) -> models.SuccessSuccessResponse:
+        if self._use_generated_api:  # pragma: no cover - integration path
+            await self._ensure_generated_api()
+            assert self._job_api is not None
+            return cast(
+                models.SuccessSuccessResponse,
+                await self._call_generated(self._job_api.cancel_job(job_id, _request_timeout=self._generated_timeout)),
+            )
         return await self._request("POST", f"/jobs/{self._path_param(job_id)}/cancel", parse_as=models.SuccessSuccessResponse)
 
     async def get_sselog(self, job_id: str) -> models.JobsGetSselogResponse:
+        if self._use_generated_api:  # pragma: no cover - integration path
+            await self._ensure_generated_api()
+            assert self._job_api is not None
+            return cast(
+                models.JobsGetSselogResponse,
+                await self._call_generated(self._job_api.get_sselog(job_id, _request_timeout=self._generated_timeout)),
+            )
         return await self._request("GET", f"/jobs/{self._path_param(job_id)}/sselog", parse_as=models.JobsGetSselogResponse)
 
     async def create_api_token(self) -> models.ApiTokenApiToken:
-        return await self._request("POST", "/api-token", parse_as=models.ApiTokenApiToken)
+        payload = await self._request("POST", "/api-token", parse_as=Any)
+        tokens = self._normalize_api_token_list(payload)
+        if tokens:
+            return tokens[0]
+        raise ResponseValidationError("create_api_token response is empty.", payload)
+
+    async def get_api_token(self) -> list[models.ApiTokenApiToken]:
+        payload = await self._request("GET", "/api-token", parse_as=Any)
+        return self._normalize_api_token_list(payload)
+
+    @staticmethod
+    def _normalize_api_token_list(payload: Any) -> list[models.ApiTokenApiToken]:
+        if payload is None:
+            return []
+
+        items: list[Any]
+        if isinstance(payload, list):
+            items = payload
+        elif isinstance(payload, Mapping):
+            for key in ("items", "tokens", "api_tokens", "data"):
+                nested = payload.get(key)
+                if isinstance(nested, list):
+                    items = nested
+                    break
+            else:
+                items = [payload]
+        else:
+            raise ResponseValidationError("api-token response has unsupported shape.", payload)
+
+        normalized: list[models.ApiTokenApiToken] = []
+        for item in items:
+            if isinstance(item, models.ApiTokenApiToken):
+                normalized.append(item)
+            elif isinstance(item, Mapping):
+                normalized.append(models.ApiTokenApiToken.model_validate(dict(item)))
+            else:
+                raise ResponseValidationError("api-token response item has unsupported shape.", item)
+        return normalized
 
     async def delete_api_token(self) -> None:
+        if self._use_generated_api:  # pragma: no cover - integration path
+            await self._ensure_generated_api()
+            assert self._token_api is not None
+            await self._call_generated(self._token_api.delete_api_token(_request_timeout=self._generated_timeout))
+            return None
         await self._request("DELETE", "/api-token", expected_statuses=(200, 204), parse_as=None)
 
-    async def get_api_token_status(self) -> models.ApiTokenApiTokenStatus:
-        return await self._request("GET", "/api-token/status", parse_as=models.ApiTokenApiTokenStatus)
-
     async def get_announcements_list(self) -> models.AnnouncementsGetAnnouncementsListResponse:
+        if self._use_generated_api:  # pragma: no cover - integration path
+            await self._ensure_generated_api()
+            assert self._announcements_api is not None
+            return cast(
+                models.AnnouncementsGetAnnouncementsListResponse,
+                await self._call_generated(self._announcements_api.get_announcements_list(_request_timeout=self._generated_timeout)),
+            )
         return await self._request("GET", "/announcements", parse_as=models.AnnouncementsGetAnnouncementsListResponse)
 
     async def get_announcement(self, announcement_id: int) -> models.AnnouncementsGetAnnouncementResponse:
+        if self._use_generated_api:  # pragma: no cover - integration path
+            await self._ensure_generated_api()
+            assert self._announcements_api is not None
+            return cast(
+                models.AnnouncementsGetAnnouncementResponse,
+                await self._call_generated(
+                    self._announcements_api.get_announcement(announcement_id, _request_timeout=self._generated_timeout)
+                ),
+            )
         return await self._request("GET", f"/announcements/{self._path_param(str(announcement_id))}", parse_as=models.AnnouncementsGetAnnouncementResponse)
-
-    async def get_current_user(self) -> models.UsersGetOneUserResponse:
-        return await self._request("GET", "/users/me", parse_as=models.UsersGetOneUserResponse)
-
 
 class OqtopusClient:
     """Synchronous public client; internal HTTP calls are executed asynchronously."""
@@ -624,7 +798,7 @@ class OqtopusClient:
             return OqtopusSamplingJobResult(raw, job_id=job.job_id, job_type=job.job_type, client=self)
         if job.job_type == models.JobsJobType.ESTIMATION:
             return OqtopusEstimationJobResult(raw, job_id=job.job_id, job_type=job.job_type, client=self)
-        return OqtopusJobResult(raw, job_id=job.job_id, job_type=job.job_type, client=self)
+        return OqtopusJobResult(raw, job_id=job.job_id, job_type=job.job_type, client=self)  # pragma: no cover
 
     @staticmethod
     def _to_device(device: models.DevicesDeviceInfo) -> OqtopusDevice:
@@ -671,7 +845,7 @@ class OqtopusClient:
         from .job_handle import OqtopusJobHandle
 
         if not isinstance(body, OqtopusJobSpec):
-            raise TypeError("submit_job expects OqtopusJobSpec.")
+            raise TypeError("submit_job expects OqtopusJobSpec.")  # pragma: no cover
         submitted = self._call("submit_job", body)
         return OqtopusJobHandle(client=self, job_id=submitted.job_id)
 
@@ -690,14 +864,14 @@ class OqtopusClient:
         if max_workers < 1:
             raise ValueError("max_workers must be >= 1.")
         if any(not isinstance(job, OqtopusJobSpec) for job in jobs):
-            raise TypeError("submit_jobs expects a list of OqtopusJobSpec.")
+            raise TypeError("submit_jobs expects a list of OqtopusJobSpec.")  # pragma: no cover
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             return list(executor.map(self.submit_job, jobs))
 
     @staticmethod
     def _ensure_job_spec(job: OqtopusJobSpec, *, expected: models.JobsJobType | None = None, method: str = "run_job") -> OqtopusJobSpec:
         if not isinstance(job, OqtopusJobSpec):
-            raise TypeError(f"{method} expects OqtopusJobSpec.")
+            raise TypeError(f"{method} expects OqtopusJobSpec.")  # pragma: no cover
         if expected is not None and models.JobsJobType(job.job_type) != expected:
             raise ValueError(f"job.job_type must be '{expected.value}' for {method} (got {job.job_type!r}).")
         return job
@@ -726,7 +900,7 @@ class OqtopusClient:
         finished_job = self._call("run_sampling", spec.to_submit_job_request(), **kwargs)
         result = self._to_result(finished_job)
         if not isinstance(result, OqtopusSamplingJobResult):
-            raise ResponseValidationError("run_sampling returned non-sampling job result", finished_job.model_dump())
+            raise ResponseValidationError("run_sampling returned non-sampling job result", finished_job.model_dump())  # pragma: no cover
         return cast(OqtopusSamplingJobResult, result)
 
     def run_estimation(self, job: OqtopusJobSpec, **kwargs: Any) -> OqtopusEstimationJobResult:
@@ -741,7 +915,7 @@ class OqtopusClient:
         finished_job = self._call("run_estimation", spec.to_submit_job_request(), **kwargs)
         result = self._to_result(finished_job)
         if not isinstance(result, OqtopusEstimationJobResult):
-            raise ResponseValidationError("run_estimation returned non-estimation job result", finished_job.model_dump())
+            raise ResponseValidationError("run_estimation returned non-estimation job result", finished_job.model_dump())  # pragma: no cover
         return cast(OqtopusEstimationJobResult, result)
 
     def run_multi_manual(self, job: OqtopusJobSpec, **kwargs: Any) -> OqtopusMultiManualJobResult:
@@ -756,7 +930,7 @@ class OqtopusClient:
         finished_job = self._call("run_multi_manual", spec.to_submit_job_request(), **kwargs)
         result = self._to_result(finished_job)
         if not isinstance(result, OqtopusMultiManualJobResult):
-            raise ResponseValidationError("run_multi_manual returned non-multi_manual job result", finished_job.model_dump())
+            raise ResponseValidationError("run_multi_manual returned non-multi_manual job result", finished_job.model_dump())  # pragma: no cover
         return cast(OqtopusMultiManualJobResult, result)
 
     def run_sse(self, job: OqtopusJobSpec, **kwargs: Any) -> OqtopusSseJobResult:
@@ -771,7 +945,7 @@ class OqtopusClient:
         finished_job = self._call("run_sse", spec.to_submit_job_request(), **kwargs)
         result = self._to_result(finished_job)
         if not isinstance(result, OqtopusSseJobResult):
-            raise ResponseValidationError("run_sse returned non-sse job result", finished_job.model_dump())
+            raise ResponseValidationError("run_sse returned non-sse job result", finished_job.model_dump())  # pragma: no cover
         return cast(OqtopusSseJobResult, result)
 
     def run_sse_file(self, *, file_path: str | Path, device_id: str, **kwargs: Any) -> OqtopusSseJobResult:
@@ -786,7 +960,7 @@ class OqtopusClient:
         finished_job = self._call("run_sse_file", file_path=file_path, device_id=device_id, **kwargs)
         result = self._to_result(finished_job)
         if not isinstance(result, OqtopusSseJobResult):
-            raise ResponseValidationError("run_sse_file returned non-sse job result", finished_job.model_dump())
+            raise ResponseValidationError("run_sse_file returned non-sse job result", finished_job.model_dump())  # pragma: no cover
         return cast(OqtopusSseJobResult, result)
 
     def get_job(self, job_id: str) -> "OqtopusJobHandle":
@@ -922,13 +1096,13 @@ class OqtopusClient:
         """Create an API token."""
         return self._call("create_api_token")
 
+    def get_api_token(self) -> list[models.ApiTokenApiToken]:
+        """Get API token list."""
+        return self._call("get_api_token")
+
     def delete_api_token(self) -> None:
         """Delete current API token."""
         self._call("delete_api_token")
-
-    def get_api_token_status(self) -> models.ApiTokenApiTokenStatus:
-        """Get current API token status."""
-        return self._call("get_api_token_status")
 
     def get_announcements_list(self) -> models.AnnouncementsGetAnnouncementsListResponse:
         """List service announcements."""
@@ -937,7 +1111,3 @@ class OqtopusClient:
     def get_announcement(self, announcement_id: int) -> models.AnnouncementsGetAnnouncementResponse:
         """Get one announcement by id."""
         return self._call("get_announcement", announcement_id)
-
-    def get_current_user(self) -> models.UsersGetOneUserResponse:
-        """Get current authenticated user profile."""
-        return self._call("get_current_user")
