@@ -3,7 +3,7 @@ SHELL := bash
 .DEFAULT_GOAL := generate-models
 
 OAS_FILE ?= openapi.yaml
-OAS_URL ?= https://raw.githubusercontent.com/oqtopus-team/oqtopus-cloud/develop/backend/oas/user/openapi.yaml
+OAS_URL ?= https://raw.githubusercontent.com/oqtopus-team/oqtopus-cloud/main/backend/oas/user/openapi.yaml
 OPENAPI_GENERATOR_IMAGE ?= openapitools/openapi-generator-cli:v7.8.0
 MODEL_OUTPUT_DIR ?= ../src/oqtopus_client/models/generated/models
 GEN_TMP_DIR ?= .openapi-generator-output
