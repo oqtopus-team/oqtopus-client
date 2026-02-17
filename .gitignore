@@ -16,3 +16,4 @@ dist/
 site/
 *.zip
 spec/.openapi-generator-output/
+spec/openapi.yaml

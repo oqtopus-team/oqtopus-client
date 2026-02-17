@@ -7,7 +7,7 @@ This documentation auto-generates API references from docstrings in `src/oqtopus
 ## Key Features
 
 - Operate User API endpoints via Python methods.
-- Type-safe request/response handling using Pydantic models generated from `spec/openapi.yaml`.
+- Type-safe request/response handling using Pydantic models generated from downloaded OpenAPI schema.
 - Supports both direct token string and token file authentication.
 - Core client usage does not require any other quantum software SDK.
 - OpenAPI-generated models are used internally, while helper APIs such as `OqtopusJobSpec` and `run_*` reduce boilerplate.

@@ -11,9 +11,11 @@ GEN_TMP_DIR ?= .openapi-generator-output
 .PHONY: download-oas generate-models
 
 download-oas:
+	mkdir -p $$(dirname "$(OAS_FILE)")
 	curl -fsSL $(OAS_URL) -o $(OAS_FILE)
 
 generate-models:
+	test -f "$(OAS_FILE)" || $(MAKE) download-oas
 	mkdir -p $(GEN_TMP_DIR)
 	docker run --rm -u $$(id -u):$$(id -g) \
 		-v "$$(pwd):/local/spec" \

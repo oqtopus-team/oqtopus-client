@@ -184,7 +184,7 @@ make docs-serve
 
 ## Project layout
 
-- `spec/openapi.yaml`: source OAS used for model generation
+- OpenAPI schema is fetched with `make download-oas` into `spec/openapi.yaml` (gitignored)
 - `spec/Makefile`: runs `download-oas` (latest OAS fetch) and `openapi-generator`
 - `Makefile`: wrapper for `spec/Makefile`
 - `docs/`: API and usage documentation
