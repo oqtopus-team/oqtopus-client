@@ -71,13 +71,12 @@ You can write job execution in two styles:
 Use `OqtopusClient.run_job()` to execute `submit + wait` in one call:
 
 ```python
-from oqtopus_client import OqtopusClient, OqtopusConfig, models
+from oqtopus_client import OqtopusClient, OqtopusConfig, OqtopusJobSpec
 
-req = models.JobsSubmitJobRequest(
+req = OqtopusJobSpec.sampling(
     device_id="Kawasaki",
-    job_type=models.JobsJobType.SAMPLING,
-    shots=100,
-    job_info=models.JobsSubmitJobInfo(program=["OPENQASM 3; qubit[1] q;"]),
+    shots=1000,
+    program="OPENQASM 3; qubit[1] q; bit[1] c; h q[0]; c[0] = measure q[0];",
 )
 
 client = OqtopusClient(OqtopusConfig(base_url="https://api.example.com", api_token="<token>"))
@@ -88,10 +87,12 @@ print(finished_job.status)
 You can also use job-type-specific shortcuts (raise `ValueError` on mismatch):
 
 ```python
+sampling_req = OqtopusJobSpec.sampling(
+    device_id="Kawasaki",
+    shots=1000,
+    program="OPENQASM 3; qubit[1] q; bit[1] c; h q[0]; c[0] = measure q[0];",
+)
 final_sampling = client.run_sampling(sampling_req)
-final_estimation = client.run_estimation(estimation_req)
-final_manual = client.run_multi_manual(multi_manual_req)
-final_sse = client.run_sse(sse_req)
 ```
 
 ### Style 2: `submit_job + wait` (step-by-step)
@@ -99,8 +100,18 @@ final_sse = client.run_sse(sse_req)
 To handle a submitted job in steps, use `job_id` with client methods:
 
 ```python
+from oqtopus_client import OqtopusClient, OqtopusConfig, OqtopusJobSpec
+
+client = OqtopusClient(OqtopusConfig(base_url="https://api.example.com", api_token="<token>"))
+req = OqtopusJobSpec.sampling(
+    device_id="Kawasaki",
+    shots=1000,
+    program="OPENQASM 3; qubit[1] q; bit[1] c; h q[0]; c[0] = measure q[0];",
+)
+
 job_id = client.submit_job(req).job_id
 print(job_id)
 print(client.status(job_id))
 finished_job = client.wait(job_id, interval=1.0, interval_backoff=1.2, max_interval=5.0, timeout=300.0)
+print(finished_job.status)
 ```

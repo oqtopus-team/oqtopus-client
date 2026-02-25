@@ -10,7 +10,7 @@ Python client SDK for the OQTOPUS Cloud User API.
 
 - Submit and manage jobs from Python.
 - Use generated Pydantic models for request/response validation.
-- Handle authentication using token strings or token files.
+- Handle authentication using API token strings with constructor, environment variables, or config profiles.
 - Core client usage does not require any other quantum software SDK.
 - OpenAPI-generated models are used internally, while helper APIs such as `OqtopusJobSpec` and `run_*` reduce boilerplate.
 - Internal HTTP communication is asynchronous, with an easy-to-use synchronous public API.

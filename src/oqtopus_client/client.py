@@ -653,25 +653,65 @@ class OqtopusClient:
             else None
         )
         message = job.job_info.message if job.job_info is not None else None
-        common_kwargs = {
-            "job_id": job.job_id,
-            "job_type": job.job_type,
-            "status": job.status,
-            "job_info": job.job_info,
-            "transpile_result": transpile_result,
-            "message": message,
-            "execution_time": job.execution_time,
-            "client": self,
-        }
         if job.job_type == models.JobsJobType.MULTI_MANUAL:
-            return OqtopusMultiManualJobResult(raw, **common_kwargs)
+            return OqtopusMultiManualJobResult(
+                raw,
+                job_id=job.job_id,
+                job_type=job.job_type,
+                status=job.status,
+                job_info=job.job_info,
+                transpile_result=transpile_result,
+                message=message,
+                execution_time=job.execution_time,
+                client=self,
+            )
         if job.job_type == models.JobsJobType.SSE:
-            return OqtopusSseJobResult(raw, **common_kwargs)
+            return OqtopusSseJobResult(
+                raw,
+                job_id=job.job_id,
+                job_type=job.job_type,
+                status=job.status,
+                job_info=job.job_info,
+                transpile_result=transpile_result,
+                message=message,
+                execution_time=job.execution_time,
+                client=self,
+            )
         if job.job_type == models.JobsJobType.SAMPLING:
-            return OqtopusSamplingJobResult(raw, **common_kwargs)
+            return OqtopusSamplingJobResult(
+                raw,
+                job_id=job.job_id,
+                job_type=job.job_type,
+                status=job.status,
+                job_info=job.job_info,
+                transpile_result=transpile_result,
+                message=message,
+                execution_time=job.execution_time,
+                client=self,
+            )
         if job.job_type == models.JobsJobType.ESTIMATION:
-            return OqtopusEstimationJobResult(raw, **common_kwargs)
-        return OqtopusJobResult(raw, **common_kwargs)  # pragma: no cover
+            return OqtopusEstimationJobResult(
+                raw,
+                job_id=job.job_id,
+                job_type=job.job_type,
+                status=job.status,
+                job_info=job.job_info,
+                transpile_result=transpile_result,
+                message=message,
+                execution_time=job.execution_time,
+                client=self,
+            )
+        return OqtopusJobResult(
+            raw,
+            job_id=job.job_id,
+            job_type=job.job_type,
+            status=job.status,
+            job_info=job.job_info,
+            transpile_result=transpile_result,
+            message=message,
+            execution_time=job.execution_time,
+            client=self,
+        )  # pragma: no cover
 
     @staticmethod
     def _to_device(device: models.DevicesDeviceInfo) -> OqtopusDevice:
