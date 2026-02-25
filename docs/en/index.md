@@ -20,7 +20,3 @@ This documentation auto-generates API references from docstrings in `src/oqtopus
 - [API Reference](api.md)
 - [Models](models.md)
 - [Examples](examples.md)
-
-## Language
-
-- English only

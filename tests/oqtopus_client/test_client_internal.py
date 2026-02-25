@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import sys
 import types
 from datetime import datetime, timezone
@@ -26,7 +25,7 @@ from oqtopus_client import (
     models,
 )
 from oqtopus_client.client import _AsyncOqtopusClient, _resolve_user_agent
-from oqtopus_client.errors import ResponseValidationError, UserApiError
+from oqtopus_client.errors import UserApiError
 
 
 def _job(job_type: models.JobsJobType, *, status: models.JobsJobStatus = models.JobsJobStatus.SUCCEEDED) -> models.JobsJobDef:
@@ -54,17 +53,13 @@ def test_resolve_user_agent_falls_back_to_unknown(monkeypatch: pytest.MonkeyPatc
     assert _resolve_user_agent().endswith("unknown")
 
 
-def test_async_client_constructor_validation_errors(tmp_path: Path) -> None:
+def test_async_client_constructor_validation_errors() -> None:
     with pytest.raises(ValueError):
         _AsyncOqtopusClient(OqtopusConfig(base_url=""))
     with pytest.raises(ValueError):
         _AsyncOqtopusClient(OqtopusConfig(base_url="http://test", retry_max_attempts=0))
     with pytest.raises(ValueError):
         _AsyncOqtopusClient(OqtopusConfig(base_url="http://test", retry_backoff_seconds=-1))
-    with pytest.raises(ValueError):
-        _AsyncOqtopusClient(
-            OqtopusConfig(base_url="http://test", api_token="x", api_token_file=tmp_path / "token.txt")
-        )
 
 
 def test_async_client_allows_empty_base_url_in_sse_container(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -76,40 +71,19 @@ def test_async_client_allows_empty_base_url_in_sse_container(monkeypatch: pytest
         asyncio.run(client.close())
 
 
-def test_async_client_sets_headers_and_generated_config(tmp_path: Path) -> None:
-    token_file = tmp_path / "token.txt"
-    token_file.write_text("from-file", encoding="utf-8")
+def test_async_client_sets_headers_and_generated_config() -> None:
     client = _AsyncOqtopusClient(
-        OqtopusConfig(base_url="http://test", api_token_file=token_file, proxy="http://proxy.local:8080"),
+        OqtopusConfig(base_url="http://test", api_token="from-config", proxy="http://proxy.local:8080"),
         default_headers={"X-Test": "1"},
     )
     try:
-        assert client._headers["q-api-token"] == "from-file"
+        assert client._headers["q-api-token"] == "from-config"
         assert client._headers["X-Test"] == "1"
         asyncio.run(client._ensure_generated_api())
         assert client._generated_config is not None
         assert client._generated_config.proxy == "http://proxy.local:8080"
     finally:
         asyncio.run(client.close())
-
-
-def test_load_api_token_from_file_formats(tmp_path: Path) -> None:
-    plain = tmp_path / "plain.txt"
-    plain.write_text("plain-token\n", encoding="utf-8")
-    assert _AsyncOqtopusClient._load_api_token_from_file(plain) == "plain-token"
-
-    json_str = tmp_path / "json_string.txt"
-    json_str.write_text(json.dumps("string-token"), encoding="utf-8")
-    assert _AsyncOqtopusClient._load_api_token_from_file(json_str) == "string-token"
-
-    json_map = tmp_path / "json_map.txt"
-    json_map.write_text(json.dumps({"api_token_secret": "map-token"}), encoding="utf-8")
-    assert _AsyncOqtopusClient._load_api_token_from_file(json_map) == "map-token"
-
-    empty = tmp_path / "empty.txt"
-    empty.write_text("\n", encoding="utf-8")
-    with pytest.raises(ValueError):
-        _AsyncOqtopusClient._load_api_token_from_file(empty)
 
 
 def test_extract_error_message_variants() -> None:

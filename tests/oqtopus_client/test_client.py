@@ -8,7 +8,6 @@ import pytest
 
 from oqtopus_client import (
     OqtopusClient,
-    OqtopusConfig,
     OqtopusEstimationJobResult,
     OqtopusJobResult,
     OqtopusJobSpec,

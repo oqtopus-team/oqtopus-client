@@ -66,7 +66,3 @@ from oqtopus_client import normalize_sampling_result
 normalized = normalize_sampling_result(finished_job.job_info.result.sampling)
 print(normalized["counts"])
 ```
-
-## Language
-
-- English only

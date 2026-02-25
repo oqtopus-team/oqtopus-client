@@ -40,7 +40,3 @@ Python client SDK for the OQTOPUS Cloud User API.
 - [How to Contribute](./CONTRIBUTING.md)
 - [Code of Conduct](https://oqtopus-team.github.io/code-of-conduct/)
 - [Security](https://oqtopus-team.github.io/security-policy/)
-
-## Languages
-
-- [English](./en/index.md)

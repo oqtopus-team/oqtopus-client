@@ -24,13 +24,6 @@ nav:
       - How to Contribute: CONTRIBUTING.md
       - Code of Conduct: "https://oqtopus-team.github.io/code-of-conduct/"
       - Security: "https://oqtopus-team.github.io/security-policy/"
-  - Languages:
-      - English:
-          - Home: en/index.md
-          - Quickstart: en/quickstart.md
-          - API Guide: en/api.md
-          - Models Guide: en/models.md
-          - Examples: en/examples.md
 
 exclude_docs: |
   /api.md

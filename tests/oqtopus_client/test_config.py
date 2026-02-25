@@ -28,14 +28,13 @@ def test_from_file_raises_when_base_url_and_url_are_missing(tmp_path: Path) -> N
         OqtopusConfig.from_file("profile", config_file)
 
 
-def test_from_file_supports_url_fallback_and_token_file(tmp_path: Path) -> None:
-    token_path = tmp_path / "token.txt"
+def test_from_file_supports_url_fallback_and_token(tmp_path: Path) -> None:
     config_file = tmp_path / "oqtopus.ini"
     config_file.write_text(
         (
             "[profile]\n"
             "url=https://api.example.com\n"
-            f"api_token_file={token_path}\n"
+            "api_token=secret\n"
             "timeout=12.5\n"
         ),
         encoding="utf-8",
@@ -44,7 +43,7 @@ def test_from_file_supports_url_fallback_and_token_file(tmp_path: Path) -> None:
     config = OqtopusConfig.from_file("profile", config_file)
     assert config.base_url == "https://api.example.com"
     assert config.url == "https://api.example.com"
-    assert config.api_token_file == token_path
+    assert config.api_token == "secret"
     assert config.timeout == 12.5
 
 
@@ -76,18 +75,15 @@ def test_from_env_requires_base_url(monkeypatch: pytest.MonkeyPatch) -> None:
         OqtopusConfig.from_env()
 
 
-def test_from_env_reads_token_file_path(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    token_path = tmp_path / "token.json"
+def test_from_env_reads_api_token(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OQTOPUS_BASE_URL", "https://api.example.com")
     monkeypatch.setenv("OQTOPUS_API_TOKEN", "secret")
-    monkeypatch.setenv("OQTOPUS_API_TOKEN_FILE", str(token_path))
     monkeypatch.setenv("OQTOPUS_PROXY", "http://proxy.local:8080")
 
     config = OqtopusConfig.from_env()
     assert config.base_url == "https://api.example.com"
     assert config.url == "https://api.example.com"
     assert config.api_token == "secret"
-    assert config.api_token_file == token_path
     assert config.proxy == "http://proxy.local:8080"
 
 

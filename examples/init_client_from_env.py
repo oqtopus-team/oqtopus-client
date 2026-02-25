@@ -13,8 +13,6 @@ if not os.getenv("OQTOPUS_BASE_URL"):
     os.environ["OQTOPUS_BASE_URL"] = config.base_url
 if config.api_token and not os.getenv("OQTOPUS_API_TOKEN"):
     os.environ["OQTOPUS_API_TOKEN"] = config.api_token
-if config.api_token_file and not os.getenv("OQTOPUS_API_TOKEN_FILE"):
-    os.environ["OQTOPUS_API_TOKEN_FILE"] = str(config.api_token_file)
 
 env_config = OqtopusConfig.from_env()
 

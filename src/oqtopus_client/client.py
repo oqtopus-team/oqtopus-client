@@ -17,7 +17,6 @@ from pathlib import Path
 from time import monotonic
 from typing import Any
 from typing import Awaitable
-from typing import TYPE_CHECKING
 from typing import cast
 
 from pydantic import TypeAdapter, ValidationError
@@ -162,11 +161,6 @@ class _AsyncOqtopusClient:
         self._announcements_api: AnnouncementsApi | None = None
 
         token = config.api_token
-        token_file = config.api_token_file
-        if token and token_file:
-            raise ValueError("Specify either api_token or api_token_file, not both.")
-        if token_file:
-            token = self._load_api_token_from_file(token_file)
         if token:
             self.set_api_token(token)
 
@@ -206,27 +200,6 @@ class _AsyncOqtopusClient:
             payload = exc.data if exc.data is not None else exc.body
             message = self._extract_error_message(payload) or exc.reason or "request failed"
             raise UserApiError(exc.status or 0, message, payload=payload) from exc
-
-    @staticmethod
-    def _load_api_token_from_file(api_token_file: str | Path) -> str:
-        text = Path(api_token_file).read_text(encoding="utf-8").strip()
-        if not text:
-            raise ValueError(f"API token file is empty: {api_token_file}")
-
-        token = text
-        try:
-            payload = json.loads(text)
-            if isinstance(payload, str):
-                token = payload
-            elif isinstance(payload, dict):
-                token = payload.get("api_token") or payload.get("api_token_secret") or payload.get("token") or ""
-        except json.JSONDecodeError:
-            token = text
-
-        token = token.strip()
-        if not token:
-            raise ValueError(f"API token not found in file: {api_token_file}")
-        return token
 
     @staticmethod
     def _job_type_of(job: models.JobsSubmitJobRequest | Mapping[str, Any] | OqtopusJobSpec) -> str | None:

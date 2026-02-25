@@ -11,7 +11,6 @@ from .job_results import (
     OqtopusSamplingJobResult,
     OqtopusSseJobResult,
 )
-from .auth_utils import write_api_token_file
 from .job_spec import OqtopusJobSpec
 from .estimation_operator import OqtopusEstimationOperator
 from .device import OqtopusDevice
@@ -31,7 +30,6 @@ __all__ = [
     "OqtopusEstimationJobResult",
     "OqtopusMultiManualJobResult",
     "OqtopusSseJobResult",
-    "write_api_token_file",
     "OqtopusJobSpec",
     "OqtopusEstimationOperator",
     "OqtopusDevice",

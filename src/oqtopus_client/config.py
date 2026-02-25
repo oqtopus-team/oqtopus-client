@@ -14,7 +14,6 @@ class OqtopusConfig:
     Attributes:
         base_url: OQTOPUS API base URL.
         api_token: API token string.
-        api_token_file: Path to a token file (mutually exclusive with ``api_token``).
         timeout: HTTP request timeout seconds.
         retry_max_attempts: Max retry attempts for retryable requests.
         retry_backoff_seconds: Exponential backoff base seconds.
@@ -24,7 +23,6 @@ class OqtopusConfig:
 
     base_url: str
     api_token: str | None = None
-    api_token_file: str | Path | None = None
     proxy: str | None = None
     timeout: float = 30.0
     retry_max_attempts: int = 3
@@ -37,7 +35,6 @@ class OqtopusConfig:
         self,
         base_url: str | None = None,
         api_token: str | None = None,
-        api_token_file: str | Path | None = None,
         proxy: str | None = None,
         timeout: float = 30.0,
         retry_max_attempts: int = 3,
@@ -53,7 +50,6 @@ class OqtopusConfig:
         object.__setattr__(self, "base_url", resolved_base_url)
         object.__setattr__(self, "url", resolved_base_url)
         object.__setattr__(self, "api_token", api_token)
-        object.__setattr__(self, "api_token_file", api_token_file)
         object.__setattr__(self, "proxy", proxy)
         object.__setattr__(self, "timeout", timeout)
         object.__setattr__(self, "retry_max_attempts", retry_max_attempts)
@@ -96,14 +92,12 @@ class OqtopusConfig:
             )
 
         api_token = cfg.get("api_token")
-        api_token_file = cfg.get("api_token_file")
         proxy = cfg.get("proxy")
         timeout = cfg.getfloat("timeout", fallback=30.0)
 
         return cls(
             base_url=base_url,
             api_token=api_token,
-            api_token_file=Path(api_token_file) if api_token_file else None,
             proxy=proxy,
             timeout=timeout,
         )
@@ -115,7 +109,6 @@ class OqtopusConfig:
         base_url_env: str = "OQTOPUS_BASE_URL",
         proxy_env: str = "OQTOPUS_PROXY",
         api_token_env: str = "OQTOPUS_API_TOKEN",
-        api_token_file_env: str = "OQTOPUS_API_TOKEN_FILE",
     ) -> "OqtopusConfig":
         """Load configuration from environment variables."""
         base_url = os.getenv(base_url_env)
@@ -123,10 +116,8 @@ class OqtopusConfig:
             raise ValueError(f"Environment variable {base_url_env} is required.")
 
         api_token = os.getenv(api_token_env)
-        api_token_file_value = os.getenv(api_token_file_env)
         return cls(
             base_url=base_url,
             api_token=api_token,
-            api_token_file=Path(api_token_file_value) if api_token_file_value else None,
             proxy=os.getenv(proxy_env),
         )

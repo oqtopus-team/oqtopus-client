@@ -18,20 +18,9 @@ pip install -e .
 
 `OqtopusClient` supports either:
 
-- `api_token`: direct token string
-- `api_token_file`: load token from file
+- `api_token`: direct token string (recommended)
 
 The token is sent using the `q-api-token` request header.
-
-Supported token file formats:
-
-```text
-<plain token>
-```
-
-```json
-{"api_token_secret":"<token>"}
-```
 
 For common workflows, you can use `OqtopusJobSpec` and `run_*` helpers so you do not need to build generated OpenAPI request models manually.
 
@@ -67,11 +56,17 @@ print(client.list_devices())
 
 Optional variables and settings:
 
-- `OQTOPUS_API_TOKEN_FILE`: token file path
 - `default_headers`: add common headers
 - `user_agent`: override User-Agent
 
-## High-level Job Helpers
+## Job Execution Styles
+
+You can write job execution in two styles:
+
+- `run_*` style: one-shot `submit + wait` with less code.
+- `submit_job + wait` style: explicit `job_id` lifecycle control.
+
+### Style 1: `run_*` (one-shot)
 
 Use `OqtopusClient.run_job()` to execute `submit + wait` in one call:
 
@@ -99,6 +94,8 @@ final_manual = client.run_multi_manual(multi_manual_req)
 final_sse = client.run_sse(sse_req)
 ```
 
+### Style 2: `submit_job + wait` (step-by-step)
+
 To handle a submitted job in steps, use `job_id` with client methods:
 
 ```python
@@ -107,7 +104,3 @@ print(job_id)
 print(client.status(job_id))
 finished_job = client.wait(job_id, interval=1.0, interval_backoff=1.2, max_interval=5.0, timeout=300.0)
 ```
-
-## Language
-
-- English only
