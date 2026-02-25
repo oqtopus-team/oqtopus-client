@@ -758,6 +758,17 @@ def test_config_with_api_token_file_constructor(tmp_path: Path) -> None:
         client.close()
 
 
+def test_sync_client_close_is_idempotent_and_blocks_calls() -> None:
+    client = OqtopusClient(
+        OqtopusConfig(base_url="http://test.local"),
+        client=_async_client(httpx.MockTransport(lambda request: httpx.Response(200, json=[]))),
+    )
+    client.close()
+    client.close()
+    with pytest.raises(RuntimeError):
+        client.list_devices()
+
+
 def test_sync_wrappers_delegate_to_call(monkeypatch: pytest.MonkeyPatch) -> None:
     client = object.__new__(OqtopusClient)
     called: list[tuple[str, tuple[Any, ...], dict[str, Any]]] = []

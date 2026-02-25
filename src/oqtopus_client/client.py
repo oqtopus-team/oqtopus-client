@@ -5,6 +5,7 @@ import base64
 import json
 import os
 import threading
+import weakref
 from concurrent.futures import ThreadPoolExecutor
 from collections.abc import Callable
 from collections.abc import Mapping
@@ -776,6 +777,8 @@ class OqtopusClient:
             )
 
         self._async = self._runtime.run(_build())
+        self._closed = False
+        self._finalizer = weakref.finalize(self, self._finalize_resources, self._runtime, self._async)
         self.base_url = self._async.base_url
         self.timeout = config.timeout
         self.retry_max_attempts = config.retry_max_attempts
@@ -783,7 +786,22 @@ class OqtopusClient:
         self.retry_status_codes = frozenset(config.retry_status_codes or {429, 500, 502, 503, 504})
         self.retry_methods = frozenset(m.upper() for m in (config.retry_methods or {"GET", "DELETE"}))
 
+    @staticmethod
+    def _finalize_resources(runtime: _AsyncRuntime, async_client: _AsyncOqtopusClient) -> None:
+        try:
+            runtime.run(async_client.close())
+        except Exception:
+            pass
+        finally:
+            try:
+                runtime.close()
+            except Exception:
+                pass
+
     def _call(self, method_name: str, *args: Any, **kwargs: Any) -> Any:
+        if self._closed:
+            raise RuntimeError("Client is closed.")
+
         async def _run() -> Any:
             method = getattr(self._async, method_name)
             return await method(*args, **kwargs)
@@ -820,8 +838,11 @@ class OqtopusClient:
 
     def close(self) -> None:
         """Close underlying async HTTP client and runtime thread."""
-        self._runtime.run(self._async.close())
-        self._runtime.close()
+        if self._closed:
+            return
+        if self._finalizer.alive:
+            self._finalizer()
+        self._closed = True
 
     def list_devices(self) -> list[OqtopusDevice]:
         """List available devices."""
