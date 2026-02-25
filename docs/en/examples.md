@@ -27,9 +27,9 @@ Simple style:
 ```python
 from oqtopus_client import OqtopusClient, OqtopusConfig
 
-with OqtopusClient(OqtopusConfig.from_file("oqtopus-dev")) as client:
-    finished_job = client.run_job(request, timeout=300.0)
-    print(finished_job.status)
+client = OqtopusClient(OqtopusConfig.from_file("oqtopus-dev"))
+finished_job = client.run_job(request, timeout=300.0)
+print(finished_job.status)
 ```
 
 Run:
@@ -52,10 +52,10 @@ Wait for job completion:
 ```python
 from oqtopus_client import OqtopusClient, OqtopusConfig
 
-with OqtopusClient(OqtopusConfig.from_env()) as client:
-    submitted_job = client.submit_job(request)
-    finished_job = client.wait_for_job(submitted_job.job_id, interval=2.0, timeout=300.0)
-    print(finished_job.status)
+client = OqtopusClient(OqtopusConfig.from_env())
+submitted_job = client.submit_job(request)
+finished_job = client.wait_for_job(submitted_job.job_id, interval=2.0, timeout=300.0)
+print(finished_job.status)
 ```
 
 Result normalization helper:

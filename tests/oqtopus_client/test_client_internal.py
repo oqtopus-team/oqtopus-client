@@ -15,6 +15,7 @@ import httpx
 import pytest
 from pydantic import BaseModel
 
+import oqtopus_client.client as client_module
 from oqtopus_client import (
     OqtopusDevice,
     OqtopusClient,
@@ -767,6 +768,25 @@ def test_sync_client_close_is_idempotent_and_blocks_calls() -> None:
     client.close()
     with pytest.raises(RuntimeError):
         client.list_devices()
+
+
+def test_sync_clients_share_runtime_and_close_isolated_per_client() -> None:
+    client_module._shutdown_shared_runtime()
+    client1 = OqtopusClient(
+        OqtopusConfig(base_url="http://test.local"),
+        client=_async_client(httpx.MockTransport(lambda request: httpx.Response(200, json=[]))),
+    )
+    client2 = OqtopusClient(
+        OqtopusConfig(base_url="http://test.local"),
+        client=_async_client(httpx.MockTransport(lambda request: httpx.Response(200, json=[]))),
+    )
+    try:
+        assert client1._runtime is client2._runtime
+        client1.close()
+        assert client2.list_devices() == []
+    finally:
+        client2.close()
+        client_module._shutdown_shared_runtime()
 
 
 def test_sync_wrappers_delegate_to_call(monkeypatch: pytest.MonkeyPatch) -> None:

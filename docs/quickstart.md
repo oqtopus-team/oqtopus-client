@@ -38,18 +38,18 @@ pip install -e .
 ```python
 from oqtopus_client import OqtopusClient, OqtopusConfig, models
 
-with OqtopusClient(OqtopusConfig(base_url="https://api.example.com", api_token="<token>")) as client:
-    devices = client.list_devices()
-    req = models.JobsSubmitJobRequest(
-        device_id="Kawasaki",
-        job_type=models.JobsJobType.SAMPLING,
-        shots=1000,
-        job_info=models.JobsSubmitJobInfo(
-            program=["OPENQASM 3; qubit[2] q; bit[2] c; h q[0]; cx q[0], q[1]; c = measure q;"]
-        ),
-    )
-    job = client.submit_job(req)
-    print(job.job_id)
+client = OqtopusClient(OqtopusConfig(base_url="https://api.example.com", api_token="<token>"))
+devices = client.list_devices()
+req = models.JobsSubmitJobRequest(
+    device_id="Kawasaki",
+    job_type=models.JobsJobType.SAMPLING,
+    shots=1000,
+    job_info=models.JobsSubmitJobInfo(
+        program=["OPENQASM 3; qubit[2] q; bit[2] c; h q[0]; cx q[0], q[1]; c = measure q;"]
+    ),
+)
+job = client.submit_job(req)
+print(job.job_id)
 ```
 
 ## 環境変数から初期化
@@ -62,8 +62,8 @@ export OQTOPUS_API_TOKEN="<token>"
 ```python
 from oqtopus_client import OqtopusClient, OqtopusConfig
 
-with OqtopusClient(OqtopusConfig.from_env()) as client:
-    print(client.list_devices())
+client = OqtopusClient(OqtopusConfig.from_env())
+print(client.list_devices())
 ```
 
 必要なら以下も利用できます。
@@ -86,9 +86,9 @@ req = models.JobsSubmitJobRequest(
     job_info=models.JobsSubmitJobInfo(program=["OPENQASM 3; qubit[1] q;"]),
 )
 
-with OqtopusClient(OqtopusConfig(base_url="https://api.example.com", api_token="<token>")) as client:
-    finished_job = client.run_job(req, timeout=300.0)
-    print(finished_job.status)
+client = OqtopusClient(OqtopusConfig(base_url="https://api.example.com", api_token="<token>"))
+finished_job = client.run_job(req, timeout=300.0)
+print(finished_job.status)
 ```
 
 提出済みジョブを段階的に扱う場合は `OqtopusJobHandle` が使えます。

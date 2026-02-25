@@ -29,15 +29,15 @@ jobs = [
     OqtopusJobSpec.sampling(device_id="Kawasaki", shots=500, program=PROGRAM_B, name="Batch B"),
 ]
 
-with OqtopusClient(OqtopusConfig.from_file(SECTION, path=CONFIG_PATH)) as client:
-    batch_results = client.run_jobs_batch(
-        jobs,
-        submit_workers=2,
-        wait_workers=2,
-        interval=1.0,
-        interval_backoff=1.1,
-        max_interval=5.0,
-        timeout=300.0,
-    )
+client = OqtopusClient(OqtopusConfig.from_file(SECTION, path=CONFIG_PATH))
+batch_results = client.run_jobs_batch(
+    jobs,
+    submit_workers=2,
+    wait_workers=2,
+    interval=1.0,
+    interval_backoff=1.1,
+    max_interval=5.0,
+    timeout=300.0,
+)
 
 print("batch_results:", [(r.job_id, str(r.job_type)) for r in batch_results])

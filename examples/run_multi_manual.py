@@ -39,8 +39,8 @@ req = OqtopusJobSpec.multi_manual(
     program=[program1, program2],
 )
 
-with OqtopusClient(OqtopusConfig.from_file(section, path=config_path)) as client:
-    result = client.run_multi_manual(req, timeout=300.0)
+client = OqtopusClient(OqtopusConfig.from_file(section, path=config_path))
+result = client.run_multi_manual(req, timeout=300.0)
 
 print(result)
 print(result.job_id, result.job_type)

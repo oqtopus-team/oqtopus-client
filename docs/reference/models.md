@@ -43,11 +43,11 @@ req = models.JobsSubmitJobRequest(
     job_info=models.JobsSubmitJobInfo(program=["OPENQASM 3; qubit[1] q;"]),
 )
 
-with OqtopusClient(OqtopusConfig(base_url="https://api.example.com", api_token="<token>")) as client:
-    submitted = client.submit_job(req)
-    status = client.get_job_status(submitted.job_id)
-    finished_job = client.wait_for_job(submitted.job_id, timeout=300.0)
-    print(status.status, finished_job.job_info.result)
+client = OqtopusClient(OqtopusConfig(base_url="https://api.example.com", api_token="<token>"))
+submitted = client.submit_job(req)
+status = client.get_job_status(submitted.job_id)
+finished_job = client.wait_for_job(submitted.job_id, timeout=300.0)
+print(status.status, finished_job.job_info.result)
 ```
 
 ## Full Generated Model Reference

@@ -24,14 +24,14 @@ job_spec = OqtopusJobSpec.sampling(
     program=PROGRAM,
 )
 
-with OqtopusClient(OqtopusConfig.from_file(SECTION, path=CONFIG_PATH)) as client:
-    result = client.run_job(
-        job_spec,
-        interval=1.0,
-        interval_backoff=1.1,
-        max_interval=5.0,
-        timeout=300.0,
-    )
+client = OqtopusClient(OqtopusConfig.from_file(SECTION, path=CONFIG_PATH))
+result = client.run_job(
+    job_spec,
+    interval=1.0,
+    interval_backoff=1.1,
+    max_interval=5.0,
+    timeout=300.0,
+)
 
 print(result)
 print(result.job_id, result.job_type)

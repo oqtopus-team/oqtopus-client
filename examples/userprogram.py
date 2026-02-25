@@ -13,15 +13,15 @@ h q[0];
 cx q[0], q[1];
 c = measure q;
 """
-    with OqtopusClient(OqtopusConfig(base_url="")) as client:
-        result = client.run_sampling(
-            OqtopusJobSpec.sampling(
-                device_id="sse",
-                shots=1000,
-                program=program,
-            ),
-            timeout=60.0,
-        )
+    client = OqtopusClient(OqtopusConfig(base_url=""))
+    result = client.run_sampling(
+        OqtopusJobSpec.sampling(
+            device_id="sse",
+            shots=1000,
+            program=program,
+        ),
+        timeout=60.0,
+    )
     print(f"result.job_id={result.job_id}")
     print(result.get_counts())
 

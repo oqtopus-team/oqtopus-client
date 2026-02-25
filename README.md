@@ -15,14 +15,14 @@ Python SDK for the OQTOPUS Cloud User API.
 ```python
 from oqtopus_client import OqtopusJobSpec, OqtopusClient, OqtopusConfig
 
-with OqtopusClient(OqtopusConfig(base_url="https://api.example.com", api_token="<token>")) as client:
-    req = OqtopusJobSpec.sampling(
-        device_id="Kawasaki",
-        program="OPENQASM 3; qubit[2] q; bit[2] c; h q[0]; cx q[0], q[1]; c = measure q;",
-        shots=1000,
-    )
-    finished_job = client.run_sampling(req, interval=2.0, timeout=300.0)
-    print(finished_job.status)
+client = OqtopusClient(OqtopusConfig(base_url="https://api.example.com", api_token="<token>"))
+req = OqtopusJobSpec.sampling(
+    device_id="Kawasaki",
+    program="OPENQASM 3; qubit[2] q; bit[2] c; h q[0]; cx q[0], q[1]; c = measure q;",
+    shots=1000,
+)
+finished_job = client.run_sampling(req, interval=2.0, timeout=300.0)
+print(finished_job.status)
 ```
 
 ## Installation
@@ -63,8 +63,8 @@ export OQTOPUS_API_TOKEN="<token>"
 ```python
 from oqtopus_client import OqtopusClient, OqtopusConfig
 
-with OqtopusClient(OqtopusConfig.from_env()) as client:
-    print(client.list_devices())
+client = OqtopusClient(OqtopusConfig.from_env())
+print(client.list_devices())
 ```
 
 You can tune retry behavior via initialization arguments (default: retry `GET/DELETE` on 429/5xx).
@@ -73,15 +73,15 @@ You can tune retry behavior via initialization arguments (default: retry `GET/DE
 from oqtopus_client import OqtopusClient
 from oqtopus_client import OqtopusConfig
 
-with OqtopusClient(
+client = OqtopusClient(
     OqtopusConfig(
         base_url="https://api.example.com",
         api_token="<token>",
         retry_max_attempts=3,
         retry_backoff_seconds=0.2,
     ),
-) as client:
-    print(client.list_devices())
+)
+print(client.list_devices())
 ```
 
 ## examples
@@ -113,8 +113,8 @@ Basic style:
 ```python
 from oqtopus_client import OqtopusClient, OqtopusConfig
 
-with OqtopusClient(OqtopusConfig.from_file("oqtopus-dev")) as client:
-    print(client.list_devices())
+client = OqtopusClient(OqtopusConfig.from_file("oqtopus-dev"))
+print(client.list_devices())
 ```
 
 Run example:

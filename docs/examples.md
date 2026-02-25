@@ -35,9 +35,9 @@ python examples/get_devices.py
 ```python
 from oqtopus_client import OqtopusClient, OqtopusConfig
 
-with OqtopusClient(OqtopusConfig.from_file("oqtopus-dev")) as client:
-    finished_job = client.run_job(request, timeout=300.0)
-    print(finished_job.status)
+client = OqtopusClient(OqtopusConfig.from_file("oqtopus-dev"))
+finished_job = client.run_job(request, timeout=300.0)
+print(finished_job.status)
 ```
 
 セクション名・ファイルパスを変える場合は、各スクリプト内の

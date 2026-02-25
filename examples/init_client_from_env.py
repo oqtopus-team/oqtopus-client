@@ -18,14 +18,14 @@ if config.api_token_file and not os.getenv("OQTOPUS_API_TOKEN_FILE"):
 
 env_config = OqtopusConfig.from_env()
 
-with OqtopusClient(env_config) as client:
-    print("client.base_url:", client.base_url)
-    print("client.timeout:", client.timeout)
-    print("client.retry_max_attempts:", client.retry_max_attempts)
-    print("client.retry_backoff_seconds:", client.retry_backoff_seconds)
-    print("client.retry_status_codes:", sorted(client.retry_status_codes))
-    print("client.retry_methods:", sorted(client.retry_methods))
+client = OqtopusClient(env_config)
+print("client.base_url:", client.base_url)
+print("client.timeout:", client.timeout)
+print("client.retry_max_attempts:", client.retry_max_attempts)
+print("client.retry_backoff_seconds:", client.retry_backoff_seconds)
+print("client.retry_status_codes:", sorted(client.retry_status_codes))
+print("client.retry_methods:", sorted(client.retry_methods))
 
-    if env_config.api_token:
-        client.set_api_token(env_config.api_token)
-        print("set_api_token: done")
+if env_config.api_token:
+    client.set_api_token(env_config.api_token)
+    print("set_api_token: done")
