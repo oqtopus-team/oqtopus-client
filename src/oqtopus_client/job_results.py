@@ -20,7 +20,7 @@ EstimationPayload = models.JobsEstimationResult | Mapping[str, Any] | None
 
 
 class OqtopusJobResult:
-    """SDK result object base for a job's `job_info.result` payload."""
+    """SDK result object for a job's state and execution output payloads."""
 
     def __init__(
         self,
@@ -28,11 +28,21 @@ class OqtopusJobResult:
         *,
         job_id: str | None = None,
         job_type: models.JobsJobType | str | None = None,
+        status: models.JobsJobStatus | str | None = None,
+        job_info: models.JobsJobInfo | Mapping[str, Any] | None = None,
+        transpile_result: models.JobsTranspileResult | Mapping[str, Any] | None = None,
+        message: str | None = None,
+        execution_time: float | int | None = None,
         client: OqtopusClient | None = None,
     ) -> None:
         self._raw = raw
         self._job_id = job_id
         self._job_type = self._normalize_job_type(job_type) or self._infer_job_type(raw)
+        self._status = self._normalize_status(status)
+        self._job_info = job_info
+        self._transpile_result = transpile_result
+        self._message = message
+        self._execution_time = execution_time
         self._client = client
 
     @property
@@ -49,6 +59,31 @@ class OqtopusJobResult:
     def job_type(self) -> models.JobsJobType | None:
         """Return related job type when known."""
         return self._job_type
+
+    @property
+    def status(self) -> models.JobsJobStatus | None:
+        """Return related job status when known."""
+        return self._status
+
+    @property
+    def job_info(self) -> models.JobsJobInfo | Mapping[str, Any] | None:
+        """Return related job_info payload when known."""
+        return self._job_info
+
+    @property
+    def transpile_result(self) -> models.JobsTranspileResult | Mapping[str, Any] | None:
+        """Return related transpile result when known."""
+        return self._transpile_result
+
+    @property
+    def message(self) -> str | None:
+        """Return related message when known."""
+        return self._message
+
+    @property
+    def execution_time(self) -> float | int | None:
+        """Return related execution time when known."""
+        return self._execution_time
 
     def is_sampling(self) -> bool:
         """Return ``True`` when this result belongs to a sampling job."""
@@ -80,6 +115,19 @@ class OqtopusJobResult:
         return None
 
     @staticmethod
+    def _normalize_status(
+        status: models.JobsJobStatus | str | None,
+    ) -> models.JobsJobStatus | None:
+        if isinstance(status, models.JobsJobStatus):
+            return status
+        if isinstance(status, str):
+            try:
+                return models.JobsJobStatus(status)
+            except ValueError:
+                return None
+        return None
+
+    @staticmethod
     def _infer_job_type(
         raw: models.JobsJobResult | Mapping[str, Any] | None,
     ) -> models.JobsJobType | None:
@@ -100,7 +148,10 @@ class OqtopusJobResult:
         return None
 
     def __repr__(self) -> str:
-        return f"OqtopusJobResult(job_id={self.job_id!r}, job_type={self.job_type!r})"
+        return (
+            f"OqtopusJobResult("
+            f"job_id={self.job_id!r}, job_type={self.job_type!r}, status={self.status!r})"
+        )
 
     @property
     def sampling(self) -> SamplingPayload:

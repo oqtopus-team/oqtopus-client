@@ -50,8 +50,7 @@ jobs = [
 ]
 
 client = OqtopusClient(OqtopusConfig.from_file(section, path=config_path))
-submitted_jobs = client.submit_jobs(jobs, max_workers=2)
-submitted_job_ids = [job.job_id for job in submitted_jobs]
+submitted_job_ids = [job.job_id for job in client.submit_jobs(jobs, max_workers=2)]
 print("submitted:", submitted_job_ids)
 
 finished_jobs = client.wait_for_jobs(

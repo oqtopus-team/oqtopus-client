@@ -17,16 +17,16 @@ c[0] = measure q[0];
 """
 
 client = OqtopusClient(OqtopusConfig.from_file(SECTION, path=CONFIG_PATH))
-submitted = client.submit_job(
+job_id = client.submit_job(
     OqtopusJobSpec.sampling(
         device_id="Kawasaki",
         shots=100,
         program=PROGRAM,
         name="Wait/Delete example",
     )
-)
-result = client.wait_for_job(submitted.job_id, interval=1.0, timeout=300.0)
-deleted = client.delete_job(submitted.job_id)
+).job_id
+result = client.wait_for_job(job_id, interval=1.0, timeout=300.0)
+deleted = client.delete_job(job_id)
 
 print("wait_for_job:", result.job_id, result.job_type)
 print("delete_job:", deleted)

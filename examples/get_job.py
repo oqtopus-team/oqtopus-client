@@ -30,13 +30,15 @@ req = OqtopusJobSpec.sampling(
 )
 
 client = OqtopusClient(OqtopusConfig.from_file(section, path=config_path))
-submitted_job = client.submit_job(req)
-fetched_job = client.get_job(submitted_job.job_id)
-current_result = client.result(submitted_job.job_id)
-status = client.status(submitted_job.job_id)
+job_id = client.submit_job(req).job_id
+fetched_job = client.get_job(job_id)
+current_result = client.result(job_id)
+status = client.status(job_id)
 
 print(fetched_job)
 print(fetched_job.job_id)
+print("job_status:", fetched_job.status)
+print("transpile_result:", fetched_job.transpile_result)
 if isinstance(current_result, OqtopusSamplingJobResult):
     print(current_result.normalized_counts())
 print("status:", status)

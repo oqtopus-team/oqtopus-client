@@ -856,15 +856,31 @@ class OqtopusClient:
 
     def _to_result(self, job: models.JobsJobDef) -> OqtopusJobResult:
         raw = job.job_info.result if job.job_info is not None else None
+        transpile_result = (
+            job.job_info.transpile_result
+            if job.job_info is not None
+            else None
+        )
+        message = job.job_info.message if job.job_info is not None else None
+        common_kwargs = {
+            "job_id": job.job_id,
+            "job_type": job.job_type,
+            "status": job.status,
+            "job_info": job.job_info,
+            "transpile_result": transpile_result,
+            "message": message,
+            "execution_time": job.execution_time,
+            "client": self,
+        }
         if job.job_type == models.JobsJobType.MULTI_MANUAL:
-            return OqtopusMultiManualJobResult(raw, job_id=job.job_id, job_type=job.job_type, client=self)
+            return OqtopusMultiManualJobResult(raw, **common_kwargs)
         if job.job_type == models.JobsJobType.SSE:
-            return OqtopusSseJobResult(raw, job_id=job.job_id, job_type=job.job_type, client=self)
+            return OqtopusSseJobResult(raw, **common_kwargs)
         if job.job_type == models.JobsJobType.SAMPLING:
-            return OqtopusSamplingJobResult(raw, job_id=job.job_id, job_type=job.job_type, client=self)
+            return OqtopusSamplingJobResult(raw, **common_kwargs)
         if job.job_type == models.JobsJobType.ESTIMATION:
-            return OqtopusEstimationJobResult(raw, job_id=job.job_id, job_type=job.job_type, client=self)
-        return OqtopusJobResult(raw, job_id=job.job_id, job_type=job.job_type, client=self)  # pragma: no cover
+            return OqtopusEstimationJobResult(raw, **common_kwargs)
+        return OqtopusJobResult(raw, **common_kwargs)  # pragma: no cover
 
     @staticmethod
     def _to_device(device: models.DevicesDeviceInfo) -> OqtopusDevice:
@@ -1026,21 +1042,21 @@ class OqtopusClient:
             raise ResponseValidationError("run_sse_file returned non-sse job result", finished_job.model_dump())  # pragma: no cover
         return cast(OqtopusSseJobResult, result)
 
-    def get_job(self, job_id: str) -> models.JobsJobDef:
-        """Fetch one job by id.
-
-        Args:
-            job_id (Required): Target job ID to fetch.
-        """
-        return self._call("get_job", job_id)
-
-    def get_job_result(self, job_id: str) -> OqtopusJobResult:
+    def get_job(self, job_id: str) -> OqtopusJobResult:
         """Fetch one job by id and convert to typed SDK result.
 
         Args:
             job_id (Required): Target job ID to fetch.
         """
         return self._to_result(self._call("get_job", job_id))
+
+    def get_job_result(self, job_id: str) -> OqtopusJobResult:
+        """Alias of :meth:`get_job`.
+
+        Args:
+            job_id (Required): Target job ID to fetch.
+        """
+        return self.get_job(job_id)
 
     def result(self, job_id: str) -> OqtopusJobResult:
         """Alias of :meth:`get_job_result`."""

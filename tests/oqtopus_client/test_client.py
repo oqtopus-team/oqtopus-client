@@ -542,7 +542,16 @@ def test_get_job_encodes_path_parameter() -> None:
                 "status": "submitted",
                 "device_id": "Kawasaki",
                 "shots": 1,
-                "job_info": {"program": ["OPENQASM 3; qubit[1] q;"]},
+                "job_info": {
+                    "program": ["OPENQASM 3; qubit[1] q;"],
+                    "transpile_result": {
+                        "transpiled_program": "OPENQASM 3; // transpiled",
+                        "stats": {},
+                        "virtual_physical_mapping": {"qubit_mapping": {"0": 0}},
+                    },
+                    "message": "queued",
+                },
+                "execution_time": 1.23,
             },
         )
 
@@ -555,8 +564,12 @@ def test_get_job_encodes_path_parameter() -> None:
     finally:
         client.close()
 
-    assert isinstance(result, models.JobsJobDef)
+    assert isinstance(result, OqtopusJobResult)
     assert result.job_id == "id-1"
+    assert result.status == models.JobsJobStatus.SUBMITTED
+    assert result.message == "queued"
+    assert result.execution_time == 1.23
+    assert isinstance(result.transpile_result, models.JobsTranspileResult)
 
 
 def test_wait_for_job_returns_typed_result() -> None:

@@ -919,7 +919,7 @@ def test_sync_wrappers_delegate_to_call(monkeypatch: pytest.MonkeyPatch) -> None
     assert isinstance(client.run_sse(OqtopusJobSpec.sse(device_id="K", program="print('x')")), OqtopusSseJobResult)
     assert isinstance(client.run_sse_file(file_path="a.py", device_id="K"), OqtopusSseJobResult)
     assert client.submit_job(OqtopusJobSpec.sampling(device_id="K", program="x")).job_id == "ok"
-    assert isinstance(client.get_job("j"), models.JobsJobDef)
+    assert isinstance(client.get_job("j"), OqtopusJobResult)
     assert isinstance(client.get_job_result("j"), OqtopusJobResult)
     assert isinstance(client.result("j"), OqtopusJobResult)
     assert isinstance(client.refresh("j"), OqtopusJobResult)

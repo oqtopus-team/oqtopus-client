@@ -25,8 +25,7 @@ job_spec = OqtopusJobSpec.sampling(
 )
 
 client = OqtopusClient(OqtopusConfig.from_file(SECTION, path=CONFIG_PATH))
-submitted = client.submit_job(job_spec)
-job_id = submitted.job_id
+job_id = client.submit_job(job_spec).job_id
 
 print("initial_status:", client.status(job_id))
 print("is_finished:", client.is_finished(job_id))

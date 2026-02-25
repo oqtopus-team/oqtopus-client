@@ -25,7 +25,7 @@ req = OqtopusJobSpec.sampling(
 )
 
 client = OqtopusClient(OqtopusConfig.from_file(section, path=config_path))
-submitted_job = client.submit_job(req)
-result = client.cancel_job(submitted_job.job_id)
+job_id = client.submit_job(req).job_id
+result = client.cancel_job(job_id)
 
 print(result)
