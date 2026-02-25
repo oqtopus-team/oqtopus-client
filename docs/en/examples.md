@@ -11,7 +11,7 @@ Python script samples are available under `examples/`:
 - `run_sampling_qiskit.py`
 - `submit_jobs_parallel.py` (`OqtopusClient.submit_jobs` / `wait_for_jobs`)
 - `run_job_generic.py` (`OqtopusClient.run_job`)
-- `job_handle_lifecycle.py` (`status` / `wait` / `result` methods)
+- `job_handle_lifecycle.py` (`status` / `wait` / `result` / `cancel` methods)
 - `run_jobs_batch.py` (`run_jobs_batch`)
 - `wait_and_delete_job.py` (`wait_for_job`, `delete_job`)
 - `manage_api_token.py` (`create_api_token`, `delete_api_token`)
@@ -53,8 +53,8 @@ Wait for job completion:
 from oqtopus_client import OqtopusClient, OqtopusConfig
 
 client = OqtopusClient(OqtopusConfig.from_env())
-submitted_job = client.submit_job(request)
-finished_job = client.wait_for_job(submitted_job.job_id, interval=2.0, timeout=300.0)
+job_id = client.submit_job(request).job_id
+finished_job = client.wait_for_job(job_id, interval=2.0, timeout=300.0)
 print(finished_job.status)
 ```
 

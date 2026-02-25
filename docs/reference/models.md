@@ -34,19 +34,18 @@ This page lists commonly used models first, then provides the full generated mod
 ## Minimal Model Usage
 
 ```python
-from oqtopus_client import OqtopusClient, OqtopusConfig, models
+from oqtopus_client import OqtopusClient, OqtopusConfig, OqtopusJobSpec
 
-req = models.JobsSubmitJobRequest(
+req = OqtopusJobSpec.sampling(
     device_id="Kawasaki",
-    job_type=models.JobsJobType.SAMPLING,
     shots=100,
-    job_info=models.JobsSubmitJobInfo(program=["OPENQASM 3; qubit[1] q;"]),
+    program="OPENQASM 3; qubit[1] q;",
 )
 
 client = OqtopusClient(OqtopusConfig(base_url="https://api.example.com", api_token="<token>"))
-submitted = client.submit_job(req)
-status = client.get_job_status(submitted.job_id)
-finished_job = client.wait_for_job(submitted.job_id, timeout=300.0)
+job_id = client.submit_job(req).job_id
+status = client.get_job_status(job_id)
+finished_job = client.wait_for_job(job_id, timeout=300.0)
 print(status.status, finished_job.job_info.result)
 ```
 

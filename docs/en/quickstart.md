@@ -38,20 +38,17 @@ For common workflows, you can use `OqtopusJobSpec` and `run_*` helpers so you do
 ## Minimal Example
 
 ```python
-from oqtopus_client import OqtopusClient, OqtopusConfig, models
+from oqtopus_client import OqtopusClient, OqtopusConfig, OqtopusJobSpec
 
 client = OqtopusClient(OqtopusConfig(base_url="https://api.example.com", api_token="<token>"))
 devices = client.list_devices()
-req = models.JobsSubmitJobRequest(
+req = OqtopusJobSpec.sampling(
     device_id="Kawasaki",
-    job_type=models.JobsJobType.SAMPLING,
     shots=1000,
-    job_info=models.JobsSubmitJobInfo(
-        program=["OPENQASM 3; qubit[2] q; bit[2] c; h q[0]; cx q[0], q[1]; c = measure q;"]
-    ),
+    program="OPENQASM 3; qubit[2] q; bit[2] c; h q[0]; cx q[0], q[1]; c = measure q;",
 )
-job = client.submit_job(req)
-print(job.job_id)
+job_id = client.submit_job(req).job_id
+print(job_id)
 ```
 
 ## Initialize From Environment Variables
@@ -105,8 +102,7 @@ final_sse = client.run_sse(sse_req)
 To handle a submitted job in steps, use `job_id` with client methods:
 
 ```python
-submitted_job = client.submit_job(req)
-job_id = submitted_job.job_id
+job_id = client.submit_job(req).job_id
 print(job_id)
 print(client.status(job_id))
 finished_job = client.wait(job_id, interval=1.0, interval_backoff=1.2, max_interval=5.0, timeout=300.0)

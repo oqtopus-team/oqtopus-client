@@ -133,8 +133,7 @@ finished_jobs = client.wait_for_jobs([r.job_id for r in responses], max_workers=
 For step-by-step job control, use `job_id` with client methods.
 
 ```python
-submitted_job = client.submit_job(req)
-job_id = submitted_job.job_id
+job_id = client.submit_job(req).job_id
 print(client.status(job_id))
 finished_job = client.wait(job_id, interval=1.0, interval_backoff=1.2, max_interval=5.0, timeout=300.0)
 print(finished_job.status)
