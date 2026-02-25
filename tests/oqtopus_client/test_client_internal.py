@@ -736,8 +736,10 @@ def test_async_run_helpers_and_endpoint_wrappers() -> None:
         assert asyncio.run(client.delete_job("job-1")).message == "ok"
         assert asyncio.run(client.cancel_job("job-1")).message == "ok"
         assert asyncio.run(client.get_sselog("job-1")).file_name == "x.zip"
-        assert asyncio.run(client.create_api_token()).api_token_secret == "s"
-        assert asyncio.run(client.get_api_token())[0].api_token_secret == "s"
+        with pytest.raises(RuntimeError, match="create_api_token requires generated API mode"):
+            asyncio.run(client.create_api_token())
+        with pytest.raises(RuntimeError, match="get_api_token requires generated API mode"):
+            asyncio.run(client.get_api_token())
         assert asyncio.run(client.get_announcements_list()).announcements == []
         assert asyncio.run(client.get_announcement(1)).id == 1
         assert asyncio.run(client.get_device("K")).device_id == "K"

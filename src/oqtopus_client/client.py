@@ -728,44 +728,27 @@ class _AsyncOqtopusClient:
         return await self._request("GET", f"/jobs/{self._path_param(job_id)}/sselog", parse_as=models.JobsGetSselogResponse)
 
     async def create_api_token(self) -> models.ApiTokenApiToken:
-        payload = await self._request("POST", "/api-token", parse_as=Any)
-        tokens = self._normalize_api_token_list(payload)
+        if not self._use_generated_api:
+            raise RuntimeError("create_api_token requires generated API mode.")
+        await self._ensure_generated_api()
+        assert self._token_api is not None
+        tokens = cast(
+            list[models.ApiTokenApiToken],
+            await self._call_generated(self._token_api.create_api_token(_request_timeout=self._generated_timeout)),
+        )
         if tokens:
             return tokens[0]
-        raise ResponseValidationError("create_api_token response is empty.", payload)
+        raise ResponseValidationError("create_api_token response is empty.", tokens)
 
     async def get_api_token(self) -> list[models.ApiTokenApiToken]:
-        payload = await self._request("GET", "/api-token", parse_as=Any)
-        return self._normalize_api_token_list(payload)
-
-    @staticmethod
-    def _normalize_api_token_list(payload: Any) -> list[models.ApiTokenApiToken]:
-        if payload is None:
-            return []
-
-        items: list[Any]
-        if isinstance(payload, list):
-            items = payload
-        elif isinstance(payload, Mapping):
-            for key in ("items", "tokens", "api_tokens", "data"):
-                nested = payload.get(key)
-                if isinstance(nested, list):
-                    items = nested
-                    break
-            else:
-                items = [payload]
-        else:
-            raise ResponseValidationError("api-token response has unsupported shape.", payload)
-
-        normalized: list[models.ApiTokenApiToken] = []
-        for item in items:
-            if isinstance(item, models.ApiTokenApiToken):
-                normalized.append(item)
-            elif isinstance(item, Mapping):
-                normalized.append(models.ApiTokenApiToken.model_validate(dict(item)))
-            else:
-                raise ResponseValidationError("api-token response item has unsupported shape.", item)
-        return normalized
+        if not self._use_generated_api:
+            raise RuntimeError("get_api_token requires generated API mode.")
+        await self._ensure_generated_api()
+        assert self._token_api is not None
+        return cast(
+            list[models.ApiTokenApiToken],
+            await self._call_generated(self._token_api.get_api_token(_request_timeout=self._generated_timeout)),
+        )
 
     async def delete_api_token(self) -> None:
         if self._use_generated_api:  # pragma: no cover - integration path
