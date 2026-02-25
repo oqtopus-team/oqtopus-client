@@ -17,7 +17,6 @@ from pydantic import validate_call, Field, StrictFloat, StrictStr, StrictInt
 from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Annotated
 
-from typing import List
 from oqtopus_client.models.generated.models.api_token_api_token import ApiTokenApiToken
 
 from oqtopus_client.models.generated.api_client import ApiClient, RequestSerialized
@@ -53,7 +52,7 @@ class ApiTokenApi:
         _content_type: Optional[StrictStr] = None,
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> List[ApiTokenApiToken]:
+    ) -> ApiTokenApiToken:
         """create api token
 
         Create api token
@@ -88,7 +87,7 @@ class ApiTokenApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "List[ApiTokenApiToken]",
+            '200': "ApiTokenApiToken",
             '403': "ErrorForbiddenError",
             '404': "ErrorNotFoundError",
             '500': "ErrorInternalServerError",
@@ -119,7 +118,7 @@ class ApiTokenApi:
         _content_type: Optional[StrictStr] = None,
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> ApiResponse[List[ApiTokenApiToken]]:
+    ) -> ApiResponse[ApiTokenApiToken]:
         """create api token
 
         Create api token
@@ -154,7 +153,7 @@ class ApiTokenApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "List[ApiTokenApiToken]",
+            '200': "ApiTokenApiToken",
             '403': "ErrorForbiddenError",
             '404': "ErrorNotFoundError",
             '500': "ErrorInternalServerError",
@@ -220,7 +219,7 @@ class ApiTokenApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "List[ApiTokenApiToken]",
+            '200': "ApiTokenApiToken",
             '403': "ErrorForbiddenError",
             '404': "ErrorNotFoundError",
             '500': "ErrorInternalServerError",
@@ -559,7 +558,7 @@ class ApiTokenApi:
         _content_type: Optional[StrictStr] = None,
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> List[ApiTokenApiToken]:
+    ) -> ApiTokenApiToken:
         """get api token
 
         Get api token
@@ -594,7 +593,7 @@ class ApiTokenApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "List[ApiTokenApiToken]",
+            '200': "ApiTokenApiToken",
             '403': "ErrorForbiddenError",
             '404': "ErrorNotFoundError",
             '500': "ErrorInternalServerError",
@@ -625,7 +624,7 @@ class ApiTokenApi:
         _content_type: Optional[StrictStr] = None,
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> ApiResponse[List[ApiTokenApiToken]]:
+    ) -> ApiResponse[ApiTokenApiToken]:
         """get api token
 
         Get api token
@@ -660,7 +659,7 @@ class ApiTokenApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "List[ApiTokenApiToken]",
+            '200': "ApiTokenApiToken",
             '403': "ErrorForbiddenError",
             '404': "ErrorNotFoundError",
             '500': "ErrorInternalServerError",
@@ -726,7 +725,7 @@ class ApiTokenApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "List[ApiTokenApiToken]",
+            '200': "ApiTokenApiToken",
             '403': "ErrorForbiddenError",
             '404': "ErrorNotFoundError",
             '500': "ErrorInternalServerError",

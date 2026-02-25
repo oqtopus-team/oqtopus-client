@@ -10,4 +10,4 @@ CONFIG_PATH = os.getenv("OQTOPUS_CONFIG_PATH", "~/.config/oqtopus/config.ini")
 
 client = OqtopusClient(OqtopusConfig.from_file(SECTION, path=CONFIG_PATH))
 print("announcements_list:", client.get_announcements_list())
-print("api_token_list:", client.get_api_token())
+print("api_token:", client.get_api_token())

@@ -307,7 +307,7 @@ def test_sync_wrappers_delegate_to_call() -> None:
         if name == "create_api_token":
             return models.ApiTokenApiToken(api_token_secret="secret", api_token_expiration=None)
         if name == "get_api_token":
-            return [models.ApiTokenApiToken(api_token_expiration=None)]
+            return models.ApiTokenApiToken(api_token_expiration=None)
         if name == "get_announcements_list":
             return models.AnnouncementsGetAnnouncementsListResponse(
                 announcements=[
@@ -364,7 +364,7 @@ def test_sync_wrappers_delegate_to_call() -> None:
     assert isinstance(client.cancel("j"), models.SuccessSuccessResponse)
     assert isinstance(client.get_sselog("j"), models.JobsGetSselogResponse)
     assert isinstance(client.create_api_token(), models.ApiTokenApiToken)
-    assert isinstance(client.get_api_token(), list)
+    assert isinstance(client.get_api_token(), models.ApiTokenApiToken)
     client.delete_api_token()
     assert isinstance(client.get_announcements_list(), models.AnnouncementsGetAnnouncementsListResponse)
     assert isinstance(client.get_announcement(1), models.AnnouncementsGetAnnouncementResponse)

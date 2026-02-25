@@ -580,19 +580,19 @@ class _AsyncOqtopusClient:
     async def create_api_token(self) -> models.ApiTokenApiToken:
         await self._ensure_generated_api()
         assert self._token_api is not None
-        tokens = cast(
-            list[models.ApiTokenApiToken],
+        token = cast(
+            models.ApiTokenApiToken,
             await self._call_generated(self._token_api.create_api_token(_request_timeout=self._generated_timeout)),
         )
-        if tokens:
-            return tokens[0]
-        raise ResponseValidationError("create_api_token response is empty.", tokens)
+        if token is None:  # pragma: no cover
+            raise ResponseValidationError("create_api_token response is empty.", token)
+        return token
 
-    async def get_api_token(self) -> list[models.ApiTokenApiToken]:
+    async def get_api_token(self) -> models.ApiTokenApiToken:
         await self._ensure_generated_api()
         assert self._token_api is not None
         return cast(
-            list[models.ApiTokenApiToken],
+            models.ApiTokenApiToken,
             await self._call_generated(self._token_api.get_api_token(_request_timeout=self._generated_timeout)),
         )
 
@@ -1024,8 +1024,8 @@ class OqtopusClient:
         """Create an API token."""
         return self._call("create_api_token")
 
-    def get_api_token(self) -> list[models.ApiTokenApiToken]:
-        """Get API token list."""
+    def get_api_token(self) -> models.ApiTokenApiToken:
+        """Get API token."""
         return self._call("get_api_token")
 
     def delete_api_token(self) -> None:
