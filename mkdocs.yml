@@ -32,12 +32,6 @@ nav:
           - API Guide: en/api.md
           - Models Guide: en/models.md
           - Examples: en/examples.md
-      - Japanese:
-          - Home: ja/index.md
-          - Quickstart: ja/quickstart.md
-          - API Guide: ja/api.md
-          - Models Guide: ja/models.md
-          - Examples: ja/examples.md
 
 exclude_docs: |
   /api.md

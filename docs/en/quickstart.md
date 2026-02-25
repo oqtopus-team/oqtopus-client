@@ -116,4 +116,4 @@ finished_job = job.wait(interval=1.0, interval_backoff=1.2, max_interval=5.0, ti
 
 ## Language
 
-- [日本語版](../ja/quickstart.md)
+- English only

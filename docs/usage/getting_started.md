@@ -64,4 +64,3 @@ export OQTOPUS_API_TOKEN_FILE="~/.oqtopus/token.json"
 ## Language-specific guides
 
 - [English quickstart](../en/quickstart.md)
-- [日本語クイックスタート](../ja/quickstart.md)

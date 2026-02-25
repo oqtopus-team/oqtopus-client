@@ -69,4 +69,4 @@ print(normalized["counts"])
 
 ## Language
 
-- [日本語版](../ja/examples.md)
+- English only

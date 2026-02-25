@@ -45,4 +45,3 @@ Python client SDK for the OQTOPUS Cloud User API.
 ## Languages
 
 - [English](./en/index.md)
-- [日本語](./ja/index.md)

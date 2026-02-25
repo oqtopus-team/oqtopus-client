@@ -23,4 +23,4 @@ This documentation auto-generates API references from docstrings in `src/oqtopus
 
 ## Language
 
-- [日本語版](../ja/index.md)
+- English only
