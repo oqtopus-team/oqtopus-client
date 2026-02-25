@@ -13,12 +13,12 @@ from oqtopus_client import (
     OqtopusEstimationJobResult,
     OqtopusJobResult,
     OqtopusJobSpec,
-    OqtopusJobHandle,
     OqtopusClient,
     OqtopusConfig,
     OqtopusMultiManualJobResult,
     OqtopusSamplingJobResult,
     OqtopusSseJobResult,
+    models,
 )
 from oqtopus_client.errors import ResponseValidationError, UserApiError
 
@@ -83,7 +83,7 @@ def test_submit_job_sends_auth_and_payload() -> None:
     finally:
         client.close()
 
-    assert isinstance(res, OqtopusJobHandle)
+    assert isinstance(res, models.JobsSubmitJobResponse)
     assert res.job_id == "job-1"
 
 
@@ -555,7 +555,7 @@ def test_get_job_encodes_path_parameter() -> None:
     finally:
         client.close()
 
-    assert isinstance(result, OqtopusJobHandle)
+    assert isinstance(result, models.JobsJobDef)
     assert result.job_id == "id-1"
 
 

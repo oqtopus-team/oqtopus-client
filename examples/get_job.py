@@ -5,7 +5,6 @@ import os
 from oqtopus_client import (
     OqtopusClient,
     OqtopusConfig,
-    OqtopusJobHandle,
     OqtopusJobSpec,
     OqtopusSamplingJobResult,
 )
@@ -33,11 +32,11 @@ req = OqtopusJobSpec.sampling(
 client = OqtopusClient(OqtopusConfig.from_file(section, path=config_path))
 submitted_job = client.submit_job(req)
 fetched_job = client.get_job(submitted_job.job_id)
-current_result = fetched_job.get_current_result()
-wrapped_job = OqtopusJobHandle(client, submitted_job.job_id)
+current_result = client.result(submitted_job.job_id)
+status = client.status(submitted_job.job_id)
 
 print(fetched_job)
 print(fetched_job.job_id)
 if isinstance(current_result, OqtopusSamplingJobResult):
     print(current_result.normalized_counts())
-print("wrapped status:", wrapped_job.status())
+print("status:", status)

@@ -102,16 +102,14 @@ final_manual = client.run_multi_manual(multi_manual_req)
 final_sse = client.run_sse(sse_req)
 ```
 
-To handle a submitted job in steps, use `OqtopusJobHandle`:
+To handle a submitted job in steps, use `job_id` with client methods:
 
 ```python
-from oqtopus_client import OqtopusJobHandle
-
 submitted_job = client.submit_job(req)
-job = OqtopusJobHandle(client, submitted_job.job_id)
-print(job.job_id)
-print(job.status())
-finished_job = job.wait(interval=1.0, interval_backoff=1.2, max_interval=5.0, timeout=300.0)
+job_id = submitted_job.job_id
+print(job_id)
+print(client.status(job_id))
+finished_job = client.wait(job_id, interval=1.0, interval_backoff=1.2, max_interval=5.0, timeout=300.0)
 ```
 
 ## Language

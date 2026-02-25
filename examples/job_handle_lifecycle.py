@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 
-from oqtopus_client import OqtopusClient, OqtopusConfig, OqtopusJobHandle, OqtopusJobSpec
+from oqtopus_client import OqtopusClient, OqtopusConfig, OqtopusJobSpec
 
 
 SECTION = os.getenv("OQTOPUS_CONFIG_SECTION", "oqtopus-dev")
@@ -17,8 +17,8 @@ c[0] = measure q[0];
 """
 
 job_spec = OqtopusJobSpec.sampling(
-    name="Job Handle Lifecycle",
-    description="Use OqtopusJobHandle methods end-to-end",
+    name="Job Lifecycle",
+    description="Use client job methods end-to-end",
     device_id="Kawasaki",
     shots=500,
     program=PROGRAM,
@@ -26,17 +26,17 @@ job_spec = OqtopusJobSpec.sampling(
 
 client = OqtopusClient(OqtopusConfig.from_file(SECTION, path=CONFIG_PATH))
 submitted = client.submit_job(job_spec)
-handle = OqtopusJobHandle(client, submitted.job_id)
+job_id = submitted.job_id
 
-print("initial_status:", handle.status())
-print("is_finished:", handle.is_finished())
+print("initial_status:", client.status(job_id))
+print("is_finished:", client.is_finished(job_id))
 
-waited = handle.wait(interval=1.0, interval_backoff=1.1, max_interval=5.0, timeout=300.0)
-refreshed = handle.refresh()
-current = handle.get_current_result()
-fetched = handle.get_result(timeout=1.0)
-direct = client.get_job_result(handle.job_id)
-status = client.get_job_status(handle.job_id)
+waited = client.wait(job_id, interval=1.0, interval_backoff=1.1, max_interval=5.0, timeout=300.0)
+refreshed = client.refresh(job_id)
+current = client.result(job_id)
+fetched = client.wait(job_id, timeout=1.0)
+direct = client.get_job_result(job_id)
+status = client.get_job_status(job_id)
 
 print("waited:", waited.job_id, waited.job_type)
 print("refreshed:", refreshed.job_id)

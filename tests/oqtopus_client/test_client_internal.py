@@ -21,7 +21,6 @@ from oqtopus_client import (
     OqtopusClient,
     OqtopusConfig,
     OqtopusEstimationJobResult,
-    OqtopusJobHandle,
     OqtopusJobResult,
     OqtopusJobSpec,
     OqtopusMultiManualJobResult,
@@ -909,7 +908,7 @@ def test_sync_wrappers_delegate_to_call(monkeypatch: pytest.MonkeyPatch) -> None
     assert isinstance(client.get_device("d"), OqtopusDevice)
     listed_jobs = client.list_jobs()
     assert len(listed_jobs) == 1
-    assert isinstance(listed_jobs[0], OqtopusJobHandle)
+    assert isinstance(listed_jobs[0], models.JobsGetJobsResponse)
     assert isinstance(client.run_job(OqtopusJobSpec.sampling(device_id="K", program="x")), OqtopusJobResult)
     assert isinstance(client.run_sampling(OqtopusJobSpec.sampling(device_id="K", program="x")), OqtopusSamplingJobResult)
     assert isinstance(
@@ -920,12 +919,18 @@ def test_sync_wrappers_delegate_to_call(monkeypatch: pytest.MonkeyPatch) -> None
     assert isinstance(client.run_sse(OqtopusJobSpec.sse(device_id="K", program="print('x')")), OqtopusSseJobResult)
     assert isinstance(client.run_sse_file(file_path="a.py", device_id="K"), OqtopusSseJobResult)
     assert client.submit_job(OqtopusJobSpec.sampling(device_id="K", program="x")).job_id == "ok"
-    assert isinstance(client.get_job("j"), OqtopusJobHandle)
+    assert isinstance(client.get_job("j"), models.JobsJobDef)
     assert isinstance(client.get_job_result("j"), OqtopusJobResult)
+    assert isinstance(client.result("j"), OqtopusJobResult)
+    assert isinstance(client.refresh("j"), OqtopusJobResult)
     assert isinstance(client.wait_for_job("j"), OqtopusJobResult)
+    assert isinstance(client.wait("j"), OqtopusJobResult)
     assert isinstance(client.delete_job("j"), models.SuccessSuccessResponse)
     assert isinstance(client.get_job_status("j"), models.JobsGetJobStatusResponse)
+    assert isinstance(client.status("j"), models.JobsJobStatus)
+    assert isinstance(client.is_finished("j"), bool)
     assert isinstance(client.cancel_job("j"), models.SuccessSuccessResponse)
+    assert isinstance(client.cancel("j"), models.SuccessSuccessResponse)
     assert isinstance(client.get_sselog("j"), models.JobsGetSselogResponse)
     assert isinstance(client.create_api_token(), models.ApiTokenApiToken)
     assert isinstance(client.get_api_token(), list)

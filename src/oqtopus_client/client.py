@@ -47,9 +47,6 @@ from .models.generated.api_client import ApiClient as GeneratedApiClient
 from .models.generated.configuration import Configuration as GeneratedConfiguration
 from .models.generated.exceptions import ApiException as GeneratedApiException
 
-if TYPE_CHECKING:
-    from .job_handle import OqtopusJobHandle
-
 PACKAGE_NAME = "oqtopus-client"
 _SubmitJobInput = models.JobsSubmitJobRequest | Mapping[str, Any] | OqtopusJobSpec
 _RunInput = _SubmitJobInput
@@ -901,32 +898,26 @@ class OqtopusClient:
         """Get one device by id."""
         return self._to_device(self._call("get_device", device_id))
 
-    def list_jobs(self, **kwargs: Any) -> list["OqtopusJobHandle"]:
+    def list_jobs(self, **kwargs: Any) -> list[models.JobsGetJobsResponse]:
         """List jobs with optional filters."""
-        from .job_handle import OqtopusJobHandle
+        return self._call("list_jobs", **kwargs)
 
-        jobs = self._call("list_jobs", **kwargs)
-        return [OqtopusJobHandle(client=self, job_id=job.job_id) for job in jobs]
-
-    def submit_job(self, body: OqtopusJobSpec) -> "OqtopusJobHandle":
-        """Submit one job and return submitted job handle.
+    def submit_job(self, body: OqtopusJobSpec) -> models.JobsSubmitJobResponse:
+        """Submit one job and return submission response.
 
         Args:
             body (Required): `OqtopusJobSpec`.
         """
-        from .job_handle import OqtopusJobHandle
-
         if not isinstance(body, OqtopusJobSpec):
             raise TypeError("submit_job expects OqtopusJobSpec.")  # pragma: no cover
-        submitted = self._call("submit_job", body)
-        return OqtopusJobHandle(client=self, job_id=submitted.job_id)
+        return self._call("submit_job", body)
 
     def submit_jobs(
         self,
         jobs: Sequence[OqtopusJobSpec],
         *,
         max_workers: int = 4,
-    ) -> list["OqtopusJobHandle"]:
+    ) -> list[models.JobsSubmitJobResponse]:
         """Submit multiple jobs in parallel.
 
         Args:
@@ -1035,16 +1026,13 @@ class OqtopusClient:
             raise ResponseValidationError("run_sse_file returned non-sse job result", finished_job.model_dump())  # pragma: no cover
         return cast(OqtopusSseJobResult, result)
 
-    def get_job(self, job_id: str) -> "OqtopusJobHandle":
-        """Fetch one job by id and return its job handle.
+    def get_job(self, job_id: str) -> models.JobsJobDef:
+        """Fetch one job by id.
 
         Args:
             job_id (Required): Target job ID to fetch.
         """
-        from .job_handle import OqtopusJobHandle
-
-        job = self._call("get_job", job_id)
-        return OqtopusJobHandle(client=self, job_id=job.job_id)
+        return self._call("get_job", job_id)
 
     def get_job_result(self, job_id: str) -> OqtopusJobResult:
         """Fetch one job by id and convert to typed SDK result.
@@ -1053,6 +1041,14 @@ class OqtopusClient:
             job_id (Required): Target job ID to fetch.
         """
         return self._to_result(self._call("get_job", job_id))
+
+    def result(self, job_id: str) -> OqtopusJobResult:
+        """Alias of :meth:`get_job_result`."""
+        return self.get_job_result(job_id)
+
+    def refresh(self, job_id: str) -> OqtopusJobResult:
+        """Alias of :meth:`get_job_result`."""
+        return self.get_job_result(job_id)
 
     def wait_for_job(self, job_id: str, **kwargs: Any) -> OqtopusJobResult:
         """Poll one job until terminal status/timeout and return typed result.
@@ -1063,6 +1059,10 @@ class OqtopusClient:
                 ``terminal_statuses``, ``failure_statuses``.
         """
         return self._to_result(self._call("wait_for_job", job_id, **kwargs))
+
+    def wait(self, job_id: str, **kwargs: Any) -> OqtopusJobResult:
+        """Alias of :meth:`wait_for_job`."""
+        return self.wait_for_job(job_id, **kwargs)
 
     def wait_for_jobs(
         self,
@@ -1152,6 +1152,24 @@ class OqtopusClient:
         """
         return self._call("get_job_status", job_id)
 
+    def status(self, job_id: str) -> models.JobsJobStatus:
+        """Get current job status enum for one job."""
+        return self.get_job_status(job_id).status
+
+    def is_finished(
+        self,
+        job_id: str,
+        *,
+        terminal_statuses: set[models.JobsJobStatus] | None = None,
+    ) -> bool:
+        """Return whether the job is in terminal status."""
+        terminal = terminal_statuses or {
+            models.JobsJobStatus.SUCCEEDED,
+            models.JobsJobStatus.FAILED,
+            models.JobsJobStatus.CANCELLED,
+        }
+        return self.status(job_id) in terminal
+
     def cancel_job(self, job_id: str) -> models.SuccessSuccessResponse:
         """Cancel a job by id.
 
@@ -1159,6 +1177,10 @@ class OqtopusClient:
             job_id (Required): Target job ID to cancel.
         """
         return self._call("cancel_job", job_id)
+
+    def cancel(self, job_id: str) -> models.SuccessSuccessResponse:
+        """Alias of :meth:`cancel_job`."""
+        return self.cancel_job(job_id)
 
     def get_sselog(self, job_id: str) -> models.JobsGetSselogResponse:
         """Get encoded SSE log archive for one job."""

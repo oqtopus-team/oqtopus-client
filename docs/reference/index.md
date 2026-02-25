@@ -6,7 +6,6 @@ API reference is organized by module.
 
 - [`OqtopusClient`](client.md): Main HTTP client and endpoint wrappers.
 - [`OqtopusConfig`](config.md): Client configuration loader and profile/env utilities.
-- [`OqtopusJobHandle`](job_handle.md): Convenience wrapper around single job operations.
 - [`OqtopusJobSpec`](job_spec.md): Unified thin input wrapper for concise job submissions.
 - [`OqtopusEstimationOperator`](estimation_operator.md): Typed operator wrapper for estimation inputs.
 - [`OqtopusJobResult` family](job_results.md): Typed result objects (sampling/estimation/multi_manual/sse).

@@ -15,7 +15,6 @@ nav:
       - device: reference/device.md
       - errors: reference/errors.md
       - estimation_operator: reference/estimation_operator.md
-      - job_handle: reference/job_handle.md
       - job_results: reference/job_results.md
       - job_spec: reference/job_spec.md
       - models: reference/models.md

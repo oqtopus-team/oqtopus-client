@@ -97,7 +97,7 @@ print(client.list_devices())
 - `run_sampling_quri_parts.py`
 - `submit_jobs_parallel.py (OqtopusClient.submit_jobs / wait_for_jobs)`
 - `run_job_generic.py (OqtopusClient.run_job)`
-- `job_handle_lifecycle.py (OqtopusJobHandle methods)`
+- `job_handle_lifecycle.py (status / wait / result / cancel helpers)`
 - `run_jobs_batch.py (OqtopusClient.run_jobs_batch)`
 - `wait_and_delete_job.py (wait_for_job / delete_job)`
 - `manage_api_token.py (create_api_token / delete_api_token)`
@@ -130,15 +130,13 @@ responses = client.submit_jobs([req1, req2], max_workers=2)
 finished_jobs = client.wait_for_jobs([r.job_id for r in responses], max_workers=2)
 ```
 
-Use `OqtopusJobHandle` when you want to manage an already-submitted job step by step.
+For step-by-step job control, use `job_id` with client methods.
 
 ```python
-from oqtopus_client import OqtopusJobHandle
-
 submitted_job = client.submit_job(req)
-job = OqtopusJobHandle(client, submitted_job.job_id)
-print(job.status())
-finished_job = job.wait(interval=1.0, interval_backoff=1.2, max_interval=5.0, timeout=300.0)
+job_id = submitted_job.job_id
+print(client.status(job_id))
+finished_job = client.wait(job_id, interval=1.0, interval_backoff=1.2, max_interval=5.0, timeout=300.0)
 print(finished_job.status)
 ```
 
