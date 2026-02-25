@@ -34,7 +34,7 @@ waited = client.wait(job_id, interval=1.0, interval_backoff=1.1, max_interval=5.
 refreshed = client.refresh(job_id)
 current = client.result(job_id)
 fetched = client.wait(job_id, timeout=1.0)
-direct = client.get_job_result(job_id)
+direct = client.get_job(job_id)
 status = client.get_job_status(job_id)
 
 print("waited:", waited.job_id, waited.job_type)

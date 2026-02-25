@@ -12,7 +12,6 @@ from collections.abc import Callable
 from collections.abc import Mapping
 from collections.abc import Sequence
 from datetime import datetime
-from enum import Enum
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from time import monotonic
@@ -20,10 +19,8 @@ from typing import Any
 from typing import Awaitable
 from typing import TYPE_CHECKING
 from typing import cast
-from urllib.parse import quote
 
-import httpx
-from pydantic import BaseModel, TypeAdapter, ValidationError
+from pydantic import TypeAdapter, ValidationError
 
 from . import models
 from .config import OqtopusConfig
@@ -134,7 +131,6 @@ class _AsyncOqtopusClient:
     def __init__(
         self,
         config: OqtopusConfig,
-        client: httpx.AsyncClient | None = None,
         default_headers: Mapping[str, str] | None = None,
         user_agent: str | None = None,
     ) -> None:
@@ -143,9 +139,6 @@ class _AsyncOqtopusClient:
 
         self.base_url = config.base_url.rstrip("/") if config.base_url else ""
         self._proxy = config.proxy
-        self._client = client or httpx.AsyncClient(timeout=config.timeout, proxy=config.proxy)
-        self._owns_client = client is None
-        self._use_generated_api = client is None
         self._headers: dict[str, str] = {"User-Agent": user_agent or _resolve_user_agent()}
 
         if config.retry_max_attempts < 1:
@@ -187,7 +180,7 @@ class _AsyncOqtopusClient:
             self._generated_config.access_token = api_token
 
     async def _ensure_generated_api(self) -> None:  # pragma: no cover - integration path
-        if not self._use_generated_api or self._generated_client is not None:
+        if self._generated_client is not None:
             return
         generated_host = self.base_url or "http://localhost"
         self._generated_config = GeneratedConfiguration(host=generated_host)
@@ -205,8 +198,6 @@ class _AsyncOqtopusClient:
     async def close(self) -> None:
         if self._generated_client is not None:  # pragma: no cover - integration path
             await self._generated_client.close()
-        if self._owns_client:
-            await self._client.aclose()
 
     async def _call_generated(self, call: Awaitable[Any]) -> Any:  # pragma: no cover - integration path
         try:
@@ -236,21 +227,6 @@ class _AsyncOqtopusClient:
         if not token:
             raise ValueError(f"API token not found in file: {api_token_file}")
         return token
-
-    def _serialize_value(self, value: Any) -> Any:
-        if value is None:
-            return None
-        if isinstance(value, datetime):
-            return value.isoformat()
-        if isinstance(value, Enum):
-            return value.value
-        if isinstance(value, list):
-            return [self._serialize_value(v) for v in value]
-        return value
-
-    @staticmethod
-    def _path_param(value: str) -> str:
-        return quote(value, safe="")
 
     @staticmethod
     def _job_type_of(job: models.JobsSubmitJobRequest | Mapping[str, Any] | OqtopusJobSpec) -> str | None:
@@ -289,104 +265,6 @@ class _AsyncOqtopusClient:
         actual = cls._job_type_of(job)
         if actual != expected.value:
             raise ValueError(f"job_type must be '{expected.value}' for this helper (got {actual!r}).")
-
-    def _json_body(self, body: BaseModel | dict[str, Any] | None) -> dict[str, Any] | None:
-        if body is None:
-            return None
-        if isinstance(body, BaseModel):
-            return body.model_dump(by_alias=True, exclude_none=True)
-        return body
-
-    async def _request(
-        self,
-        method: str,
-        path: str,
-        *,
-        params: dict[str, Any] | None = None,
-        body: BaseModel | dict[str, Any] | None = None,
-        expected_statuses: tuple[int, ...] = (200,),
-        parse_as: Any = None,
-    ) -> Any:
-        query = None
-        if params is not None:
-            query = {k: self._serialize_value(v) for k, v in params.items() if v is not None}
-
-        request_url = f"{self.base_url}{path}"
-        method_upper = method.upper()
-        last_network_error: httpx.HTTPError | None = None
-        response: httpx.Response | None = None
-
-        for attempt in range(1, self._retry_max_attempts + 1):
-            try:
-                response = await self._client.request(
-                    method_upper,
-                    request_url,
-                    headers=self._headers,
-                    params=query,
-                    json=self._json_body(body),
-                )
-            except httpx.HTTPError as exc:
-                last_network_error = exc
-                if not self._should_retry_network_error(method_upper, attempt):
-                    raise UserApiError(
-                        0,
-                        f"network error: {exc}",
-                        payload={"exception": exc.__class__.__name__, "detail": str(exc)},
-                    ) from exc
-                await self._sleep_before_retry(attempt)
-                continue
-
-            if response.status_code in expected_statuses:
-                break
-            if self._should_retry_response(method_upper, response.status_code, attempt):
-                await self._sleep_before_retry(attempt)
-                continue
-            break
-
-        if response is None:
-            assert last_network_error is not None
-            raise UserApiError(
-                0,
-                f"network error: {last_network_error}",
-                payload={
-                    "exception": last_network_error.__class__.__name__,
-                    "detail": str(last_network_error),
-                },
-            ) from last_network_error
-
-        if response.status_code not in expected_statuses:
-            payload = self._safe_json(response)
-            message = self._extract_error_message(payload) or response.text or "request failed"
-            raise UserApiError(response.status_code, message or "request failed", payload)
-
-        if parse_as is None:
-            return None
-
-        payload = self._safe_json(response)
-        try:
-            return TypeAdapter(parse_as).validate_python(payload)
-        except ValidationError as exc:
-            raise ResponseValidationError(str(exc), payload) from exc
-
-    def _should_retry_network_error(self, method: str, attempt: int) -> bool:
-        return method in self._retry_methods and attempt < self._retry_max_attempts
-
-    def _should_retry_response(self, method: str, status_code: int, attempt: int) -> bool:
-        return method in self._retry_methods and status_code in self._retry_status_codes and attempt < self._retry_max_attempts
-
-    async def _sleep_before_retry(self, attempt: int) -> None:
-        if self._retry_backoff_seconds <= 0:
-            return
-        await asyncio.sleep(self._retry_backoff_seconds * (2 ** (attempt - 1)))
-
-    @staticmethod
-    def _safe_json(response: httpx.Response) -> Any:
-        if not response.content:
-            return None
-        try:
-            return response.json()
-        except ValueError:
-            return response.text
 
     @staticmethod
     def _extract_error_message(payload: Any) -> str | None:
@@ -457,24 +335,20 @@ class _AsyncOqtopusClient:
                 raise ResponseValidationError(str(exc), response_payload) from exc
 
     async def list_devices(self) -> list[models.DevicesDeviceInfo]:
-        if self._use_generated_api:  # pragma: no cover - integration path
-            await self._ensure_generated_api()
-            assert self._device_api is not None
-            return cast(
-                list[models.DevicesDeviceInfo],
-                await self._call_generated(self._device_api.list_devices(_request_timeout=self._generated_timeout)),
-            )
-        return await self._request("GET", "/devices", parse_as=list[models.DevicesDeviceInfo])
+        await self._ensure_generated_api()
+        assert self._device_api is not None
+        return cast(
+            list[models.DevicesDeviceInfo],
+            await self._call_generated(self._device_api.list_devices(_request_timeout=self._generated_timeout)),
+        )
 
     async def get_device(self, device_id: str) -> models.DevicesDeviceInfo:
-        if self._use_generated_api:  # pragma: no cover - integration path
-            await self._ensure_generated_api()
-            assert self._device_api is not None
-            return cast(
-                models.DevicesDeviceInfo,
-                await self._call_generated(self._device_api.get_device(device_id, _request_timeout=self._generated_timeout)),
-            )
-        return await self._request("GET", f"/devices/{self._path_param(device_id)}", parse_as=models.DevicesDeviceInfo)
+        await self._ensure_generated_api()
+        assert self._device_api is not None
+        return cast(
+            models.DevicesDeviceInfo,
+            await self._call_generated(self._device_api.get_device(device_id, _request_timeout=self._generated_timeout)),
+        )
 
     async def list_jobs(
         self,
@@ -487,35 +361,23 @@ class _AsyncOqtopusClient:
         size: int | None = None,
         order: str | None = None,
     ) -> list[models.JobsGetJobsResponse]:
-        params: dict[str, Any] = {
-            "fields": fields,
-            "start_time": start_time,
-            "q": q,
-            "page": page,
-            "size": size,
-            "order": order,
-        }
-        if end_time is not None:
-            params["end_time"] = end_time
-        if self._use_generated_api:  # pragma: no cover - integration path
-            await self._ensure_generated_api()
-            assert self._job_api is not None
-            return cast(
-                list[models.JobsGetJobsResponse],
-                await self._call_generated(
-                    self._job_api.list_jobs(
-                        fields=fields,
-                        start_time=start_time,
-                        end_tiime=end_time,
-                        q=q,
-                        page=page,
-                        size=size,
-                        order=order,
-                        _request_timeout=self._generated_timeout,
-                    )
-                ),
-            )
-        return await self._request("GET", "/jobs", params=params, parse_as=list[models.JobsGetJobsResponse])
+        await self._ensure_generated_api()
+        assert self._job_api is not None
+        return cast(
+            list[models.JobsGetJobsResponse],
+            await self._call_generated(
+                self._job_api.list_jobs(
+                    fields=fields,
+                    start_time=start_time,
+                    end_tiime=end_time,
+                    q=q,
+                    page=page,
+                    size=size,
+                    order=order,
+                    _request_timeout=self._generated_timeout,
+                )
+            ),
+        )
 
     async def submit_job(self, body: _SubmitJobInput) -> models.JobsSubmitJobResponse:
         payload: models.JobsSubmitJobRequest | dict[str, Any]
@@ -525,15 +387,13 @@ class _AsyncOqtopusClient:
             payload = body
         else:
             payload = dict(body)
-        if self._use_generated_api:  # pragma: no cover - integration path
-            await self._ensure_generated_api()
-            assert self._job_api is not None
-            request = payload if isinstance(payload, models.JobsSubmitJobRequest) else models.JobsSubmitJobRequest.model_validate(payload)
-            return cast(
-                models.JobsSubmitJobResponse,
-                await self._call_generated(self._job_api.submit_job(request, _request_timeout=self._generated_timeout)),
-            )
-        return await self._request("POST", "/jobs", body=payload, parse_as=models.JobsSubmitJobResponse)
+        await self._ensure_generated_api()
+        assert self._job_api is not None
+        request = payload if isinstance(payload, models.JobsSubmitJobRequest) else models.JobsSubmitJobRequest.model_validate(payload)
+        return cast(
+            models.JobsSubmitJobResponse,
+            await self._call_generated(self._job_api.submit_job(request, _request_timeout=self._generated_timeout)),
+        )
 
     async def run_job(self, job: _SubmitJobInput, **kwargs: Any) -> models.JobsJobDef:
         request = self._coerce_submit_job_request(job)
@@ -625,14 +485,12 @@ class _AsyncOqtopusClient:
         return await self.run_sse(request, **kwargs)
 
     async def get_job(self, job_id: str) -> models.JobsJobDef:
-        if self._use_generated_api:  # pragma: no cover - integration path
-            await self._ensure_generated_api()
-            assert self._job_api is not None
-            return cast(
-                models.JobsJobDef,
-                await self._call_generated(self._job_api.get_job(job_id, _request_timeout=self._generated_timeout)),
-            )
-        return await self._request("GET", f"/jobs/{self._path_param(job_id)}", parse_as=models.JobsJobDef)
+        await self._ensure_generated_api()
+        assert self._job_api is not None
+        return cast(
+            models.JobsJobDef,
+            await self._call_generated(self._job_api.get_job(job_id, _request_timeout=self._generated_timeout)),
+        )
 
     async def wait_for_job(
         self,
@@ -688,48 +546,38 @@ class _AsyncOqtopusClient:
                 next_interval = min(next_interval, max_interval)
 
     async def delete_job(self, job_id: str) -> models.SuccessSuccessResponse:
-        if self._use_generated_api:  # pragma: no cover - integration path
-            await self._ensure_generated_api()
-            assert self._job_api is not None
-            return cast(
-                models.SuccessSuccessResponse,
-                await self._call_generated(self._job_api.delete_job(job_id, _request_timeout=self._generated_timeout)),
-            )
-        return await self._request("DELETE", f"/jobs/{self._path_param(job_id)}", parse_as=models.SuccessSuccessResponse)
+        await self._ensure_generated_api()
+        assert self._job_api is not None
+        return cast(
+            models.SuccessSuccessResponse,
+            await self._call_generated(self._job_api.delete_job(job_id, _request_timeout=self._generated_timeout)),
+        )
 
     async def get_job_status(self, job_id: str) -> models.JobsGetJobStatusResponse:
-        if self._use_generated_api:  # pragma: no cover - integration path
-            await self._ensure_generated_api()
-            assert self._job_api is not None
-            return cast(
-                models.JobsGetJobStatusResponse,
-                await self._call_generated(self._job_api.get_job_status(job_id, _request_timeout=self._generated_timeout)),
-            )
-        return await self._request("GET", f"/jobs/{self._path_param(job_id)}/status", parse_as=models.JobsGetJobStatusResponse)
+        await self._ensure_generated_api()
+        assert self._job_api is not None
+        return cast(
+            models.JobsGetJobStatusResponse,
+            await self._call_generated(self._job_api.get_job_status(job_id, _request_timeout=self._generated_timeout)),
+        )
 
     async def cancel_job(self, job_id: str) -> models.SuccessSuccessResponse:
-        if self._use_generated_api:  # pragma: no cover - integration path
-            await self._ensure_generated_api()
-            assert self._job_api is not None
-            return cast(
-                models.SuccessSuccessResponse,
-                await self._call_generated(self._job_api.cancel_job(job_id, _request_timeout=self._generated_timeout)),
-            )
-        return await self._request("POST", f"/jobs/{self._path_param(job_id)}/cancel", parse_as=models.SuccessSuccessResponse)
+        await self._ensure_generated_api()
+        assert self._job_api is not None
+        return cast(
+            models.SuccessSuccessResponse,
+            await self._call_generated(self._job_api.cancel_job(job_id, _request_timeout=self._generated_timeout)),
+        )
 
     async def get_sselog(self, job_id: str) -> models.JobsGetSselogResponse:
-        if self._use_generated_api:  # pragma: no cover - integration path
-            await self._ensure_generated_api()
-            assert self._job_api is not None
-            return cast(
-                models.JobsGetSselogResponse,
-                await self._call_generated(self._job_api.get_sselog(job_id, _request_timeout=self._generated_timeout)),
-            )
-        return await self._request("GET", f"/jobs/{self._path_param(job_id)}/sselog", parse_as=models.JobsGetSselogResponse)
+        await self._ensure_generated_api()
+        assert self._job_api is not None
+        return cast(
+            models.JobsGetSselogResponse,
+            await self._call_generated(self._job_api.get_sselog(job_id, _request_timeout=self._generated_timeout)),
+        )
 
     async def create_api_token(self) -> models.ApiTokenApiToken:
-        if not self._use_generated_api:
-            raise RuntimeError("create_api_token requires generated API mode.")
         await self._ensure_generated_api()
         assert self._token_api is not None
         tokens = cast(
@@ -741,8 +589,6 @@ class _AsyncOqtopusClient:
         raise ResponseValidationError("create_api_token response is empty.", tokens)
 
     async def get_api_token(self) -> list[models.ApiTokenApiToken]:
-        if not self._use_generated_api:
-            raise RuntimeError("get_api_token requires generated API mode.")
         await self._ensure_generated_api()
         assert self._token_api is not None
         return cast(
@@ -751,34 +597,26 @@ class _AsyncOqtopusClient:
         )
 
     async def delete_api_token(self) -> None:
-        if self._use_generated_api:  # pragma: no cover - integration path
-            await self._ensure_generated_api()
-            assert self._token_api is not None
-            await self._call_generated(self._token_api.delete_api_token(_request_timeout=self._generated_timeout))
-            return None
-        await self._request("DELETE", "/api-token", expected_statuses=(200, 204), parse_as=None)
+        await self._ensure_generated_api()
+        assert self._token_api is not None
+        await self._call_generated(self._token_api.delete_api_token(_request_timeout=self._generated_timeout))
+        return None
 
     async def get_announcements_list(self) -> models.AnnouncementsGetAnnouncementsListResponse:
-        if self._use_generated_api:  # pragma: no cover - integration path
-            await self._ensure_generated_api()
-            assert self._announcements_api is not None
-            return cast(
-                models.AnnouncementsGetAnnouncementsListResponse,
-                await self._call_generated(self._announcements_api.get_announcements_list(_request_timeout=self._generated_timeout)),
-            )
-        return await self._request("GET", "/announcements", parse_as=models.AnnouncementsGetAnnouncementsListResponse)
+        await self._ensure_generated_api()
+        assert self._announcements_api is not None
+        return cast(
+            models.AnnouncementsGetAnnouncementsListResponse,
+            await self._call_generated(self._announcements_api.get_announcements_list(_request_timeout=self._generated_timeout)),
+        )
 
     async def get_announcement(self, announcement_id: int) -> models.AnnouncementsGetAnnouncementResponse:
-        if self._use_generated_api:  # pragma: no cover - integration path
-            await self._ensure_generated_api()
-            assert self._announcements_api is not None
-            return cast(
-                models.AnnouncementsGetAnnouncementResponse,
-                await self._call_generated(
-                    self._announcements_api.get_announcement(announcement_id, _request_timeout=self._generated_timeout)
-                ),
-            )
-        return await self._request("GET", f"/announcements/{self._path_param(str(announcement_id))}", parse_as=models.AnnouncementsGetAnnouncementResponse)
+        await self._ensure_generated_api()
+        assert self._announcements_api is not None
+        return cast(
+            models.AnnouncementsGetAnnouncementResponse,
+            await self._call_generated(self._announcements_api.get_announcement(announcement_id, _request_timeout=self._generated_timeout)),
+        )
 
 class OqtopusClient:
     """Synchronous public client; internal HTTP calls are executed asynchronously."""
@@ -786,7 +624,6 @@ class OqtopusClient:
     def __init__(
         self,
         config: OqtopusConfig,
-        client: httpx.AsyncClient | None = None,
         default_headers: Mapping[str, str] | None = None,
         user_agent: str | None = None,
     ) -> None:
@@ -794,7 +631,6 @@ class OqtopusClient:
 
         Args:
             config (Required): Client configuration bundle.
-            client (Optional): Pre-configured async HTTP client. If omitted, SDK creates one.
             default_headers (Optional): Additional headers merged into every request.
             user_agent (Optional): Custom User-Agent header value.
         """
@@ -803,7 +639,6 @@ class OqtopusClient:
         async def _build() -> _AsyncOqtopusClient:
             return _AsyncOqtopusClient(
                 config=config,
-                client=client,
                 default_headers=default_headers,
                 user_agent=user_agent,
             )
