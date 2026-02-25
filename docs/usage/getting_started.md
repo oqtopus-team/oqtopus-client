@@ -48,7 +48,7 @@ from oqtopus_client import OqtopusClient, OqtopusConfig
 client = OqtopusClient(
     OqtopusConfig(
         base_url="https://api.example.com",
-        api_token_file="~/.oqtopus/token.json",
+        api_token_file="~/.config/oqtopus/token.json",
     )
 )
 print(client.list_devices())
@@ -58,7 +58,7 @@ Or via environment variable:
 
 ```bash
 export OQTOPUS_BASE_URL="https://api.example.com"
-export OQTOPUS_API_TOKEN_FILE="~/.oqtopus/token.json"
+export OQTOPUS_API_TOKEN_FILE="~/.config/oqtopus/token.json"
 ```
 
 ## Language-specific guides

@@ -65,7 +65,7 @@ class OqtopusConfig:
     def from_file(
         cls,
         section: str = "default",
-        path: str | Path = "~/.oqtopus",
+        path: str | Path = "~/.config/oqtopus/config.ini",
     ) -> "OqtopusConfig":
         """Load configuration from an INI-style profile file.
 

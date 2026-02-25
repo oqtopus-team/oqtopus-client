@@ -21,7 +21,7 @@ client = OqtopusClient(
 ```python
 from oqtopus_client import OqtopusClient, OqtopusConfig
 
-client = OqtopusClient(OqtopusConfig.from_file(section="oqtopus-dev", path="~/.oqtopus"))
+client = OqtopusClient(OqtopusConfig.from_file(section="oqtopus-dev", path="~/.config/oqtopus/config.ini"))
 ```
 
 ### From environment variables

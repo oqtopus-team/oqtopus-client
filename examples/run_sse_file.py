@@ -6,7 +6,7 @@ from pathlib import Path
 from oqtopus_client import OqtopusClient, OqtopusConfig
 
 section = os.getenv("OQTOPUS_CONFIG_SECTION", "oqtopus-dev")
-config_path = os.getenv("OQTOPUS_CONFIG_PATH", "~/.oqtopus")
+config_path = os.getenv("OQTOPUS_CONFIG_PATH", "~/.config/oqtopus/config.ini")
 sse_script_path = Path(__file__).with_name("userprogram.py")
 
 client = OqtopusClient(OqtopusConfig.from_file(section, path=config_path))

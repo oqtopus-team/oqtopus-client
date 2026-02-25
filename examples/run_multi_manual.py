@@ -9,7 +9,7 @@ from oqtopus_client import (
 )
 
 section = os.getenv("OQTOPUS_CONFIG_SECTION", "oqtopus-dev")
-config_path = os.getenv("OQTOPUS_CONFIG_PATH", "~/.oqtopus")
+config_path = os.getenv("OQTOPUS_CONFIG_PATH", "~/.config/oqtopus/config.ini")
 
 program1 = """OPENQASM 3;
 include \"stdgates.inc\";

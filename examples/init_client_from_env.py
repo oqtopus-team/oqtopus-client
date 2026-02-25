@@ -6,7 +6,7 @@ from oqtopus_client import OqtopusClient, OqtopusConfig
 
 
 SECTION = os.getenv("OQTOPUS_CONFIG_SECTION", "oqtopus-dev")
-CONFIG_PATH = os.getenv("OQTOPUS_CONFIG_PATH", "~/.oqtopus")
+CONFIG_PATH = os.getenv("OQTOPUS_CONFIG_PATH", "~/.config/oqtopus/config.ini")
 
 config = OqtopusConfig.from_file(SECTION, path=CONFIG_PATH)
 if not os.getenv("OQTOPUS_BASE_URL"):
