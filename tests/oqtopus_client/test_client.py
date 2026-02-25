@@ -149,7 +149,7 @@ def test_status_and_cancel_helpers() -> None:
 
     assert client.status("job-1") == models.JobsJobStatus.SUCCEEDED
     assert client.is_finished("job-1") is True
-    assert client.cancel("job-1").message == "ok"
+    assert client.cancel_job("job-1").message == "ok"
 
 
 def test_api_error_propagates() -> None:

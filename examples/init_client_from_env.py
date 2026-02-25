@@ -23,7 +23,4 @@ print("client.retry_max_attempts:", client.retry_max_attempts)
 print("client.retry_backoff_seconds:", client.retry_backoff_seconds)
 print("client.retry_status_codes:", sorted(client.retry_status_codes))
 print("client.retry_methods:", sorted(client.retry_methods))
-
-if env_config.api_token:
-    client.set_api_token(env_config.api_token)
-    print("set_api_token: done")
+print("api_token configured:", bool(env_config.api_token))

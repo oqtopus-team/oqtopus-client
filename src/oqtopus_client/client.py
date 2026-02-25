@@ -162,9 +162,9 @@ class _AsyncOqtopusClient:
 
         token = config.api_token
         if token:
-            self.set_api_token(token)
+            self._apply_api_token(token)
 
-    def set_api_token(self, api_token: str) -> None:
+    def _apply_api_token(self, api_token: str) -> None:
         self._headers["q-api-token"] = api_token
         self._headers["Authorization"] = f"Bearer {api_token}"
         if self._generated_client is not None:  # pragma: no cover - integration path
@@ -685,10 +685,6 @@ class OqtopusClient:
         """Exit context manager and close internal resources."""
         self.close()
 
-    def set_api_token(self, api_token: str) -> None:
-        """Set or overwrite bearer token used in subsequent requests."""
-        self._async.set_api_token(api_token)
-
     def close(self) -> None:
         """Close underlying async HTTP client."""
         if self._closed:
@@ -984,10 +980,6 @@ class OqtopusClient:
             job_id (Required): Target job ID to cancel.
         """
         return self._call("cancel_job", job_id)
-
-    def cancel(self, job_id: str) -> models.SuccessSuccessResponse:
-        """Alias of :meth:`cancel_job`."""
-        return self.cancel_job(job_id)
 
     def get_sselog(self, job_id: str) -> models.JobsGetSselogResponse:
         """Get encoded SSE log archive for one job."""

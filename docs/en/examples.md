@@ -16,7 +16,7 @@ Python script samples are available under `examples/`:
 - `wait_and_delete_job.py` (`wait_for_job`, `delete_job`)
 - `manage_api_token.py` (`create_api_token`, `delete_api_token`)
 - `get_announcement_detail.py` (`get_announcements_list`, `get_announcement`)
-- `init_client_from_env.py` (`from_env`, `set_api_token`, client config attributes)
+- `init_client_from_env.py` (`from_env`, client config attributes)
 - `list_devices_and_jobs.py` (`list_devices`, `get_device`, `list_jobs`)
 - `get_user_and_status.py` (`get_announcements_list`, `get_api_token`)
 - `get_job.py`

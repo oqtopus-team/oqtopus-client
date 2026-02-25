@@ -335,19 +335,16 @@ def test_sync_wrappers_delegate_to_call() -> None:
     assert isinstance(client.status("j"), models.JobsJobStatus)
     assert isinstance(client.is_finished("j"), bool)
     assert isinstance(client.cancel_job("j"), models.SuccessSuccessResponse)
-    assert isinstance(client.cancel("j"), models.SuccessSuccessResponse)
     assert isinstance(client.get_sselog("j"), models.JobsGetSselogResponse)
     assert isinstance(client.create_api_token(), models.ApiTokenApiToken)
     assert isinstance(client.get_api_token(), models.ApiTokenApiToken)
     client.delete_api_token()
     assert isinstance(client.get_announcements_list(), models.AnnouncementsGetAnnouncementsListResponse)
     assert isinstance(client.get_announcement(1), models.AnnouncementsGetAnnouncementResponse)
-    client.set_api_token("token")
 
     methods = {name for name, _, _ in called}
     assert "get_device" in methods
     assert "get_api_token" in methods
-    client._async.set_api_token.assert_called_once_with("token")
 
 
 def test_sync_client_close_is_idempotent_and_blocks_calls() -> None:

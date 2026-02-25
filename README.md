@@ -89,22 +89,22 @@ print(client.list_devices())
 `examples/` contains runnable Python examples.
 
 - `get_devices.py`
-- `run_sampling.py (run_sampling)`
-- `run_estimation.py (run_estimation)`
-- `run_multi_manual.py (run_multi_manual)`
-- `run_sse_file.py (run_sse_file, SSE logs are handled in memory by default. Persist explicitly with `download_log(..., persist=True)`)`
+- `run_sampling.py` (`run_sampling`)
+- `run_estimation.py` (`run_estimation`)
+- `run_multi_manual.py` (`run_multi_manual`)
+- `run_sse_file.py` (`run_sse_file`; SSE logs are handled in memory by default. Persist explicitly with `download_log(..., persist=True)`.)
 - `run_sampling_qiskit.py`
 - `run_sampling_quri_parts.py`
-- `submit_jobs_parallel.py (OqtopusClient.submit_jobs / wait_for_jobs)`
-- `run_job_generic.py (OqtopusClient.run_job)`
-- `job_handle_lifecycle.py (status / wait / result / cancel helpers)`
-- `run_jobs_batch.py (OqtopusClient.run_jobs_batch)`
-- `wait_and_delete_job.py (wait_for_job / delete_job)`
-- `manage_api_token.py (create_api_token / delete_api_token)`
-- `get_announcement_detail.py (get_announcements_list / get_announcement)`
-- `init_client_from_env.py (OqtopusConfig.from_env / set_api_token / client attributes)`
-- `list_devices_and_jobs.py (list_devices / get_device / list_jobs)`
-- `get_user_and_status.py (get_announcements_list / get_api_token)`
+- `submit_jobs_parallel.py` (`OqtopusClient.submit_jobs` / `wait_for_jobs`)
+- `run_job_generic.py` (`OqtopusClient.run_job`)
+- `job_handle_lifecycle.py` (`status` / `wait` / `result` / `cancel_job` helpers)
+- `run_jobs_batch.py` (`OqtopusClient.run_jobs_batch`)
+- `wait_and_delete_job.py` (`wait_for_job` / `delete_job`)
+- `manage_api_token.py` (`create_api_token` / `delete_api_token`)
+- `get_announcement_detail.py` (`get_announcements_list` / `get_announcement`)
+- `init_client_from_env.py` (`OqtopusConfig.from_env` / client config attributes)
+- `list_devices_and_jobs.py` (`list_devices` / `get_device` / `list_jobs`)
+- `get_user_and_status.py` (`get_announcements_list` / `get_api_token`)
 - `get_job.py`
 - `cancel_job.py`
 
