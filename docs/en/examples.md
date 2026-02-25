@@ -11,7 +11,7 @@ Python script samples are available under `examples/`:
 - `run_sampling_qiskit.py`
 - `submit_jobs_parallel.py` (`OqtopusClient.submit_jobs` / `wait_for_jobs`)
 - `run_job_generic.py` (`OqtopusClient.run_job`)
-- `job_handle_lifecycle.py` (`status` / `wait` / `result` / `cancel` methods)
+- `job_handle_lifecycle.py` (`status` / `wait` / `result` / `cancel_job` methods)
 - `run_jobs_batch.py` (`run_jobs_batch`)
 - `wait_and_delete_job.py` (`wait_for_job`, `delete_job`)
 - `manage_api_token.py` (`create_api_token`, `delete_api_token`)
