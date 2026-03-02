@@ -77,41 +77,43 @@ class _AsyncRuntime:
         self._thread.join(timeout=5.0)
 
 
-_shared_runtime: _AsyncRuntime | None = None
-_shared_runtime_lock = threading.Lock()
-_shared_runtime_atexit_registered = False
-_tracked_async_clients: weakref.WeakSet[_AsyncOqtopusClient] = weakref.WeakSet()
+class _SharedRuntimeRegistry:
+    def __init__(self) -> None:
+        self.runtime: _AsyncRuntime | None = None
+        self.lock = threading.Lock()
+        self.atexit_registered = False
+        self.tracked_async_clients: weakref.WeakSet[_AsyncOqtopusClient] = weakref.WeakSet()
+
+
+_shared_runtime_registry = _SharedRuntimeRegistry()
 
 
 def _get_shared_runtime() -> _AsyncRuntime:
-    global _shared_runtime
-    global _shared_runtime_atexit_registered
-    with _shared_runtime_lock:
-        if _shared_runtime is None:
-            _shared_runtime = _AsyncRuntime()
-        if not _shared_runtime_atexit_registered:
+    with _shared_runtime_registry.lock:
+        if _shared_runtime_registry.runtime is None:
+            _shared_runtime_registry.runtime = _AsyncRuntime()
+        if not _shared_runtime_registry.atexit_registered:
             atexit.register(_shutdown_shared_runtime)
-            _shared_runtime_atexit_registered = True
-        return _shared_runtime
+            _shared_runtime_registry.atexit_registered = True
+        return _shared_runtime_registry.runtime
 
 
 def _track_async_client(async_client: _AsyncOqtopusClient) -> None:
-    with _shared_runtime_lock:
-        _tracked_async_clients.add(async_client)
+    with _shared_runtime_registry.lock:
+        _shared_runtime_registry.tracked_async_clients.add(async_client)
 
 
 def _untrack_async_client(async_client: _AsyncOqtopusClient) -> None:
-    with _shared_runtime_lock:
-        _tracked_async_clients.discard(async_client)
+    with _shared_runtime_registry.lock:
+        _shared_runtime_registry.tracked_async_clients.discard(async_client)
 
 
 def _shutdown_shared_runtime() -> None:
-    global _shared_runtime
-    with _shared_runtime_lock:
-        runtime = _shared_runtime
-        clients = list(_tracked_async_clients)
-        _tracked_async_clients.clear()
-        _shared_runtime = None
+    with _shared_runtime_registry.lock:
+        runtime = _shared_runtime_registry.runtime
+        clients = list(_shared_runtime_registry.tracked_async_clients)
+        _shared_runtime_registry.tracked_async_clients.clear()
+        _shared_runtime_registry.runtime = None
 
     if runtime is None:
         return
