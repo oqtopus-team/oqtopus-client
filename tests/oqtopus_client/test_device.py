@@ -1,3 +1,5 @@
+"""Unit tests for oqtopus-client."""
+
 from __future__ import annotations
 
 from oqtopus_client import models
@@ -5,6 +7,7 @@ from oqtopus_client.device import OqtopusDevice
 
 
 def test_device_wrapper_exposes_properties_and_raw_attributes() -> None:
+    """Test case: test_device_wrapper_exposes_properties_and_raw_attributes."""
     device = OqtopusDevice(
         raw=models.DevicesDeviceInfo(
             device_id="K",

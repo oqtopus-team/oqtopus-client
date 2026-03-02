@@ -1,3 +1,5 @@
+"""Unit tests for oqtopus-client."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -8,6 +10,7 @@ from oqtopus_client.config import OqtopusConfig
 
 
 def test_from_file_validates_section_and_path_not_none() -> None:
+    """Test case: test_from_file_validates_section_and_path_not_none."""
     with pytest.raises(ValueError):
         OqtopusConfig.from_file(section=None)  # type: ignore[arg-type]
     with pytest.raises(ValueError):
@@ -15,6 +18,7 @@ def test_from_file_validates_section_and_path_not_none() -> None:
 
 
 def test_from_file_raises_when_section_is_missing(tmp_path: Path) -> None:
+    """Test case: test_from_file_raises_when_section_is_missing."""
     config_file = tmp_path / "oqtopus.ini"
     config_file.write_text("[default]\nbase_url=https://api.example.com\n", encoding="utf-8")
     with pytest.raises(ValueError):
@@ -22,6 +26,7 @@ def test_from_file_raises_when_section_is_missing(tmp_path: Path) -> None:
 
 
 def test_from_file_raises_when_base_url_and_url_are_missing(tmp_path: Path) -> None:
+    """Test case: test_from_file_raises_when_base_url_and_url_are_missing."""
     config_file = tmp_path / "oqtopus.ini"
     config_file.write_text("[profile]\napi_token=t\n", encoding="utf-8")
     with pytest.raises(ValueError):
@@ -29,6 +34,7 @@ def test_from_file_raises_when_base_url_and_url_are_missing(tmp_path: Path) -> N
 
 
 def test_from_file_supports_url_fallback_and_token(tmp_path: Path) -> None:
+    """Test case: test_from_file_supports_url_fallback_and_token."""
     config_file = tmp_path / "oqtopus.ini"
     config_file.write_text(
         (
@@ -48,6 +54,7 @@ def test_from_file_supports_url_fallback_and_token(tmp_path: Path) -> None:
 
 
 def test_constructor_accepts_url_alias() -> None:
+    """Test case: test_constructor_accepts_url_alias."""
     config = OqtopusConfig(url="https://api.example.com", api_token="token")
     assert config.base_url == "https://api.example.com"
     assert config.url == "https://api.example.com"
@@ -55,6 +62,7 @@ def test_constructor_accepts_url_alias() -> None:
 
 
 def test_from_file_reads_proxy(tmp_path: Path) -> None:
+    """Test case: test_from_file_reads_proxy."""
     config_file = tmp_path / "oqtopus.ini"
     config_file.write_text(
         (
@@ -70,12 +78,14 @@ def test_from_file_reads_proxy(tmp_path: Path) -> None:
 
 
 def test_from_env_requires_base_url(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test case: test_from_env_requires_base_url."""
     monkeypatch.delenv("OQTOPUS_BASE_URL", raising=False)
     with pytest.raises(ValueError):
         OqtopusConfig.from_env()
 
 
 def test_from_env_reads_api_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test case: test_from_env_reads_api_token."""
     monkeypatch.setenv("OQTOPUS_BASE_URL", "https://api.example.com")
     monkeypatch.setenv("OQTOPUS_API_TOKEN", "secret")
     monkeypatch.setenv("OQTOPUS_PROXY", "http://proxy.local:8080")
@@ -88,6 +98,7 @@ def test_from_env_reads_api_token(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_from_file_returns_empty_config_in_sse_container(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test case: test_from_file_returns_empty_config_in_sse_container."""
     monkeypatch.setenv("OQTOPUS_ENV", "sse_container")
     config = OqtopusConfig.from_file(section=None, path=None)  # type: ignore[arg-type]
     assert config.base_url == ""

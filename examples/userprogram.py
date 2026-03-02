@@ -1,3 +1,5 @@
+"""Usage example for oqtopus-client."""
+
 import time
 
 from oqtopus_client import OqtopusClient, OqtopusConfig, OqtopusJobSpec

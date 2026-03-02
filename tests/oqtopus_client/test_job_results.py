@@ -1,3 +1,5 @@
+"""Unit tests for oqtopus-client."""
+
 from __future__ import annotations
 
 import base64
@@ -18,6 +20,7 @@ from oqtopus_client import (
 
 
 def test_job_result_kind_for_model_sampling() -> None:
+    """Test case: test_job_result_kind_for_model_sampling."""
     result = OqtopusJobResult(
         models.JobsJobResult(
             sampling=models.JobsSamplingResult(counts={"00": 1}),
@@ -31,6 +34,7 @@ def test_job_result_kind_for_model_sampling() -> None:
 
 
 def test_job_result_kind_for_mapping_estimation() -> None:
+    """Test case: test_job_result_kind_for_mapping_estimation."""
     result = OqtopusJobResult(
         {"estimation": {"exp_value": 1.0}},
         job_id="job-2",
@@ -41,6 +45,7 @@ def test_job_result_kind_for_mapping_estimation() -> None:
 
 
 def test_job_result_from_job_model_like_payload() -> None:
+    """Test case: test_job_result_from_job_model_like_payload."""
     job = models.JobsJobDef(
         job_id="job-3",
         name="job",
@@ -67,12 +72,14 @@ def test_job_result_from_job_model_like_payload() -> None:
 
 
 def test_job_result_without_result_has_unknown_type() -> None:
+    """Test case: test_job_result_without_result_has_unknown_type."""
     result = OqtopusJobResult(None, job_id="job-4")
     assert result.job_id == "job-4"
     assert result.job_type is None
 
 
 def test_sampling_result_direct_construction() -> None:
+    """Test case: test_sampling_result_direct_construction."""
     result = OqtopusSamplingJobResult(
         {"sampling": {"counts": {"11": 2}}},
         job_id="job-5",
@@ -85,6 +92,7 @@ def test_sampling_result_direct_construction() -> None:
 
 
 def test_estimation_result_direct_construction() -> None:
+    """Test case: test_estimation_result_direct_construction."""
     result = OqtopusEstimationJobResult(
         {"estimation": {"exp_value": 0.75, "stds": 0.1}},
         job_id="job-6",
@@ -99,6 +107,7 @@ def test_estimation_result_direct_construction() -> None:
 
 
 def test_multi_manual_result_direct_construction() -> None:
+    """Test case: test_multi_manual_result_direct_construction."""
     result = OqtopusMultiManualJobResult(
         {
             "sampling": {
@@ -119,6 +128,7 @@ def test_multi_manual_result_direct_construction() -> None:
 
 
 def test_sse_result_direct_construction() -> None:
+    """Test case: test_sse_result_direct_construction."""
     result = OqtopusSseJobResult(
         {"sampling": {"counts": {"00": 4}}},
         job_id="job-8",
@@ -130,6 +140,7 @@ def test_sse_result_direct_construction() -> None:
 
 
 def test_sse_result_log_helpers(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """Test case: test_sse_result_log_helpers."""
     class _DummyClient:
         def get_sselog(self, job_id: str) -> models.JobsGetSselogResponse:
             data = base64.b64encode(f"log-{job_id}".encode("utf-8")).decode("utf-8")
@@ -154,6 +165,7 @@ def test_sse_result_log_helpers(tmp_path: Path, capsys: pytest.CaptureFixture[st
 
 
 def test_sse_download_log_default_does_not_write_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test case: test_sse_download_log_default_does_not_write_files."""
     class _DummyClient:
         def get_sselog(self, job_id: str) -> models.JobsGetSselogResponse:
             data = base64.b64encode(f"log-{job_id}".encode("utf-8")).decode("utf-8")
@@ -178,12 +190,14 @@ def test_sse_download_log_default_does_not_write_files(tmp_path: Path, monkeypat
 
 
 def test_sse_result_log_helpers_require_client() -> None:
+    """Test case: test_sse_result_log_helpers_require_client."""
     result = OqtopusSseJobResult(None, job_id="job-1", job_type=models.JobsJobType.SSE)
     with pytest.raises(ValueError):
         result.read_log_text()
 
 
 def test_job_result_repr_and_flags_for_string_job_type() -> None:
+    """Test case: test_job_result_repr_and_flags_for_string_job_type."""
     result = OqtopusJobResult({}, job_id="job-x", job_type="multi_manual")
     assert "job-x" in repr(result)
     assert result.is_multi_manual() is True
@@ -191,6 +205,7 @@ def test_job_result_repr_and_flags_for_string_job_type() -> None:
 
 
 def test_job_result_handles_unknown_job_type_string() -> None:
+    """Test case: test_job_result_handles_unknown_job_type_string."""
     result = OqtopusJobResult({}, job_id="job-x", job_type="unknown")
     assert result.job_type is None
     assert result.sampling is None
@@ -198,6 +213,7 @@ def test_job_result_handles_unknown_job_type_string() -> None:
 
 
 def test_sampling_and_estimation_result_fallbacks() -> None:
+    """Test case: test_sampling_and_estimation_result_fallbacks."""
     sampling = OqtopusSamplingJobResult({"sampling": {"counts": "bad"}})
     estimation = OqtopusEstimationJobResult({"estimation": {"exp_value": "bad", "stds": "bad"}})
     assert sampling.get_counts() == {}
@@ -208,12 +224,14 @@ def test_sampling_and_estimation_result_fallbacks() -> None:
 
 
 def test_multi_manual_result_ignores_invalid_divided_counts_entries() -> None:
+    """Test case: test_multi_manual_result_ignores_invalid_divided_counts_entries."""
     result = OqtopusMultiManualJobResult({"sampling": {"divided_counts": {"good": {"01": 1}, "bad": "x"}}})
     assert result.get_divided_counts() == {"good": {1: 1}}
     assert "OqtopusMultiManualJobResult" in repr(result)
 
 
 def test_sse_download_log_error_paths(tmp_path: Path) -> None:
+    """Test case: test_sse_download_log_error_paths."""
     class _NoFileClient:
         def get_sselog(self, job_id: str) -> models.JobsGetSselogResponse:
             _ = job_id
@@ -254,6 +272,7 @@ def test_sse_download_log_error_paths(tmp_path: Path) -> None:
 
 
 def test_sse_read_log_text_zip_variants() -> None:
+    """Test case: test_sse_read_log_text_zip_variants."""
     def _zip_payload(files: dict[str, str]) -> str:
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, "w") as zf:

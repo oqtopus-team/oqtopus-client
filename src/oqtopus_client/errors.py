@@ -1,3 +1,5 @@
+"""Core module for oqtopus-client."""
+
 from __future__ import annotations
 
 """Error types raised by `oqtopus_client`."""

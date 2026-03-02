@@ -1,3 +1,5 @@
+"""Unit tests for oqtopus-client."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -45,6 +47,7 @@ def _build_client() -> OqtopusClient:
 
 
 def test_submit_and_wait_preserves_order() -> None:
+    """Test case: test_submit_and_wait_preserves_order."""
     client = _build_client()
 
     responses = client.submit_jobs(
@@ -62,6 +65,7 @@ def test_submit_and_wait_preserves_order() -> None:
 
 
 def test_run_jobs_batch_preserves_order() -> None:
+    """Test case: test_run_jobs_batch_preserves_order."""
     client = _build_client()
 
     results = client.run_jobs_batch(
@@ -77,6 +81,7 @@ def test_run_jobs_batch_preserves_order() -> None:
 
 
 def test_parallel_helpers_validate_worker_count() -> None:
+    """Test case: test_parallel_helpers_validate_worker_count."""
     client = _build_client()
 
     with pytest.raises(ValueError):
@@ -88,6 +93,7 @@ def test_parallel_helpers_validate_worker_count() -> None:
 
 
 def test_run_jobs_batch_rejects_non_jobspec() -> None:
+    """Test case: test_run_jobs_batch_rejects_non_jobspec."""
     client = _build_client()
 
     with pytest.raises(TypeError):

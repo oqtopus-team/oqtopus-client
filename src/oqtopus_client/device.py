@@ -1,3 +1,5 @@
+"""Core module for oqtopus-client."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

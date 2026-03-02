@@ -1,9 +1,12 @@
+"""Unit tests for oqtopus-client."""
+
 from __future__ import annotations
 
 from oqtopus_client import OqtopusEstimationOperator, OqtopusJobSpec, models
 
 
 def test_estimation_operator_to_and_from_model() -> None:
+    """Test case: test_estimation_operator_to_and_from_model."""
     wrapper = OqtopusEstimationOperator(pauli="Z0", coeff=1.0)
     model = wrapper.to_model()
     assert isinstance(model, models.JobsOperatorItem)
@@ -15,6 +18,7 @@ def test_estimation_operator_to_and_from_model() -> None:
 
 
 def test_estimation_operator_create_helpers() -> None:
+    """Test case: test_estimation_operator_create_helpers."""
     single = OqtopusEstimationOperator.create(coeff=0.5, pauli="X 0 Z 1")
     assert single.coeff == 0.5
     assert single.pauli == "X 0 Z 1"
@@ -30,6 +34,7 @@ def test_estimation_operator_create_helpers() -> None:
 
 
 def test_job_spec_estimation_accepts_operator_wrapper() -> None:
+    """Test case: test_job_spec_estimation_accepts_operator_wrapper."""
     spec = OqtopusJobSpec.estimation(
         device_id="Kawasaki",
         program="OPENQASM 3; qubit[1] q;",

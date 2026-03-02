@@ -1,3 +1,5 @@
+"""Usage example for oqtopus-client."""
+
 from __future__ import annotations
 
 import os

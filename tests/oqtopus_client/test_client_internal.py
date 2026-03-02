@@ -1,3 +1,5 @@
+"""Unit tests for oqtopus-client."""
+
 from __future__ import annotations
 
 import asyncio
@@ -46,6 +48,7 @@ def _job(job_type: models.JobsJobType, *, status: models.JobsJobStatus = models.
 
 
 def test_resolve_user_agent_falls_back_to_unknown(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test case: test_resolve_user_agent_falls_back_to_unknown."""
     monkeypatch.setattr(
         "oqtopus_client.client.version",
         lambda _: (_ for _ in ()).throw(PackageNotFoundError()),
@@ -54,6 +57,7 @@ def test_resolve_user_agent_falls_back_to_unknown(monkeypatch: pytest.MonkeyPatc
 
 
 def test_async_client_constructor_validation_errors() -> None:
+    """Test case: test_async_client_constructor_validation_errors."""
     with pytest.raises(ValueError):
         _AsyncOqtopusClient(OqtopusConfig(base_url=""))
     with pytest.raises(ValueError):
@@ -63,6 +67,7 @@ def test_async_client_constructor_validation_errors() -> None:
 
 
 def test_async_client_allows_empty_base_url_in_sse_container(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test case: test_async_client_allows_empty_base_url_in_sse_container."""
     monkeypatch.setenv("OQTOPUS_ENV", "sse_container")
     client = _AsyncOqtopusClient(OqtopusConfig(base_url=""))
     try:
@@ -72,6 +77,7 @@ def test_async_client_allows_empty_base_url_in_sse_container(monkeypatch: pytest
 
 
 def test_async_client_sets_headers_and_generated_config() -> None:
+    """Test case: test_async_client_sets_headers_and_generated_config."""
     client = _AsyncOqtopusClient(
         OqtopusConfig(base_url="http://test", api_token="from-config", proxy="http://proxy.local:8080"),
         default_headers={"X-Test": "1"},
@@ -87,6 +93,7 @@ def test_async_client_sets_headers_and_generated_config() -> None:
 
 
 def test_extract_error_message_variants() -> None:
+    """Test case: test_extract_error_message_variants."""
     assert _AsyncOqtopusClient._extract_error_message({"message": "m"}) == "m"
     assert _AsyncOqtopusClient._extract_error_message({"error": "e"}) == "e"
     assert _AsyncOqtopusClient._extract_error_message({"error": {"message": "deep"}}) == "deep"
@@ -95,6 +102,7 @@ def test_extract_error_message_variants() -> None:
 
 
 def test_coerce_and_validate_job_type() -> None:
+    """Test case: test_coerce_and_validate_job_type."""
     req = _AsyncOqtopusClient._coerce_submit_job_request(
         OqtopusJobSpec.sampling(device_id="K", program="x")
     )
@@ -106,6 +114,7 @@ def test_coerce_and_validate_job_type() -> None:
 
 
 def test_wait_for_job_failure_and_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test case: test_wait_for_job_failure_and_timeout."""
     client = _AsyncOqtopusClient(OqtopusConfig(base_url="http://test"))
     try:
         async def status_failed(_: str) -> models.JobsGetJobStatusResponse:
@@ -130,6 +139,7 @@ def test_wait_for_job_failure_and_timeout(monkeypatch: pytest.MonkeyPatch) -> No
 
 
 def test_run_sse_file_forwards_kwargs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test case: test_run_sse_file_forwards_kwargs."""
     script = tmp_path / "job.py"
     script.write_text("print('ok')\n", encoding="utf-8")
     observed: dict[str, Any] = {}
@@ -171,6 +181,7 @@ def test_run_sse_file_forwards_kwargs(tmp_path: Path, monkeypatch: pytest.Monkey
 
 
 def test_run_job_uses_sse_sampler_in_sse_container(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test case: test_run_job_uses_sse_sampler_in_sse_container."""
     monkeypatch.setenv("OQTOPUS_ENV", "sse_container")
     fake_module = types.SimpleNamespace(
         req_transpile_and_exec=lambda program, shots, transpiler_info: {
@@ -199,6 +210,7 @@ def test_run_job_uses_sse_sampler_in_sse_container(monkeypatch: pytest.MonkeyPat
 
 
 def test_run_job_raises_when_sse_sampler_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test case: test_run_job_raises_when_sse_sampler_missing."""
     monkeypatch.setenv("OQTOPUS_ENV", "sse_container")
     monkeypatch.delitem(sys.modules, "sse_sampler", raising=False)
 
@@ -211,6 +223,7 @@ def test_run_job_raises_when_sse_sampler_missing(monkeypatch: pytest.MonkeyPatch
 
 
 def test_sync_wrappers_delegate_to_call() -> None:
+    """Test case: test_sync_wrappers_delegate_to_call."""
     client = object.__new__(OqtopusClient)
     called: list[tuple[str, tuple[Any, ...], dict[str, Any]]] = []
 
@@ -348,6 +361,7 @@ def test_sync_wrappers_delegate_to_call() -> None:
 
 
 def test_sync_client_close_is_idempotent_and_blocks_calls() -> None:
+    """Test case: test_sync_client_close_is_idempotent_and_blocks_calls."""
     client = object.__new__(OqtopusClient)
     client._closed = False
     client._runtime = Mock()
@@ -361,6 +375,7 @@ def test_sync_client_close_is_idempotent_and_blocks_calls() -> None:
 
 
 def test_sync_clients_share_runtime() -> None:
+    """Test case: test_sync_clients_share_runtime."""
     client_module._shutdown_shared_runtime()
     client1 = OqtopusClient(OqtopusConfig(base_url="http://test.local"))
     client2 = OqtopusClient(OqtopusConfig(base_url="http://test.local"))
@@ -373,6 +388,7 @@ def test_sync_clients_share_runtime() -> None:
 
 
 def test_sync_client_uses_config_from_file_when_omitted(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test case: test_sync_client_uses_config_from_file_when_omitted."""
     client_module._shutdown_shared_runtime()
     observed: dict[str, str | Path] = {}
 
@@ -400,6 +416,7 @@ def test_sync_client_uses_config_from_file_when_omitted(monkeypatch: pytest.Monk
 
 
 def test_get_job_requires_valid_job_def_shape() -> None:
+    """Test case: test_get_job_requires_valid_job_def_shape."""
     client = object.__new__(OqtopusClient)
     client._async = Mock()
     client._runtime = Mock()
