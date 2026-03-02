@@ -121,7 +121,7 @@ Sample output:
 
 ```text
 submitted: 550e8400-e29b-41d4-a716-446655440000
-status: JobsJobStatus.RUNNING
+status: JobsJobStatus.SUBMITTED
 final: JobsJobStatus.SUCCEEDED
 counts: {'00': 503, '11': 497}
 ```
