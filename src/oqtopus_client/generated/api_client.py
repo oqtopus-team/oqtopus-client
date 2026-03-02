@@ -27,11 +27,11 @@ from urllib.parse import quote
 from typing import Tuple, Optional, List, Dict, Union
 from pydantic import SecretStr
 
-from oqtopus_client.models.generated.configuration import Configuration
-from oqtopus_client.models.generated.api_response import ApiResponse, T as ApiResponseT
-import oqtopus_client.models.generated.models
-from oqtopus_client.models.generated import rest
-from oqtopus_client.models.generated.exceptions import (
+from oqtopus_client.generated.configuration import Configuration
+from oqtopus_client.generated.api_response import ApiResponse, T as ApiResponseT
+import oqtopus_client.generated.models
+from oqtopus_client.generated import rest
+from oqtopus_client.generated.exceptions import (
     ApiValueError,
     ApiException,
     BadRequestException,
@@ -453,7 +453,7 @@ class ApiClient:
             if klass in self.NATIVE_TYPES_MAPPING:
                 klass = self.NATIVE_TYPES_MAPPING[klass]
             else:
-                klass = getattr(oqtopus_client.models.generated.models, klass)
+                klass = getattr(oqtopus_client.generated.models, klass)
 
         if klass in self.PRIMITIVE_TYPES:
             return self.__deserialize_primitive(data, klass)

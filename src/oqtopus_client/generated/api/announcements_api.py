@@ -21,12 +21,12 @@ from datetime import datetime
 from pydantic import Field, StrictInt, StrictStr, field_validator
 from typing import Optional
 from typing_extensions import Annotated
-from oqtopus_client.models.generated.models.announcements_get_announcement_response import AnnouncementsGetAnnouncementResponse
-from oqtopus_client.models.generated.models.announcements_get_announcements_list_response import AnnouncementsGetAnnouncementsListResponse
+from oqtopus_client.generated.models.announcements_get_announcement_response import AnnouncementsGetAnnouncementResponse
+from oqtopus_client.generated.models.announcements_get_announcements_list_response import AnnouncementsGetAnnouncementsListResponse
 
-from oqtopus_client.models.generated.api_client import ApiClient, RequestSerialized
-from oqtopus_client.models.generated.api_response import ApiResponse
-from oqtopus_client.models.generated.rest import RESTResponseType
+from oqtopus_client.generated.api_client import ApiClient, RequestSerialized
+from oqtopus_client.generated.api_response import ApiResponse
+from oqtopus_client.generated.rest import RESTResponseType
 
 
 class AnnouncementsApi:

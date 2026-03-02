@@ -20,11 +20,11 @@ from typing_extensions import Annotated
 from pydantic import Field, StrictStr
 from typing import List
 from typing_extensions import Annotated
-from oqtopus_client.models.generated.models.devices_device_info import DevicesDeviceInfo
+from oqtopus_client.generated.models.devices_device_info import DevicesDeviceInfo
 
-from oqtopus_client.models.generated.api_client import ApiClient, RequestSerialized
-from oqtopus_client.models.generated.api_response import ApiResponse
-from oqtopus_client.models.generated.rest import RESTResponseType
+from oqtopus_client.generated.api_client import ApiClient, RequestSerialized
+from oqtopus_client.generated.api_response import ApiResponse
+from oqtopus_client.generated.rest import RESTResponseType
 
 
 class DeviceApi:

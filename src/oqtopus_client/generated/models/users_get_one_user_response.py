@@ -21,7 +21,7 @@ import json
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
-from oqtopus_client.models.generated.models.users_login_event import UsersLoginEvent
+from oqtopus_client.generated.models.users_login_event import UsersLoginEvent
 from typing import Optional, Set
 from typing_extensions import Self
 

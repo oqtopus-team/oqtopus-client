@@ -20,7 +20,7 @@ import json
 
 from pydantic import BaseModel, ConfigDict, StrictStr
 from typing import Any, ClassVar, Dict, List
-from oqtopus_client.models.generated.models.jobs_job_status import JobsJobStatus
+from oqtopus_client.generated.models.jobs_job_status import JobsJobStatus
 from typing import Optional, Set
 from typing_extensions import Self
 

@@ -17,11 +17,11 @@ from pydantic import validate_call, Field, StrictFloat, StrictStr, StrictInt
 from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Annotated
 
-from oqtopus_client.models.generated.models.api_token_api_token import ApiTokenApiToken
+from oqtopus_client.generated.models.api_token_api_token import ApiTokenApiToken
 
-from oqtopus_client.models.generated.api_client import ApiClient, RequestSerialized
-from oqtopus_client.models.generated.api_response import ApiResponse
-from oqtopus_client.models.generated.rest import RESTResponseType
+from oqtopus_client.generated.api_client import ApiClient, RequestSerialized
+from oqtopus_client.generated.api_response import ApiResponse
+from oqtopus_client.generated.rest import RESTResponseType
 
 
 class ApiTokenApi:

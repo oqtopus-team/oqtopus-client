@@ -20,9 +20,9 @@ import json
 
 from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
-from oqtopus_client.models.generated.models.jobs_job_result import JobsJobResult
-from oqtopus_client.models.generated.models.jobs_operator_item import JobsOperatorItem
-from oqtopus_client.models.generated.models.jobs_transpile_result import JobsTranspileResult
+from oqtopus_client.generated.models.jobs_job_result import JobsJobResult
+from oqtopus_client.generated.models.jobs_operator_item import JobsOperatorItem
+from oqtopus_client.generated.models.jobs_transpile_result import JobsTranspileResult
 from typing import Optional, Set
 from typing_extensions import Self
 

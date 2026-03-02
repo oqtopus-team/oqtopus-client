@@ -20,8 +20,8 @@ import json
 
 from pydantic import BaseModel, ConfigDict
 from typing import Any, ClassVar, Dict, List, Optional
-from oqtopus_client.models.generated.models.jobs_estimation_result import JobsEstimationResult
-from oqtopus_client.models.generated.models.jobs_sampling_result import JobsSamplingResult
+from oqtopus_client.generated.models.jobs_estimation_result import JobsEstimationResult
+from oqtopus_client.generated.models.jobs_sampling_result import JobsSamplingResult
 from typing import Optional, Set
 from typing_extensions import Self
 
