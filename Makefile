@@ -11,18 +11,18 @@ generate-models:
 	$(MAKE) -C spec generate-models
 
 test:
-	@uv run --extra dev pytest
+	@uv run pytest
 
 lint:
-	@uv run --extra dev ruff check
+	@uv run ruff check
 
 typecheck:
-	@uv run --extra dev mypy
+	@uv run mypy
 
 check: lint typecheck test
 
 docs:
-	@uv run --extra dev mkdocs build --strict
+	@uv run mkdocs build --strict
 
 docs-serve:
-	@uv run --extra dev mkdocs serve -a $(DOCS_ADDR)
+	@uv run mkdocs serve -a $(DOCS_ADDR)

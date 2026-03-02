@@ -142,3 +142,5 @@ batch_results = client.run_jobs_batch([req1, req2], submit_workers=2, wait_worke
 - `tests/`: SDK tests
 
 For contributor commands (`make` targets), see [Developer Guidelines](./docs/developer_guidelines/index.md).
+For module structure intent (`rest` vs `services`), see
+[Setup Development Environment](./docs/developer_guidelines/setup.md#source-module-structure).
