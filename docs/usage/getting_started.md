@@ -26,7 +26,7 @@ The examples below use `OqtopusJobSpec`, which keeps request construction simple
 `OqtopusClient` supports two execution styles:
 
 - `run_*` style: one-shot `submit + wait`
-- `submit_job + wait` style: explicit lifecycle control with `job_id`
+- `submit_job + wait` style: explicit lifecycle control with UUID `job_id`
 
 ### Common OpenQASM program
 
@@ -74,7 +74,7 @@ print(result.get_counts())
 Sample output:
 
 ```text
-job-1234567890
+550e8400-e29b-41d4-a716-446655440000
 JobsJobStatus.SUCCEEDED
 {'00': 503, '11': 497}
 ```
@@ -120,7 +120,7 @@ print("counts:", result.get_counts())
 Sample output:
 
 ```text
-submitted: job-1234567890
+submitted: 550e8400-e29b-41d4-a716-446655440000
 status: JobsJobStatus.RUNNING
 final: JobsJobStatus.SUCCEEDED
 counts: {'00': 503, '11': 497}
