@@ -31,7 +31,7 @@ client = OqtopusClient(OqtopusConfig.from_file("oqtopus-dev"))
 request = OqtopusJobSpec.sampling(
     device_id="Kawasaki",
     shots=1000,
-    program="OPENQASM 3; qubit[1] q; bit[1] c; h q[0]; c[0] = measure q[0];",
+    program='OPENQASM 3; include "stdgates.inc"; qubit[1] q; bit[1] c; h q[0]; c[0] = measure q[0];',
 )
 finished_job = client.run_job(request, timeout=300.0)
 print(finished_job.status)
@@ -61,7 +61,7 @@ client = OqtopusClient(OqtopusConfig.from_env())
 request = OqtopusJobSpec.sampling(
     device_id="Kawasaki",
     shots=1000,
-    program="OPENQASM 3; qubit[1] q; bit[1] c; h q[0]; c[0] = measure q[0];",
+    program='OPENQASM 3; include "stdgates.inc"; qubit[1] q; bit[1] c; h q[0]; c[0] = measure q[0];',
 )
 job_id = client.submit_job(request).job_id
 finished_job = client.wait_for_job(job_id, interval=2.0, timeout=300.0)

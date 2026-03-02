@@ -18,7 +18,7 @@ from oqtopus_client import OqtopusJobSpec, OqtopusClient, OqtopusConfig
 client = OqtopusClient(OqtopusConfig(base_url="https://api.example.com", api_token="<token>"))
 req = OqtopusJobSpec.sampling(
     device_id="Kawasaki",
-    program="OPENQASM 3; qubit[2] q; bit[2] c; h q[0]; cx q[0], q[1]; c = measure q;",
+    program='OPENQASM 3; include "stdgates.inc"; qubit[2] q; bit[2] c; h q[0]; cx q[0], q[1]; c = measure q;',
     shots=1000,
 )
 finished_job = client.run_sampling(req, interval=2.0, timeout=300.0)

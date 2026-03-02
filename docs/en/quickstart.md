@@ -34,7 +34,7 @@ devices = client.list_devices()
 req = OqtopusJobSpec.sampling(
     device_id="Kawasaki",
     shots=1000,
-    program="OPENQASM 3; qubit[2] q; bit[2] c; h q[0]; cx q[0], q[1]; c = measure q;",
+    program='OPENQASM 3; include "stdgates.inc"; qubit[2] q; bit[2] c; h q[0]; cx q[0], q[1]; c = measure q;',
 )
 job_id = client.submit_job(req).job_id
 print(job_id)
@@ -76,7 +76,7 @@ from oqtopus_client import OqtopusClient, OqtopusConfig, OqtopusJobSpec
 req = OqtopusJobSpec.sampling(
     device_id="Kawasaki",
     shots=1000,
-    program="OPENQASM 3; qubit[1] q; bit[1] c; h q[0]; c[0] = measure q[0];",
+    program='OPENQASM 3; include "stdgates.inc"; qubit[1] q; bit[1] c; h q[0]; c[0] = measure q[0];',
 )
 
 client = OqtopusClient(OqtopusConfig(base_url="https://api.example.com", api_token="<token>"))
@@ -90,7 +90,7 @@ You can also use job-type-specific shortcuts (raise `ValueError` on mismatch):
 sampling_req = OqtopusJobSpec.sampling(
     device_id="Kawasaki",
     shots=1000,
-    program="OPENQASM 3; qubit[1] q; bit[1] c; h q[0]; c[0] = measure q[0];",
+    program='OPENQASM 3; include "stdgates.inc"; qubit[1] q; bit[1] c; h q[0]; c[0] = measure q[0];',
 )
 final_sampling = client.run_sampling(sampling_req)
 ```
@@ -106,7 +106,7 @@ client = OqtopusClient(OqtopusConfig(base_url="https://api.example.com", api_tok
 req = OqtopusJobSpec.sampling(
     device_id="Kawasaki",
     shots=1000,
-    program="OPENQASM 3; qubit[1] q; bit[1] c; h q[0]; c[0] = measure q[0];",
+    program='OPENQASM 3; include "stdgates.inc"; qubit[1] q; bit[1] c; h q[0]; c[0] = measure q[0];',
 )
 
 job_id = client.submit_job(req).job_id
