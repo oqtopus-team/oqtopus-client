@@ -11,11 +11,8 @@ nav:
   - API reference:
       - oqtopus_client: reference/
   - Developer Guidelines:
-      - Setup Development Environment: developer_guidelines/setup.md
       - Development Flow: developer_guidelines/development_flow.md
-      - API Model Generation: developer_guidelines/api_model_generation.md
-      - Quality Checks: developer_guidelines/quality_checks.md
-      - Overview: developer_guidelines/index.md
+      - Setup Development Environment: developer_guidelines/setup.md
       - How to Contribute: CONTRIBUTING.md
       - Code of Conduct: "https://oqtopus-team.github.io/code-of-conduct/"
       - Security: "https://oqtopus-team.github.io/security-policy/"
