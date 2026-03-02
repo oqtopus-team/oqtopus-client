@@ -139,37 +139,6 @@ export OQTOPUS_API_TOKEN="<token>"
 from oqtopus_client import OqtopusClient, OqtopusConfig
 
 client = OqtopusClient(OqtopusConfig.from_env())
-devices = client.list_devices()
-print(len(devices))
-print(devices[0].device_id if devices else "no devices")
-```
-
-Sample output:
-
-```text
-3
-Kawasaki
-```
-
-## Authentication via config file
-
-`OqtopusConfig.from_file()` reads `~/.config/oqtopus/config.ini`.
-If no section is specified, it uses `default`.
-
-### 1. Define `default` profile (used by default)
-
-Create `~/.config/oqtopus/config.ini`:
-
-```ini
-[default]
-base_url = <url>
-api_token = <token>
-```
-
-```python
-from oqtopus_client import OqtopusClient
-
-client = OqtopusClient()  # internally uses OqtopusConfig.from_file("default")
 print(client.base_url)
 ```
 
@@ -179,17 +148,45 @@ Sample output:
 <url>
 ```
 
+## Authentication via config file
+
+`OqtopusConfig.from_file()` reads `~/.config/oqtopus/config.ini`.
+If no section is specified, it uses `default`.
+
+### 1. Define `default` profile and select the section explicitly
+
+Create `~/.config/oqtopus/config.ini`:
+
+```ini
+[default]
+base_url = <default-url>
+api_token = <token>
+```
+
+```python
+from oqtopus_client import OqtopusClient, OqtopusConfig
+
+client = OqtopusClient(OqtopusConfig.from_file("default"))
+print(client.base_url)
+```
+
+Sample output:
+
+```text
+<default-url>
+```
+
 ### 2. Add named profile and select it explicitly
 
 For multiple environments (dev/staging/prod), add additional sections:
 
 ```ini
 [default]
-base_url = <url>
+base_url = <default-url>
 api_token = <token>
 
 [oqtopus-dev]
-base_url = <url>
+base_url = <dev-url>
 api_token = <token>
 ```
 
@@ -197,14 +194,13 @@ api_token = <token>
 from oqtopus_client import OqtopusClient, OqtopusConfig
 
 client = OqtopusClient(OqtopusConfig.from_file("oqtopus-dev"))
-devices = client.list_devices()
-print(len(devices))
+print(client.base_url)
 ```
 
 Sample output:
 
 ```text
-3
+<dev-url>
 ```
 
 ## Further reading
