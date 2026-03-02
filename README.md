@@ -31,27 +31,9 @@ print(finished_job.status)
 pip install oqtopus-client
 ```
 
-For local development:
-
-```bash
-pip install -e ".[dev]"
-```
+For development setup, see [Setup Development Environment](./docs/developer_guidelines/setup.md).
 
 ## Usage
-
-Generate/download OAS-derived models:
-
-```bash
-make download-oas
-make generate-models
-```
-
-If needed, you can override the source URL and output destination.
-
-```bash
-make -C spec download-oas OAS_URL=https://raw.githubusercontent.com/oqtopus-team/oqtopus-cloud/main/backend/oas/user/openapi.yaml
-make -C spec generate-models OAS_FILE=openapi.yaml MODEL_OUTPUT_DIR=../src/oqtopus_client/models
-```
 
 To initialize from environment variables, use `OqtopusConfig.from_env()`.
 
@@ -144,39 +126,6 @@ One-shot submit+wait and batch helper APIs are also provided.
 ```python
 finished_job = client.run_job(req, timeout=300.0)
 batch_results = client.run_jobs_batch([req1, req2], submit_workers=2, wait_workers=2)
-```
-
-## tests
-
-```bash
-make test
-```
-
-## quality
-
-```bash
-pip install -e ".[dev]"
-make lint
-make typecheck
-make check
-```
-
-## docs
-
-API documentation can be generated automatically from docstrings.
-
-```bash
-pip install -e ".[dev]"
-```
-
-```bash
-make docs
-```
-
-Local preview:
-
-```bash
-make docs-serve
 ```
 
 ## Project layout
