@@ -1,4 +1,4 @@
-![OQTOPUS logo](./asset/oqtopus-black_symbol.svg)
+<img src="./asset/oqtopus-black_symbol.svg" alt="OQTOPUS logo" width="320" />
 
 # OQTOPUS Client
 
