@@ -130,12 +130,14 @@ batch_results = client.run_jobs_batch([req1, req2], submit_workers=2, wait_worke
 
 ## Project layout
 
-- OpenAPI schema is fetched with `make download-oas` into `spec/openapi.yaml` (gitignored)
-- `spec/Makefile`: runs `download-oas` (latest OAS fetch) and `openapi-generator`
-- `Makefile`: wrapper for `spec/Makefile`
+- OpenAPI schema source is managed in `spec/openapi.yaml` (gitignored)
+- `spec/`: OpenAPI schema and model-generation configuration
+- `Makefile`: contributor workflow entrypoint for checks/docs/model generation
 - `docs/`: API and usage documentation
 - `mkdocs.yml`: documentation build settings
 - `src/oqtopus_client/models/generated/`: generated models (openapi-generator output)
 - `src/oqtopus_client/client.py`: SDK client using generated models
 - `examples/`: SDK usage examples
 - `tests/`: SDK tests
+
+For contributor commands (`make` targets), see [Developer Guidelines](./docs/developer_guidelines/index.md).
