@@ -15,6 +15,9 @@ Thank you for your interest in OQTOPUS Client.
 
 ## More details
 
-- [Development Flow](./developer_guidelines/index.md)
+- [Developer Guidelines Overview](./developer_guidelines/index.md)
+- [Development Flow](./developer_guidelines/development_flow.md)
 - [Setup Development Environment](./developer_guidelines/setup.md)
+- [API Model Generation](./developer_guidelines/api_model_generation.md)
+- [Quality Checks](./developer_guidelines/quality_checks.md)
 - [Repository CONTRIBUTING guide](https://github.com/oqtopus-team/oqtopus-client/blob/main/CONTRIBUTING.md)

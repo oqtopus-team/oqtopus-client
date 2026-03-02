@@ -2,8 +2,9 @@
 
 ## Prerequisites
 
-- Python >= 3.10
-- `uv`
+- [Python](https://www.python.org/downloads/) >= 3.10
+- [uv](https://docs.astral.sh/uv/) >= 0.5
+- [Docker](https://docs.docker.com/get-docker/) (required for `make generate-models`)
 
 ## Clone
 
@@ -18,7 +19,7 @@ cd oqtopus-client
 uv sync --extra dev
 ```
 
-## OAS and generated models
+## Generate API models from OpenAPI
 
 ```bash
 make download-oas
@@ -32,18 +33,42 @@ make -C spec download-oas OAS_URL=https://raw.githubusercontent.com/oqtopus-team
 make -C spec generate-models OAS_FILE=openapi.yaml MODEL_OUTPUT_DIR=../src/oqtopus_client/models
 ```
 
-## Run checks
+## Validate changes
+
+Run commands from the repository root.
+
+### Lint
 
 ```bash
 make lint
+```
+
+### Type check
+
+```bash
 make typecheck
+```
+
+### Test
+
+```bash
 make test
+```
+
+### Run all checks
+
+```bash
 make check
 ```
 
-## Build docs
+## Build documentation
 
 ```bash
 make docs
+```
+
+Local preview:
+
+```bash
 make docs-serve
 ```

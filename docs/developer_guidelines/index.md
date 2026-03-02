@@ -1,25 +1,17 @@
-# Development Flow
+# Developer Guidelines
 
-## Branch strategy
+This section is for contributors working on `oqtopus-client`.
 
-Recommended branch naming:
+## Quick links
 
-- `feature/<name>` for new features
-- `bugfix/<name>` for bug fixes
-- `hotfix/<name>` for urgent fixes
+- [Setup Development Environment](./setup.md)
+- [Development Flow](./development_flow.md)
+- [API Model Generation](./api_model_generation.md)
+- [Quality Checks](./quality_checks.md)
+- [How to Contribute](../CONTRIBUTING.md)
 
-## Commit messages
+## Scope
 
-Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) when possible.
-
-Examples:
-
-- `feat: add typed helper for estimation job`
-- `fix: handle timeout error payload`
-- `docs: update getting started page`
-
-## Pull requests
-
-- Keep PRs focused and small.
-- Include tests for behavior changes.
-- Update docs when public APIs change.
+- Keep changes focused and small.
+- Prefer backward-compatible changes unless explicitly approved.
+- Treat `spec/openapi.yaml` as source-of-truth for generated API models.
