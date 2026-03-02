@@ -1,3 +1,3 @@
-# `oqtopus_client.estimation_operator`
+# `oqtopus_client`
 
-::: oqtopus_client.estimation_operator.OqtopusEstimationOperator
+::: oqtopus_client.OqtopusEstimationOperator

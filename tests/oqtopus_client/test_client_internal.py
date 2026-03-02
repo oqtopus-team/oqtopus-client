@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import importlib
 import sys
 import types
 from datetime import datetime, timezone
@@ -13,7 +14,7 @@ from unittest.mock import Mock
 
 import pytest
 
-import oqtopus_client.client as client_module
+import oqtopus_client.services.client as client_module
 from oqtopus_client import (
     OqtopusDevice,
     OqtopusClient,
@@ -24,10 +25,16 @@ from oqtopus_client import (
     OqtopusMultiManualJobResult,
     OqtopusSamplingJobResult,
     OqtopusSseJobResult,
-    models,
+    UserApiError,
+    rest as models,
 )
-from oqtopus_client.client import _AsyncOqtopusClient, _resolve_user_agent
-from oqtopus_client.errors import UserApiError
+from oqtopus_client.services.client import _AsyncOqtopusClient, _resolve_user_agent
+
+
+def test_removed_compatibility_module_import_fails() -> None:
+    """Test case: test_removed_compatibility_module_import_fails."""
+    with pytest.raises(ModuleNotFoundError):
+        importlib.import_module("oqtopus_client.client")
 
 
 def _job(job_type: models.JobsJobType, *, status: models.JobsJobStatus = models.JobsJobStatus.SUCCEEDED) -> models.JobsJobDef:
@@ -50,7 +57,7 @@ def _job(job_type: models.JobsJobType, *, status: models.JobsJobStatus = models.
 def test_resolve_user_agent_falls_back_to_unknown(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test case: test_resolve_user_agent_falls_back_to_unknown."""
     monkeypatch.setattr(
-        "oqtopus_client.client.version",
+        "oqtopus_client.services.client.version",
         lambda _: (_ for _ in ()).throw(PackageNotFoundError()),
     )
     assert _resolve_user_agent().endswith("unknown")
@@ -85,11 +92,15 @@ def test_async_client_sets_headers_and_generated_config() -> None:
     try:
         assert client._headers["q-api-token"] == "from-config"
         assert client._headers["X-Test"] == "1"
-        asyncio.run(client._ensure_generated_api())
+        asyncio.run(_initialize_generated_api(client))
         assert client._generated_config is not None
         assert client._generated_config.proxy == "http://proxy.local:8080"
     finally:
         asyncio.run(client.close())
+
+
+async def _initialize_generated_api(client: _AsyncOqtopusClient) -> None:
+    client._initialize_generated_api()
 
 
 def test_extract_error_message_variants() -> None:

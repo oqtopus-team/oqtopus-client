@@ -1,4 +1,4 @@
-# `oqtopus_client.config`
+# `oqtopus_client`
 
 ## Initialization
 
@@ -35,4 +35,4 @@ config = OqtopusConfig.from_env()
 Required env var: `OQTOPUS_BASE_URL`  
 Optional env var: `OQTOPUS_API_TOKEN`
 
-::: oqtopus_client.config.OqtopusConfig
+::: oqtopus_client.OqtopusConfig

@@ -1,4 +1,4 @@
-# `oqtopus_client.client`
+# `oqtopus_client`
 
 ## Initialization
 
@@ -40,4 +40,4 @@ from oqtopus_client import OqtopusClient, OqtopusConfig
 client = OqtopusClient(OqtopusConfig.from_env())
 ```
 
-::: oqtopus_client.client.OqtopusClient
+::: oqtopus_client.OqtopusClient

@@ -341,12 +341,11 @@ class OqtopusSseJobResult(OqtopusSamplingJobResult):
 
         Default behavior keeps processing in-memory and returns archive bytes.
         Set `persist=True` to write the archive file to disk and return its path.
-        For compatibility, specifying `save_dir` / `file_name` / `overwrite=True`
-        also enables persistence.
         """
         archive_bytes, default_file_name = self._get_log_archive_bytes()
-        should_persist = persist or save_dir is not None or file_name is not None or overwrite
-        if not should_persist:
+        if not persist:
+            if save_dir is not None or file_name is not None or overwrite:
+                raise ValueError("save_dir/file_name/overwrite require persist=True.")
             return archive_bytes
         return self._write_archive(
             archive_bytes,

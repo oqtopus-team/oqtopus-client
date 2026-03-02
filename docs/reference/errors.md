@@ -1,5 +1,5 @@
-# `oqtopus_client.errors`
+# `oqtopus_client`
 
-::: oqtopus_client.errors.UserApiError
+::: oqtopus_client.UserApiError
 
-::: oqtopus_client.errors.ResponseValidationError
+::: oqtopus_client.ResponseValidationError

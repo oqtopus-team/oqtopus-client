@@ -1,3 +1,3 @@
-# `oqtopus_client.job_spec`
+# `oqtopus_client`
 
-::: oqtopus_client.job_spec.OqtopusJobSpec
+::: oqtopus_client.OqtopusJobSpec

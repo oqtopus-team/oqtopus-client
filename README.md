@@ -137,7 +137,7 @@ batch_results = client.run_jobs_batch([req1, req2], submit_workers=2, wait_worke
 - `mkdocs.yml`: documentation build settings
 - `src/oqtopus_client/rest/`: generated API/models (openapi-generator output)
 - `src/oqtopus_client/services/`: hand-written service layer implementation
-- `src/oqtopus_client/client.py`: compatibility entrypoint re-exporting service-layer client
+- `src/oqtopus_client/__init__.py`: public package exports
 - `examples/`: SDK usage examples
 - `tests/`: SDK tests
 

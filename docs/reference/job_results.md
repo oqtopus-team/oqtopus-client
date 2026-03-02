@@ -1,11 +1,11 @@
-# `oqtopus_client.job_results`
+# `oqtopus_client`
 
-::: oqtopus_client.job_results.OqtopusJobResult
+::: oqtopus_client.OqtopusJobResult
 
-::: oqtopus_client.job_results.OqtopusSamplingJobResult
+::: oqtopus_client.OqtopusSamplingJobResult
 
-::: oqtopus_client.job_results.OqtopusEstimationJobResult
+::: oqtopus_client.OqtopusEstimationJobResult
 
-::: oqtopus_client.job_results.OqtopusMultiManualJobResult
+::: oqtopus_client.OqtopusMultiManualJobResult
 
-::: oqtopus_client.job_results.OqtopusSseJobResult
+::: oqtopus_client.OqtopusSseJobResult

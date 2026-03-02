@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from oqtopus_client import OqtopusEstimationOperator, OqtopusJobSpec, models
+from oqtopus_client import OqtopusEstimationOperator, OqtopusJobSpec, rest as models
 
 
 def test_estimation_operator_to_and_from_model() -> None:

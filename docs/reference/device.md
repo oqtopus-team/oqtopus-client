@@ -1,3 +1,3 @@
-# `oqtopus_client.device`
+# `oqtopus_client`
 
-::: oqtopus_client.device.OqtopusDevice
+::: oqtopus_client.OqtopusDevice

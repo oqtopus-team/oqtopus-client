@@ -16,9 +16,9 @@ from oqtopus_client import (
     OqtopusMultiManualJobResult,
     OqtopusSamplingJobResult,
     OqtopusSseJobResult,
-    models,
+    UserApiError,
+    rest as models,
 )
-from oqtopus_client.errors import UserApiError
 
 
 def _job(job_type: models.JobsJobType, *, status: models.JobsJobStatus = models.JobsJobStatus.SUCCEEDED) -> models.JobsJobDef:

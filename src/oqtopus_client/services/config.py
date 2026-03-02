@@ -5,7 +5,6 @@ from __future__ import annotations
 import configparser
 import os
 from dataclasses import dataclass
-from dataclasses import field
 from pathlib import Path
 
 
@@ -31,11 +30,9 @@ class OqtopusConfig:
     retry_backoff_seconds: float = 0.2
     retry_status_codes: frozenset[int] | None = None
     retry_methods: frozenset[str] | None = None
-    url: str = field(init=False)
-
     def __init__(
         self,
-        base_url: str | None = None,
+        base_url: str,
         api_token: str | None = None,
         proxy: str | None = None,
         timeout: float = 30.0,
@@ -43,14 +40,8 @@ class OqtopusConfig:
         retry_backoff_seconds: float = 0.2,
         retry_status_codes: frozenset[int] | None = None,
         retry_methods: frozenset[str] | None = None,
-        *,
-        url: str | None = None,
     ) -> None:
-        resolved_base_url = base_url if base_url is not None else url
-        if resolved_base_url is None:
-            raise ValueError("base_url (or url) is required.")
-        object.__setattr__(self, "base_url", resolved_base_url)
-        object.__setattr__(self, "url", resolved_base_url)
+        object.__setattr__(self, "base_url", base_url)
         object.__setattr__(self, "api_token", api_token)
         object.__setattr__(self, "proxy", proxy)
         object.__setattr__(self, "timeout", timeout)
@@ -87,10 +78,10 @@ class OqtopusConfig:
             raise ValueError(f"Section '{section}' not found in config file: {expanded}")
 
         cfg = parser[section]
-        base_url = cfg.get("url") or cfg.get("base_url")
+        base_url = cfg.get("base_url")
         if not base_url:
             raise ValueError(
-                f"Section '{section}' in {expanded} must define 'base_url' or 'url'."
+                f"Section '{section}' in {expanded} must define 'base_url'."
             )
 
         api_token = cfg.get("api_token")

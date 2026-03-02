@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from oqtopus_client import bitstring_dict_to_int_keys, bitstring_to_int, models, normalize_sampling_result
+from oqtopus_client import bitstring_dict_to_int_keys, bitstring_to_int, normalize_sampling_result, rest as models
 
 
 def test_bitstring_to_int_accepts_binary_and_prefixed_values() -> None:

@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from oqtopus_client import models
-from oqtopus_client.device import OqtopusDevice
+from oqtopus_client import OqtopusDevice, rest as models
 
 
 def test_device_wrapper_exposes_properties_and_raw_attributes() -> None:

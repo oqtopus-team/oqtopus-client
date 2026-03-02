@@ -7,7 +7,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from oqtopus_client import OqtopusClient, OqtopusConfig, OqtopusJobSpec, OqtopusSamplingJobResult, models
+from oqtopus_client import OqtopusClient, OqtopusConfig, OqtopusJobSpec, OqtopusSamplingJobResult, rest as models
 
 
 def _job(job_id: str) -> models.JobsJobDef:

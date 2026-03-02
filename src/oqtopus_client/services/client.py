@@ -201,9 +201,6 @@ class _AsyncOqtopusClient:
         self._token_api = ApiTokenApi(self._generated_client)
         self._announcements_api = AnnouncementsApi(self._generated_client)
 
-    async def _ensure_generated_api(self) -> None:  # pragma: no cover - compatibility path
-        self._initialize_generated_api()
-
     async def close(self) -> None:
         if self._generated_client is not None:  # pragma: no cover - integration path
             await self._generated_client.close()

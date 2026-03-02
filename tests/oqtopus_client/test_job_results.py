@@ -15,7 +15,7 @@ from oqtopus_client import (
     OqtopusMultiManualJobResult,
     OqtopusSamplingJobResult,
     OqtopusSseJobResult,
-    models,
+    rest as models,
 )
 
 
@@ -155,7 +155,7 @@ def test_sse_result_log_helpers(tmp_path: Path, capsys: pytest.CaptureFixture[st
     archive = result.download_log()
     assert isinstance(archive, bytes)
     assert archive == b"log-job-42"
-    out = result.download_log(save_dir=tmp_path)
+    out = result.download_log(save_dir=tmp_path, persist=True)
     assert isinstance(out, str)
     assert Path(out).exists()
     assert result.read_log_text() == "log-job-42"
@@ -187,6 +187,28 @@ def test_sse_download_log_default_does_not_write_files(tmp_path: Path, monkeypat
 
     after = {p.name for p in tmp_path.iterdir()}
     assert after == before
+
+
+def test_sse_download_log_rejects_save_options_without_persist(tmp_path: Path) -> None:
+    """Test case: test_sse_download_log_rejects_save_options_without_persist."""
+    class _DummyClient:
+        def get_sselog(self, job_id: str) -> models.JobsGetSselogResponse:
+            data = base64.b64encode(f"log-{job_id}".encode("utf-8")).decode("utf-8")
+            return models.JobsGetSselogResponse(file=data, file_name=f"{job_id}.zip")
+
+    result = OqtopusSseJobResult(
+        None,
+        job_id="job-99",
+        job_type=models.JobsJobType.SSE,
+        client=_DummyClient(),  # type: ignore[arg-type]
+    )
+
+    with pytest.raises(ValueError):
+        result.download_log(save_dir=tmp_path)
+    with pytest.raises(ValueError):
+        result.download_log(file_name="log.zip")
+    with pytest.raises(ValueError):
+        result.download_log(overwrite=True)
 
 
 def test_sse_result_log_helpers_require_client() -> None:

@@ -2,18 +2,18 @@
 
 ## Client
 
-::: oqtopus_client.client.OqtopusClient
+::: oqtopus_client.OqtopusClient
 
 ## Config
 
-::: oqtopus_client.config.OqtopusConfig
+::: oqtopus_client.OqtopusConfig
 
 ## Resources
 
-::: oqtopus_client.device.OqtopusDevice
+::: oqtopus_client.OqtopusDevice
 
 ## Errors
 
-::: oqtopus_client.errors.UserApiError
+::: oqtopus_client.UserApiError
 
-::: oqtopus_client.errors.ResponseValidationError
+::: oqtopus_client.ResponseValidationError
