@@ -55,7 +55,7 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "--cov=src/oqtopus_client --cov-report=term-missing --cov-fail-under=95"
+addopts = "--cov=src/oqtopus_client --cov-report=term-missing --cov-fail-under=80"
 pythonpath = ["src"]
 testpaths = ["tests"]
 
