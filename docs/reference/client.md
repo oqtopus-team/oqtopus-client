@@ -2,6 +2,14 @@
 
 ## Initialization
 
+### Default profile (`from_file`)
+
+```python
+from oqtopus_client import OqtopusClient
+
+client = OqtopusClient()
+```
+
 ### Direct constructor
 
 ```python

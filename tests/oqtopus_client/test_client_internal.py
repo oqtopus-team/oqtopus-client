@@ -372,6 +372,33 @@ def test_sync_clients_share_runtime() -> None:
         client_module._shutdown_shared_runtime()
 
 
+def test_sync_client_uses_config_from_file_when_omitted(monkeypatch: pytest.MonkeyPatch) -> None:
+    client_module._shutdown_shared_runtime()
+    observed: dict[str, str | Path] = {}
+
+    def _from_file_stub(
+        section: str = "default",
+        path: str | Path = "~/.config/oqtopus/config.ini",
+    ) -> OqtopusConfig:
+        observed["section"] = section
+        observed["path"] = path
+        return OqtopusConfig(base_url="http://test.local")
+
+    monkeypatch.setattr(
+        client_module.OqtopusConfig,
+        "from_file",
+        classmethod(lambda cls, section="default", path="~/.config/oqtopus/config.ini": _from_file_stub(section, path)),
+    )
+    client = OqtopusClient()
+    try:
+        assert client.base_url == "http://test.local"
+        assert observed["section"] == "default"
+        assert observed["path"] == "~/.config/oqtopus/config.ini"
+    finally:
+        client.close()
+        client_module._shutdown_shared_runtime()
+
+
 def test_get_job_requires_valid_job_def_shape() -> None:
     client = object.__new__(OqtopusClient)
     client._async = Mock()

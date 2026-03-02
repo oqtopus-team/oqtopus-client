@@ -596,22 +596,23 @@ class OqtopusClient:
 
     def __init__(
         self,
-        config: OqtopusConfig,
+        config: OqtopusConfig | None = None,
         default_headers: Mapping[str, str] | None = None,
         user_agent: str | None = None,
     ) -> None:
         """Initialize the synchronous OQTOPUS client.
 
         Args:
-            config (Required): Client configuration bundle.
+            config (Optional): Client configuration bundle. If omitted, `OqtopusConfig.from_file()` is used.
             default_headers (Optional): Additional headers merged into every request.
             user_agent (Optional): Custom User-Agent header value.
         """
+        resolved_config = config or OqtopusConfig.from_file()
         self._runtime = _get_shared_runtime()
 
         async def _build() -> _AsyncOqtopusClient:
             return _AsyncOqtopusClient(
-                config=config,
+                config=resolved_config,
                 default_headers=default_headers,
                 user_agent=user_agent,
             )
@@ -621,11 +622,11 @@ class OqtopusClient:
         _track_async_client(self._async)
         self._finalizer = weakref.finalize(self, self._finalize_resources, self._runtime, self._async)
         self.base_url = self._async.base_url
-        self.timeout = config.timeout
-        self.retry_max_attempts = config.retry_max_attempts
-        self.retry_backoff_seconds = config.retry_backoff_seconds
-        self.retry_status_codes = frozenset(config.retry_status_codes or {429, 500, 502, 503, 504})
-        self.retry_methods = frozenset(m.upper() for m in (config.retry_methods or {"GET", "DELETE"}))
+        self.timeout = resolved_config.timeout
+        self.retry_max_attempts = resolved_config.retry_max_attempts
+        self.retry_backoff_seconds = resolved_config.retry_backoff_seconds
+        self.retry_status_codes = frozenset(resolved_config.retry_status_codes or {429, 500, 502, 503, 504})
+        self.retry_methods = frozenset(m.upper() for m in (resolved_config.retry_methods or {"GET", "DELETE"}))
 
     @staticmethod
     def _finalize_resources(runtime: _AsyncRuntime, async_client: _AsyncOqtopusClient) -> None:
