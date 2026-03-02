@@ -5,7 +5,6 @@ Python SDK for the OQTOPUS Cloud User API.
 ## Key Characteristics
 
 - Core client usage has no runtime dependency on other quantum software SDKs.
-- Optional integration examples may require extra packages (for example, `qiskit` or `quri-parts`).
 - OpenAPI-generated models are used internally, while helper APIs such as `OqtopusJobSpec` and `run_*` keep common usage simple.
 - HTTP communication is executed asynchronously inside the client runtime, while a synchronous API is exposed for ease of use.
 - Built-in retry/backoff controls and typed result wrappers improve operational robustness.
@@ -23,6 +22,14 @@ req = OqtopusJobSpec.sampling(
 )
 finished_job = client.run_sampling(req, interval=2.0, timeout=300.0)
 print(finished_job.status)
+print(finished_job.get_counts())
+```
+
+Sample output:
+
+```text
+JobsJobStatus.SUCCEEDED
+{'00': 503, '11': 497}
 ```
 
 ## Installation
@@ -46,7 +53,6 @@ export OQTOPUS_API_TOKEN="<token>"
 from oqtopus_client import OqtopusClient, OqtopusConfig
 
 client = OqtopusClient(OqtopusConfig.from_env())
-print(client.list_devices())
 ```
 
 You can tune retry behavior via initialization arguments (default: retry `GET/DELETE` on 429/5xx).
@@ -63,10 +69,9 @@ client = OqtopusClient(
         retry_backoff_seconds=0.2,
     ),
 )
-print(client.list_devices())
 ```
 
-## examples
+## Examples
 
 `examples/` contains runnable Python examples.
 
@@ -96,7 +101,6 @@ Basic style:
 from oqtopus_client import OqtopusClient, OqtopusConfig
 
 client = OqtopusClient(OqtopusConfig.from_file("oqtopus-dev"))
-print(client.list_devices())
 ```
 
 Run example:
@@ -119,6 +123,15 @@ job_id = client.submit_job(req).job_id
 print(client.status(job_id))
 finished_job = client.wait(job_id, interval=1.0, interval_backoff=1.2, max_interval=5.0, timeout=300.0)
 print(finished_job.status)
+print(finished_job.get_counts())
+```
+
+Sample output:
+
+```text
+JobsJobStatus.SUBMITTED
+JobsJobStatus.SUCCEEDED
+{'00': 503, '11': 497}
 ```
 
 One-shot submit+wait and batch helper APIs are also provided.
