@@ -168,6 +168,14 @@ class _AsyncOqtopusClient:
         if token:
             self._apply_api_token(token)
 
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            # Defer generated API initialization until first API call.
+            pass
+        else:
+            self._initialize_generated_api()
+
     def _apply_api_token(self, api_token: str) -> None:
         self._headers["q-api-token"] = api_token
         self._headers["Authorization"] = f"Bearer {api_token}"
@@ -177,7 +185,7 @@ class _AsyncOqtopusClient:
         if self._generated_config is not None:  # pragma: no cover - integration path
             self._generated_config.access_token = api_token
 
-    async def _ensure_generated_api(self) -> None:  # pragma: no cover - integration path
+    def _initialize_generated_api(self) -> None:  # pragma: no cover - integration path
         if self._generated_client is not None:
             return
         generated_host = self.base_url or "http://localhost"
@@ -192,6 +200,9 @@ class _AsyncOqtopusClient:
         self._device_api = DeviceApi(self._generated_client)
         self._token_api = ApiTokenApi(self._generated_client)
         self._announcements_api = AnnouncementsApi(self._generated_client)
+
+    async def _ensure_generated_api(self) -> None:  # pragma: no cover - compatibility path
+        self._initialize_generated_api()
 
     async def close(self) -> None:
         if self._generated_client is not None:  # pragma: no cover - integration path
@@ -312,7 +323,8 @@ class _AsyncOqtopusClient:
                 raise ResponseValidationError(str(exc), response_payload) from exc
 
     async def list_devices(self) -> list[models.DevicesDeviceInfo]:
-        await self._ensure_generated_api()
+        if self._device_api is None:
+            self._initialize_generated_api()
         assert self._device_api is not None
         return cast(
             list[models.DevicesDeviceInfo],
@@ -320,7 +332,8 @@ class _AsyncOqtopusClient:
         )
 
     async def get_device(self, device_id: str) -> models.DevicesDeviceInfo:
-        await self._ensure_generated_api()
+        if self._device_api is None:
+            self._initialize_generated_api()
         assert self._device_api is not None
         return cast(
             models.DevicesDeviceInfo,
@@ -338,7 +351,8 @@ class _AsyncOqtopusClient:
         size: int | None = None,
         order: str | None = None,
     ) -> list[models.JobsGetJobsResponse]:
-        await self._ensure_generated_api()
+        if self._job_api is None:
+            self._initialize_generated_api()
         assert self._job_api is not None
         return cast(
             list[models.JobsGetJobsResponse],
@@ -364,7 +378,8 @@ class _AsyncOqtopusClient:
             payload = body
         else:
             payload = dict(body)
-        await self._ensure_generated_api()
+        if self._job_api is None:
+            self._initialize_generated_api()
         assert self._job_api is not None
         request = payload if isinstance(payload, models.JobsSubmitJobRequest) else models.JobsSubmitJobRequest.model_validate(payload)
         return cast(
@@ -462,7 +477,8 @@ class _AsyncOqtopusClient:
         return await self.run_sse(request, **kwargs)
 
     async def get_job(self, job_id: str) -> models.JobsJobDef:
-        await self._ensure_generated_api()
+        if self._job_api is None:
+            self._initialize_generated_api()
         assert self._job_api is not None
         return cast(
             models.JobsJobDef,
@@ -523,7 +539,8 @@ class _AsyncOqtopusClient:
                 next_interval = min(next_interval, max_interval)
 
     async def delete_job(self, job_id: str) -> models.SuccessSuccessResponse:
-        await self._ensure_generated_api()
+        if self._job_api is None:
+            self._initialize_generated_api()
         assert self._job_api is not None
         return cast(
             models.SuccessSuccessResponse,
@@ -531,7 +548,8 @@ class _AsyncOqtopusClient:
         )
 
     async def get_job_status(self, job_id: str) -> models.JobsGetJobStatusResponse:
-        await self._ensure_generated_api()
+        if self._job_api is None:
+            self._initialize_generated_api()
         assert self._job_api is not None
         return cast(
             models.JobsGetJobStatusResponse,
@@ -539,7 +557,8 @@ class _AsyncOqtopusClient:
         )
 
     async def cancel_job(self, job_id: str) -> models.SuccessSuccessResponse:
-        await self._ensure_generated_api()
+        if self._job_api is None:
+            self._initialize_generated_api()
         assert self._job_api is not None
         return cast(
             models.SuccessSuccessResponse,
@@ -547,7 +566,8 @@ class _AsyncOqtopusClient:
         )
 
     async def get_sselog(self, job_id: str) -> models.JobsGetSselogResponse:
-        await self._ensure_generated_api()
+        if self._job_api is None:
+            self._initialize_generated_api()
         assert self._job_api is not None
         return cast(
             models.JobsGetSselogResponse,
@@ -555,7 +575,8 @@ class _AsyncOqtopusClient:
         )
 
     async def create_api_token(self) -> models.ApiTokenApiToken:
-        await self._ensure_generated_api()
+        if self._token_api is None:
+            self._initialize_generated_api()
         assert self._token_api is not None
         token = cast(
             models.ApiTokenApiToken,
@@ -566,7 +587,8 @@ class _AsyncOqtopusClient:
         return token
 
     async def get_api_token(self) -> models.ApiTokenApiToken:
-        await self._ensure_generated_api()
+        if self._token_api is None:
+            self._initialize_generated_api()
         assert self._token_api is not None
         return cast(
             models.ApiTokenApiToken,
@@ -574,13 +596,15 @@ class _AsyncOqtopusClient:
         )
 
     async def delete_api_token(self) -> None:
-        await self._ensure_generated_api()
+        if self._token_api is None:
+            self._initialize_generated_api()
         assert self._token_api is not None
         await self._call_generated(self._token_api.delete_api_token(_request_timeout=self._generated_timeout))
         return None
 
     async def get_announcements_list(self) -> models.AnnouncementsGetAnnouncementsListResponse:
-        await self._ensure_generated_api()
+        if self._announcements_api is None:
+            self._initialize_generated_api()
         assert self._announcements_api is not None
         return cast(
             models.AnnouncementsGetAnnouncementsListResponse,
@@ -588,7 +612,8 @@ class _AsyncOqtopusClient:
         )
 
     async def get_announcement(self, announcement_id: int) -> models.AnnouncementsGetAnnouncementResponse:
-        await self._ensure_generated_api()
+        if self._announcements_api is None:
+            self._initialize_generated_api()
         assert self._announcements_api is not None
         return cast(
             models.AnnouncementsGetAnnouncementResponse,
