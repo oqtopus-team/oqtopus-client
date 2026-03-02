@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 from typing import TYPE_CHECKING
 
-from .. import models
+from .. import rest as models
 
 if TYPE_CHECKING:
     from .client import OqtopusClient

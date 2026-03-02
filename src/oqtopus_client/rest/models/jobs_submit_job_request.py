@@ -18,21 +18,28 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
-from oqtopus_client.generated.models.jobs_estimation_result import JobsEstimationResult
-from oqtopus_client.generated.models.jobs_sampling_result import JobsSamplingResult
+from typing_extensions import Annotated
+from oqtopus_client.rest.models.jobs_job_type import JobsJobType
+from oqtopus_client.rest.models.jobs_submit_job_info import JobsSubmitJobInfo
 from typing import Optional, Set
 from typing_extensions import Self
 
-class JobsJobResult(BaseModel):
+class JobsSubmitJobRequest(BaseModel):
     """
-    JobsJobResult
+    JobsSubmitJobRequest
     """ # noqa: E501
-    sampling: Optional[JobsSamplingResult] = None
-    estimation: Optional[JobsEstimationResult] = None
-    additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["sampling", "estimation"]
+    name: Optional[StrictStr] = None
+    description: Optional[StrictStr] = None
+    device_id: StrictStr
+    job_type: JobsJobType
+    job_info: JobsSubmitJobInfo
+    transpiler_info: Optional[Dict[str, Any]] = None
+    simulator_info: Optional[Dict[str, Any]] = None
+    mitigation_info: Optional[Dict[str, Any]] = None
+    shots: Annotated[int, Field(le=10000000, strict=True, ge=1)]
+    __properties: ClassVar[List[str]] = ["name", "description", "device_id", "job_type", "job_info", "transpiler_info", "simulator_info", "mitigation_info", "shots"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -52,7 +59,7 @@ class JobsJobResult(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of JobsJobResult from a JSON string"""
+        """Create an instance of JobsSubmitJobRequest from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -64,10 +71,8 @@ class JobsJobResult(BaseModel):
         * `None` is only added to the output dict for nullable fields that
           were set at model initialization. Other fields with value `None`
           are ignored.
-        * Fields in `self.additional_properties` are added to the output dict.
         """
         excluded_fields: Set[str] = set([
-            "additional_properties",
         ])
 
         _dict = self.model_dump(
@@ -75,22 +80,14 @@ class JobsJobResult(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of sampling
-        if self.sampling:
-            _dict['sampling'] = self.sampling.to_dict()
-        # override the default output from pydantic by calling `to_dict()` of estimation
-        if self.estimation:
-            _dict['estimation'] = self.estimation.to_dict()
-        # puts key-value pairs in additional_properties in the top level
-        if self.additional_properties is not None:
-            for _key, _value in self.additional_properties.items():
-                _dict[_key] = _value
-
+        # override the default output from pydantic by calling `to_dict()` of job_info
+        if self.job_info:
+            _dict['job_info'] = self.job_info.to_dict()
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of JobsJobResult from a dict"""
+        """Create an instance of JobsSubmitJobRequest from a dict"""
         if obj is None:
             return None
 
@@ -98,14 +95,16 @@ class JobsJobResult(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "sampling": JobsSamplingResult.from_dict(obj["sampling"]) if obj.get("sampling") is not None else None,
-            "estimation": JobsEstimationResult.from_dict(obj["estimation"]) if obj.get("estimation") is not None else None
+            "name": obj.get("name"),
+            "description": obj.get("description"),
+            "device_id": obj.get("device_id"),
+            "job_type": obj.get("job_type"),
+            "job_info": JobsSubmitJobInfo.from_dict(obj["job_info"]) if obj.get("job_info") is not None else None,
+            "transpiler_info": obj.get("transpiler_info"),
+            "simulator_info": obj.get("simulator_info"),
+            "mitigation_info": obj.get("mitigation_info"),
+            "shots": obj.get("shots")
         })
-        # store additional fields in additional_properties
-        for _key in obj.keys():
-            if _key not in cls.__properties:
-                _obj.additional_properties[_key] = obj.get(_key)
-
         return _obj
 
 

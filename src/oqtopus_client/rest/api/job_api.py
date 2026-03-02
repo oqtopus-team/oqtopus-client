@@ -21,17 +21,17 @@ from datetime import datetime
 from pydantic import Field, StrictStr, field_validator
 from typing import List, Optional
 from typing_extensions import Annotated
-from oqtopus_client.generated.models.jobs_get_job_status_response import JobsGetJobStatusResponse
-from oqtopus_client.generated.models.jobs_get_jobs_response import JobsGetJobsResponse
-from oqtopus_client.generated.models.jobs_get_sselog_response import JobsGetSselogResponse
-from oqtopus_client.generated.models.jobs_job_def import JobsJobDef
-from oqtopus_client.generated.models.jobs_submit_job_request import JobsSubmitJobRequest
-from oqtopus_client.generated.models.jobs_submit_job_response import JobsSubmitJobResponse
-from oqtopus_client.generated.models.success_success_response import SuccessSuccessResponse
+from oqtopus_client.rest.models.jobs_get_job_status_response import JobsGetJobStatusResponse
+from oqtopus_client.rest.models.jobs_get_jobs_response import JobsGetJobsResponse
+from oqtopus_client.rest.models.jobs_get_sselog_response import JobsGetSselogResponse
+from oqtopus_client.rest.models.jobs_job_def import JobsJobDef
+from oqtopus_client.rest.models.jobs_submit_job_request import JobsSubmitJobRequest
+from oqtopus_client.rest.models.jobs_submit_job_response import JobsSubmitJobResponse
+from oqtopus_client.rest.models.success_success_response import SuccessSuccessResponse
 
-from oqtopus_client.generated.api_client import ApiClient, RequestSerialized
-from oqtopus_client.generated.api_response import ApiResponse
-from oqtopus_client.generated.rest import RESTResponseType
+from oqtopus_client.rest.api_client import ApiClient, RequestSerialized
+from oqtopus_client.rest.api_response import ApiResponse
+from oqtopus_client.rest.rest import RESTResponseType
 
 
 class JobApi:

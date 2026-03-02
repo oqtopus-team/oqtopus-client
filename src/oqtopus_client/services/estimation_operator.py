@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from collections.abc import Sequence
 
-from .. import models
+from .. import rest as models
 
 
 @dataclass(frozen=True, slots=True)

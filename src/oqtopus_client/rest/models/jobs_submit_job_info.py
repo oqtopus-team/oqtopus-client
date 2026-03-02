@@ -20,26 +20,17 @@ import json
 
 from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
-from typing_extensions import Annotated
-from oqtopus_client.generated.models.jobs_job_type import JobsJobType
-from oqtopus_client.generated.models.jobs_submit_job_info import JobsSubmitJobInfo
+from oqtopus_client.rest.models.jobs_operator_item import JobsOperatorItem
 from typing import Optional, Set
 from typing_extensions import Self
 
-class JobsSubmitJobRequest(BaseModel):
+class JobsSubmitJobInfo(BaseModel):
     """
-    JobsSubmitJobRequest
+    All fields in this schema also exist in the `JobInfo` schema and have the same meaning as their counterparts in the `JobInfo` schema.
     """ # noqa: E501
-    name: Optional[StrictStr] = None
-    description: Optional[StrictStr] = None
-    device_id: StrictStr
-    job_type: JobsJobType
-    job_info: JobsSubmitJobInfo
-    transpiler_info: Optional[Dict[str, Any]] = None
-    simulator_info: Optional[Dict[str, Any]] = None
-    mitigation_info: Optional[Dict[str, Any]] = None
-    shots: Annotated[int, Field(le=10000000, strict=True, ge=1)]
-    __properties: ClassVar[List[str]] = ["name", "description", "device_id", "job_type", "job_info", "transpiler_info", "simulator_info", "mitigation_info", "shots"]
+    program: List[StrictStr] = Field(description="A list of OPENQASM3 program. For non-multiprogramming jobs, this field is assumed to contain exactly one program. Otherwise, those programs are combined according to the multiprogramming machinery.")
+    operator: Optional[List[JobsOperatorItem]] = None
+    __properties: ClassVar[List[str]] = ["program", "operator"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -59,7 +50,7 @@ class JobsSubmitJobRequest(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of JobsSubmitJobRequest from a JSON string"""
+        """Create an instance of JobsSubmitJobInfo from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -80,14 +71,18 @@ class JobsSubmitJobRequest(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of job_info
-        if self.job_info:
-            _dict['job_info'] = self.job_info.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of each item in operator (list)
+        _items = []
+        if self.operator:
+            for _item_operator in self.operator:
+                if _item_operator:
+                    _items.append(_item_operator.to_dict())
+            _dict['operator'] = _items
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of JobsSubmitJobRequest from a dict"""
+        """Create an instance of JobsSubmitJobInfo from a dict"""
         if obj is None:
             return None
 
@@ -95,15 +90,8 @@ class JobsSubmitJobRequest(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "name": obj.get("name"),
-            "description": obj.get("description"),
-            "device_id": obj.get("device_id"),
-            "job_type": obj.get("job_type"),
-            "job_info": JobsSubmitJobInfo.from_dict(obj["job_info"]) if obj.get("job_info") is not None else None,
-            "transpiler_info": obj.get("transpiler_info"),
-            "simulator_info": obj.get("simulator_info"),
-            "mitigation_info": obj.get("mitigation_info"),
-            "shots": obj.get("shots")
+            "program": obj.get("program"),
+            "operator": [JobsOperatorItem.from_dict(_item) for _item in obj["operator"]] if obj.get("operator") is not None else None
         })
         return _obj
 

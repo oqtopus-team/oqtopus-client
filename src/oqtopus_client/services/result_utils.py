@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from .. import models
+from .. import rest as models
 
 
 def bitstring_to_int(bitstring: str) -> int:

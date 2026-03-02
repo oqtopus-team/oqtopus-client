@@ -22,24 +22,24 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional, Union
 from typing_extensions import Annotated
-from oqtopus_client.generated.models.jobs_job_info import JobsJobInfo
-from oqtopus_client.generated.models.jobs_job_status import JobsJobStatus
-from oqtopus_client.generated.models.jobs_job_type import JobsJobType
+from oqtopus_client.rest.models.jobs_job_info import JobsJobInfo
+from oqtopus_client.rest.models.jobs_job_status import JobsJobStatus
+from oqtopus_client.rest.models.jobs_job_type import JobsJobType
 from typing import Optional, Set
 from typing_extensions import Self
 
-class JobsGetJobsResponse(BaseModel):
+class JobsJobDef(BaseModel):
     """
-    JobsGetJobsResponse
+    JobsJobDef
     """ # noqa: E501
-    job_id: Optional[StrictStr] = None
-    name: Optional[StrictStr] = None
+    job_id: StrictStr
+    name: StrictStr
     description: Optional[StrictStr] = None
-    job_type: Optional[JobsJobType] = None
-    status: Optional[JobsJobStatus] = None
-    device_id: Optional[StrictStr] = None
-    shots: Optional[Annotated[int, Field(le=10000000, strict=True, ge=1)]] = None
-    job_info: Optional[JobsJobInfo] = None
+    job_type: JobsJobType
+    status: JobsJobStatus
+    device_id: StrictStr
+    shots: Annotated[int, Field(le=10000000, strict=True, ge=1)]
+    job_info: JobsJobInfo
     transpiler_info: Optional[Dict[str, Any]] = None
     simulator_info: Optional[Dict[str, Any]] = None
     mitigation_info: Optional[Dict[str, Any]] = None
@@ -68,7 +68,7 @@ class JobsGetJobsResponse(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of JobsGetJobsResponse from a JSON string"""
+        """Create an instance of JobsJobDef from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -96,7 +96,7 @@ class JobsGetJobsResponse(BaseModel):
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of JobsGetJobsResponse from a dict"""
+        """Create an instance of JobsJobDef from a dict"""
         if obj is None:
             return None
 

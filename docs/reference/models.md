@@ -7,29 +7,29 @@ This page lists commonly used models first, then provides the full generated mod
 
 ### 1) Job submission
 
-::: oqtopus_client.generated.JobsSubmitJobRequest
+::: oqtopus_client.rest.JobsSubmitJobRequest
 
-::: oqtopus_client.generated.JobsSubmitJobInfo
+::: oqtopus_client.rest.JobsSubmitJobInfo
 
 ### 2) Job status polling
 
-::: oqtopus_client.generated.JobsGetJobStatusResponse
+::: oqtopus_client.rest.JobsGetJobStatusResponse
 
-::: oqtopus_client.generated.JobsJobStatus
+::: oqtopus_client.rest.JobsJobStatus
 
 ### 3) Job details and results
 
-::: oqtopus_client.generated.JobsJobDef
+::: oqtopus_client.rest.JobsJobDef
 
-::: oqtopus_client.generated.JobsJobInfo
+::: oqtopus_client.rest.JobsJobInfo
 
-::: oqtopus_client.generated.JobsJobResult
+::: oqtopus_client.rest.JobsJobResult
 
-::: oqtopus_client.generated.JobsSamplingResult
+::: oqtopus_client.rest.JobsSamplingResult
 
 ### 4) Device information
 
-::: oqtopus_client.generated.DevicesDeviceInfo
+::: oqtopus_client.rest.DevicesDeviceInfo
 
 ## Minimal Model Usage
 
@@ -51,4 +51,4 @@ print(status.status, finished_job.job_info.result)
 
 ## Full Generated Model Reference
 
-::: oqtopus_client.generated
+::: oqtopus_client.rest

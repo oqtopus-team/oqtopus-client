@@ -58,20 +58,20 @@ pythonpath = ["src"]
 testpaths = ["tests"]
 
 [tool.coverage.run]
-omit = ["src/oqtopus_client/generated/*", "src/oqtopus_client/generated/models/*"]
+omit = ["src/oqtopus_client/rest/*", "src/oqtopus_client/rest/models/*"]
 
 [tool.ruff]
 include = ["src/**/*.py", "tests/**/*.py", "scripts/**/*.py", "examples/**/*.py"]
-exclude = ["src/oqtopus_client/generated/**"]
+exclude = ["src/oqtopus_client/rest/**"]
 lint.select = ["ALL"]
 lint.ignore = ["E402", "E501"]
 
 [tool.mypy]
 files = ["src", "tests", "examples"]
-exclude = "src/oqtopus_client/generated/.*"
+exclude = "src/oqtopus_client/rest/.*"
 
 [[tool.mypy.overrides]]
-module = ["oqtopus_client.generated.*"]
+module = ["oqtopus_client.rest.*"]
 ignore_errors = true
 
 [tool.setuptools.package-dir]

@@ -14,7 +14,7 @@ from .job_results import (
 from .job_spec import OqtopusJobSpec
 from .estimation_operator import OqtopusEstimationOperator
 from .device import OqtopusDevice
-from . import models
+from . import rest as models
 
 __all__ = [
     "OqtopusClient",

@@ -23,7 +23,7 @@ from typing import cast
 
 from pydantic import TypeAdapter, ValidationError
 
-from .. import models
+from .. import rest as models
 from .config import OqtopusConfig
 from .errors import ResponseValidationError, UserApiError
 from .job_spec import OqtopusJobSpec
@@ -37,13 +37,13 @@ from .job_results import (
 from .device import (
     OqtopusDevice,
 )
-from ..generated.api.announcements_api import AnnouncementsApi
-from ..generated.api.api_token_api import ApiTokenApi
-from ..generated.api.device_api import DeviceApi
-from ..generated.api.job_api import JobApi
-from ..generated.api_client import ApiClient as GeneratedApiClient
-from ..generated.configuration import Configuration as GeneratedConfiguration
-from ..generated.exceptions import ApiException as GeneratedApiException
+from ..rest.api.announcements_api import AnnouncementsApi
+from ..rest.api.api_token_api import ApiTokenApi
+from ..rest.api.device_api import DeviceApi
+from ..rest.api.job_api import JobApi
+from ..rest.api_client import ApiClient as GeneratedApiClient
+from ..rest.configuration import Configuration as GeneratedConfiguration
+from ..rest.exceptions import ApiException as GeneratedApiException
 
 PACKAGE_NAME = "oqtopus-client"
 _SubmitJobInput = models.JobsSubmitJobRequest | Mapping[str, Any] | OqtopusJobSpec

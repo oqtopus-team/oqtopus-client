@@ -22,7 +22,7 @@ from typing import Optional, Union
 import aiohttp
 import aiohttp_retry
 
-from oqtopus_client.generated.exceptions import ApiException, ApiValueError
+from oqtopus_client.rest.exceptions import ApiException, ApiValueError
 
 RESTResponseType = aiohttp.ClientResponse
 

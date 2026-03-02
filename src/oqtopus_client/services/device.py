@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from .. import models
+from .. import rest as models
 
 
 @dataclass(frozen=True, slots=True)

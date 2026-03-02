@@ -18,19 +18,18 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, StrictStr
-from typing import Any, ClassVar, Dict, List
-from oqtopus_client.generated.models.jobs_job_status import JobsJobStatus
+from pydantic import BaseModel, ConfigDict
+from typing import Any, ClassVar, Dict, List, Optional
+from oqtopus_client.rest.models.announcements_get_announcement_response import AnnouncementsGetAnnouncementResponse
 from typing import Optional, Set
 from typing_extensions import Self
 
-class JobsGetJobStatusResponse(BaseModel):
+class AnnouncementsGetAnnouncementsListResponse(BaseModel):
     """
-    job status
+    AnnouncementsGetAnnouncementsListResponse
     """ # noqa: E501
-    job_id: StrictStr
-    status: JobsJobStatus
-    __properties: ClassVar[List[str]] = ["job_id", "status"]
+    announcements: Optional[List[AnnouncementsGetAnnouncementResponse]] = None
+    __properties: ClassVar[List[str]] = ["announcements"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -50,7 +49,7 @@ class JobsGetJobStatusResponse(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of JobsGetJobStatusResponse from a JSON string"""
+        """Create an instance of AnnouncementsGetAnnouncementsListResponse from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -71,11 +70,18 @@ class JobsGetJobStatusResponse(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # override the default output from pydantic by calling `to_dict()` of each item in announcements (list)
+        _items = []
+        if self.announcements:
+            for _item_announcements in self.announcements:
+                if _item_announcements:
+                    _items.append(_item_announcements.to_dict())
+            _dict['announcements'] = _items
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of JobsGetJobStatusResponse from a dict"""
+        """Create an instance of AnnouncementsGetAnnouncementsListResponse from a dict"""
         if obj is None:
             return None
 
@@ -83,8 +89,7 @@ class JobsGetJobStatusResponse(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "job_id": obj.get("job_id"),
-            "status": obj.get("status")
+            "announcements": [AnnouncementsGetAnnouncementResponse.from_dict(_item) for _item in obj["announcements"]] if obj.get("announcements") is not None else None
         })
         return _obj
 
