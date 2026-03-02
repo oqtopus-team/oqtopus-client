@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - Python >= 3.10
-- `uv` (recommended) or `pip`
+- `uv`
 
 ## Clone
 
@@ -15,13 +15,7 @@ cd oqtopus-client
 ## Install dependencies
 
 ```bash
-uv sync
-```
-
-or
-
-```bash
-pip install -e ".[dev]"
+uv sync --extra dev
 ```
 
 ## Run checks
