@@ -135,8 +135,8 @@ batch_results = client.run_jobs_batch([req1, req2], submit_workers=2, wait_worke
 - `Makefile`: contributor workflow entrypoint for checks/docs/model generation
 - `docs/`: API and usage documentation
 - `mkdocs.yml`: documentation build settings
-- `src/oqtopus_client/rest/`: generated API/models (openapi-generator output)
-- `src/oqtopus_client/services/`: hand-written service layer implementation
+- `src/oqtopus_client/rest/`: low-level interface module for REST API access (OpenAPI Generator output)
+- `src/oqtopus_client/services/`: high-level interface module that composes low-level APIs into service-level features
 - `src/oqtopus_client/__init__.py`: public package exports
 - `examples/`: SDK usage examples
 - `tests/`: SDK tests
