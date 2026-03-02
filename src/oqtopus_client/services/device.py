@@ -71,4 +71,5 @@ class OqtopusDevice:
         return self.raw.description
 
     def __getattr__(self, name: str) -> Any:
+        """Delegate unknown attributes to the underlying generated model."""
         return getattr(self.raw, name)

@@ -15,6 +15,8 @@ from oqtopus_client import (
     OqtopusMultiManualJobResult,
     OqtopusSamplingJobResult,
     OqtopusSseJobResult,
+)
+from oqtopus_client import (
     rest as models,
 )
 
@@ -116,7 +118,7 @@ def test_multi_manual_result_direct_construction() -> None:
                     "0": {"11": 1},
                     "1": {"00": 1},
                 },
-            }
+            },
         },
         job_id="job-7",
         job_type=models.JobsJobType.MULTI_MANUAL,
@@ -143,7 +145,7 @@ def test_sse_result_log_helpers(tmp_path: Path, capsys: pytest.CaptureFixture[st
     """Test case: test_sse_result_log_helpers."""
     class _DummyClient:
         def get_sselog(self, job_id: str) -> models.JobsGetSselogResponse:
-            data = base64.b64encode(f"log-{job_id}".encode("utf-8")).decode("utf-8")
+            data = base64.b64encode(f"log-{job_id}".encode()).decode("utf-8")
             return models.JobsGetSselogResponse(file=data, file_name=f"{job_id}.zip")
 
     result = OqtopusSseJobResult(
@@ -168,7 +170,7 @@ def test_sse_download_log_default_does_not_write_files(tmp_path: Path, monkeypat
     """Test case: test_sse_download_log_default_does_not_write_files."""
     class _DummyClient:
         def get_sselog(self, job_id: str) -> models.JobsGetSselogResponse:
-            data = base64.b64encode(f"log-{job_id}".encode("utf-8")).decode("utf-8")
+            data = base64.b64encode(f"log-{job_id}".encode()).decode("utf-8")
             return models.JobsGetSselogResponse(file=data, file_name=f"{job_id}.zip")
 
     monkeypatch.chdir(tmp_path)
@@ -193,7 +195,7 @@ def test_sse_download_log_rejects_save_options_without_persist(tmp_path: Path) -
     """Test case: test_sse_download_log_rejects_save_options_without_persist."""
     class _DummyClient:
         def get_sselog(self, job_id: str) -> models.JobsGetSselogResponse:
-            data = base64.b64encode(f"log-{job_id}".encode("utf-8")).decode("utf-8")
+            data = base64.b64encode(f"log-{job_id}".encode()).decode("utf-8")
             return models.JobsGetSselogResponse(file=data, file_name=f"{job_id}.zip")
 
     result = OqtopusSseJobResult(

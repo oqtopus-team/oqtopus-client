@@ -6,7 +6,6 @@ import os
 
 from oqtopus_client import OqtopusClient, OqtopusConfig, OqtopusJobSpec
 
-
 SECTION = os.getenv("OQTOPUS_CONFIG_SECTION", "oqtopus-dev")
 CONFIG_PATH = os.getenv("OQTOPUS_CONFIG_PATH", "~/.config/oqtopus/config.ini")
 
@@ -25,7 +24,7 @@ job_id = client.submit_job(
         shots=100,
         program=PROGRAM,
         name="Wait/Delete example",
-    )
+    ),
 ).job_id
 result = client.wait_for_job(job_id, interval=1.0, timeout=300.0)
 deleted = client.delete_job(job_id)

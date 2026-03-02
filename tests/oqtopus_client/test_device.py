@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from oqtopus_client import OqtopusDevice, rest as models
+from oqtopus_client import OqtopusDevice
+from oqtopus_client import rest as models
 
 
 def test_device_wrapper_exposes_properties_and_raw_attributes() -> None:
@@ -17,10 +18,10 @@ def test_device_wrapper_exposes_properties_and_raw_attributes() -> None:
             n_qubits=2,
             basis_gates=["x", "h"],
             supported_instructions=["measure"],
-            device_info="{\"backend\":\"sim\"}",
+            device_info='{"backend":"sim"}',
             calibrated_at=None,
             description="sim",
-        )
+        ),
     )
     assert device.device_id == "K"
     assert device.device_type == "simulator"
@@ -30,6 +31,6 @@ def test_device_wrapper_exposes_properties_and_raw_attributes() -> None:
     assert device.n_qubits == 2
     assert device.basis_gates == ["x", "h"]
     assert device.supported_instructions == ["measure"]
-    assert device.device_info == "{\"backend\":\"sim\"}"
+    assert device.device_info == '{"backend":"sim"}'
     assert device.calibrated_at is None
     assert device.description == "sim"

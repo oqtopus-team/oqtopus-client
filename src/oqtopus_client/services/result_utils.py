@@ -11,8 +11,7 @@ from .. import rest as models
 def bitstring_to_int(bitstring: str) -> int:
     """Convert a bitstring key such as `0101` or `0b0101` to an integer."""
     normalized = bitstring.strip().replace("_", "").replace(" ", "")
-    if normalized.startswith("0b"):
-        normalized = normalized[2:]
+    normalized = normalized.removeprefix("0b")
     if not normalized or any(char not in {"0", "1"} for char in normalized):
         raise ValueError(f"Invalid bitstring: {bitstring!r}")
     return int(normalized, 2)

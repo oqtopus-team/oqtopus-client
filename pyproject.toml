@@ -66,7 +66,47 @@ omit = ["src/oqtopus_client/rest/*", "src/oqtopus_client/rest/models/*"]
 include = ["src/**/*.py", "tests/**/*.py", "scripts/**/*.py", "examples/**/*.py"]
 exclude = ["src/oqtopus_client/rest/**"]
 lint.select = ["ALL"]
-lint.ignore = ["E402", "E501"]
+lint.ignore = [
+  "E402",
+  "E501",
+  "ANN401",
+  "BLE001",
+  "C901",
+  "EM101",
+  "EM102",
+  "PERF203",
+  "PLC0415",
+  "PLR0911",
+  "PLR0913",
+  "PYI034",
+  "S101",
+  "S107",
+  "S110",
+  "SIM105",
+  "TC001",
+  "TC003",
+  "TID252",
+  "TRY003",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+  "ARG001",
+  "ARG005",
+  "D104",
+  "PLR0912",
+  "PLR0915",
+  "PLR2004",
+  "PT011",
+  "PT018",
+  "Q003",
+  "S105",
+  "S106",
+  "SLF001",
+  "UP012",
+]
+"examples/**/*.py" = ["INP001", "T201"]
+"scripts/**/*.py" = ["INP001", "PLR2004", "SIM102"]
 
 [tool.mypy]
 files = ["src", "tests", "examples"]
@@ -75,6 +115,10 @@ exclude = "src/oqtopus_client/rest/.*"
 [[tool.mypy.overrides]]
 module = ["oqtopus_client.rest.*"]
 ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["examples.run_sampling_qiskit", "examples.run_sampling_quri_parts"]
+disable_error_code = ["import-not-found"]
 
 [tool.setuptools.package-dir]
 "" = "src"

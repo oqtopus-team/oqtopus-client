@@ -17,6 +17,8 @@ from oqtopus_client import (
     OqtopusSamplingJobResult,
     OqtopusSseJobResult,
     UserApiError,
+)
+from oqtopus_client import (
     rest as models,
 )
 
@@ -136,7 +138,7 @@ def test_list_jobs_and_filters_passthrough() -> None:
                 device_id="K",
                 shots=1,
                 job_info=models.JobsJobInfo(program=["x"]),
-            )
+            ),
         ]
 
     client = _build_client_with_fake_call(fake_call)

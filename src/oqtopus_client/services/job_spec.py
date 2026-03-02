@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import base64
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
-from collections.abc import Mapping, Sequence
 
 from .. import rest as models
 from .estimation_operator import OqtopusEstimationOperator
@@ -54,6 +54,7 @@ class OqtopusJobSpec:
         simulator_info (Optional): Simulator settings.
         mitigation_info (Optional): Error mitigation settings.
         operator (Optional): Operator definitions for estimation-style jobs.
+
     """
 
     device_id: str
@@ -80,7 +81,7 @@ class OqtopusJobSpec:
         simulator_info: Mapping[str, Any] | None = None,
         mitigation_info: Mapping[str, Any] | None = None,
         operator: Sequence[OqtopusEstimationOperator | models.JobsOperatorItem | Mapping[str, Any]] | None = None,
-    ) -> "OqtopusJobSpec":
+    ) -> OqtopusJobSpec:
         """Create a sampling job request helper.
 
         Args:
@@ -93,6 +94,7 @@ class OqtopusJobSpec:
             simulator_info (Optional): Simulator settings.
             mitigation_info (Optional): Error mitigation settings.
             operator (Optional): Operator definitions.
+
         """
         return cls(
             device_id=device_id,
@@ -120,7 +122,7 @@ class OqtopusJobSpec:
         simulator_info: Mapping[str, Any] | None = None,
         mitigation_info: Mapping[str, Any] | None = None,
         operator: Sequence[OqtopusEstimationOperator | models.JobsOperatorItem | Mapping[str, Any]] | None = None,
-    ) -> "OqtopusJobSpec":
+    ) -> OqtopusJobSpec:
         """Create an estimation job request helper.
 
         Args:
@@ -133,6 +135,7 @@ class OqtopusJobSpec:
             simulator_info (Optional): Simulator settings.
             mitigation_info (Optional): Error mitigation settings.
             operator (Optional): Operator definitions.
+
         """
         return cls(
             device_id=device_id,
@@ -160,7 +163,7 @@ class OqtopusJobSpec:
         simulator_info: Mapping[str, Any] | None = None,
         mitigation_info: Mapping[str, Any] | None = None,
         operator: Sequence[OqtopusEstimationOperator | models.JobsOperatorItem | Mapping[str, Any]] | None = None,
-    ) -> "OqtopusJobSpec":
+    ) -> OqtopusJobSpec:
         """Create a multi-manual job request helper.
 
         Args:
@@ -173,6 +176,7 @@ class OqtopusJobSpec:
             simulator_info (Optional): Simulator settings.
             mitigation_info (Optional): Error mitigation settings.
             operator (Optional): Operator definitions.
+
         """
         return cls(
             device_id=device_id,
@@ -199,7 +203,7 @@ class OqtopusJobSpec:
         transpiler_info: Mapping[str, Any] | None = None,
         simulator_info: Mapping[str, Any] | None = None,
         mitigation_info: Mapping[str, Any] | None = None,
-    ) -> "OqtopusJobSpec":
+    ) -> OqtopusJobSpec:
         """Create an SSE job request helper.
 
         Args:
@@ -212,6 +216,7 @@ class OqtopusJobSpec:
             transpiler_info (Optional): Transpiler settings.
             simulator_info (Optional): Simulator settings.
             mitigation_info (Optional): Error mitigation settings.
+
         """
         return cls(
             device_id=device_id,

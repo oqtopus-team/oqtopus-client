@@ -16,9 +16,9 @@ import pytest
 
 import oqtopus_client.services.client as client_module
 from oqtopus_client import (
-    OqtopusDevice,
     OqtopusClient,
     OqtopusConfig,
+    OqtopusDevice,
     OqtopusEstimationJobResult,
     OqtopusJobResult,
     OqtopusJobSpec,
@@ -26,6 +26,8 @@ from oqtopus_client import (
     OqtopusSamplingJobResult,
     OqtopusSseJobResult,
     UserApiError,
+)
+from oqtopus_client import (
     rest as models,
 )
 from oqtopus_client.services.client import _AsyncOqtopusClient, _resolve_user_agent
@@ -115,7 +117,7 @@ def test_extract_error_message_variants() -> None:
 def test_coerce_and_validate_job_type() -> None:
     """Test case: test_coerce_and_validate_job_type."""
     req = _AsyncOqtopusClient._coerce_submit_job_request(
-        OqtopusJobSpec.sampling(device_id="K", program="x")
+        OqtopusJobSpec.sampling(device_id="K", program="x"),
     )
     assert req.job_type == models.JobsJobType.SAMPLING
 
@@ -181,7 +183,7 @@ def test_run_sse_file_forwards_kwargs(tmp_path: Path, monkeypatch: pytest.Monkey
                 description="d",
                 timeout=5.0,
                 shots=3,
-            )
+            ),
         )
     finally:
         asyncio.run(client.close())
@@ -203,7 +205,7 @@ def test_run_job_uses_sse_sampler_in_sse_container(monkeypatch: pytest.MonkeyPat
             "device_id": "sse",
             "shots": shots,
             "job_info": {"program": program, "result": {"sampling": {"counts": {"00": 1}}}},
-        }
+        },
     )
     monkeypatch.setitem(sys.modules, "sse_sampler", fake_module)
 
@@ -211,8 +213,8 @@ def test_run_job_uses_sse_sampler_in_sse_container(monkeypatch: pytest.MonkeyPat
     try:
         result = asyncio.run(
             client.run_job(
-                OqtopusJobSpec.sampling(device_id="sse", program="OPENQASM 3; qubit[1] q;")
-            )
+                OqtopusJobSpec.sampling(device_id="sse", program="OPENQASM 3; qubit[1] q;"),
+            ),
         )
     finally:
         asyncio.run(client.close())
@@ -250,7 +252,7 @@ def test_sync_wrappers_delegate_to_call() -> None:
                     basis_gates=[],
                     supported_instructions=[],
                     description="sim",
-                )
+                ),
             ]
         if name == "get_device":
             return models.DevicesDeviceInfo(
@@ -272,7 +274,7 @@ def test_sync_wrappers_delegate_to_call() -> None:
                     device_id="K",
                     shots=1,
                     job_info=models.JobsJobInfo(program=["x"]),
-                )
+                ),
             ]
         if name == "delete_api_token":
             return None
@@ -316,8 +318,8 @@ def test_sync_wrappers_delegate_to_call() -> None:
                         start_time=datetime(2025, 1, 1, tzinfo=timezone.utc),
                         end_time=datetime(2025, 12, 31, tzinfo=timezone.utc),
                         publishable=True,
-                    )
-                ]
+                    ),
+                ],
             )
         if name == "get_announcement":
             return models.AnnouncementsGetAnnouncementResponse(

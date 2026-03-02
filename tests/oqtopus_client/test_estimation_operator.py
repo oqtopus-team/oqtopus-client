@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from oqtopus_client import OqtopusEstimationOperator, OqtopusJobSpec, rest as models
+from oqtopus_client import OqtopusEstimationOperator, OqtopusJobSpec
+from oqtopus_client import rest as models
 
 
 def test_estimation_operator_to_and_from_model() -> None:
@@ -27,7 +28,7 @@ def test_estimation_operator_create_helpers() -> None:
         [
             (1.0, "Z 0"),
             (-0.25, "X 0 X 1"),
-        ]
+        ],
     )
     assert [op.coeff for op in many] == [1.0, -0.25]
     assert [op.pauli for op in many] == ["Z 0", "X 0 X 1"]

@@ -6,7 +6,6 @@ import os
 
 from oqtopus_client import OqtopusClient, OqtopusConfig, OqtopusJobSpec
 
-
 SECTION = os.getenv("OQTOPUS_CONFIG_SECTION", "oqtopus-dev")
 CONFIG_PATH = os.getenv("OQTOPUS_CONFIG_PATH", "~/.config/oqtopus/config.ini")
 

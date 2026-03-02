@@ -20,6 +20,7 @@ class OqtopusConfig:
         retry_backoff_seconds: Exponential backoff base seconds.
         retry_status_codes: HTTP status codes treated as retryable.
         retry_methods: HTTP methods treated as retryable.
+
     """
 
     base_url: str
@@ -41,6 +42,7 @@ class OqtopusConfig:
         retry_status_codes: frozenset[int] | None = None,
         retry_methods: frozenset[str] | None = None,
     ) -> None:
+        """Initialize configuration values for API access and retries."""
         object.__setattr__(self, "base_url", base_url)
         object.__setattr__(self, "api_token", api_token)
         object.__setattr__(self, "proxy", proxy)
@@ -55,11 +57,12 @@ class OqtopusConfig:
         cls,
         section: str = "default",
         path: str | Path = "~/.config/oqtopus/config.ini",
-    ) -> "OqtopusConfig":
+    ) -> OqtopusConfig:
         """Load configuration from an INI-style profile file.
 
         Example:
             OqtopusClient(OqtopusConfig.from_file("oqtopus-dev"))
+
         """
         if os.getenv("OQTOPUS_ENV") == "sse_container":
             # Same behavior as quri-parts-oqtopus: config file is not required
@@ -81,7 +84,7 @@ class OqtopusConfig:
         base_url = cfg.get("base_url")
         if not base_url:
             raise ValueError(
-                f"Section '{section}' in {expanded} must define 'base_url'."
+                f"Section '{section}' in {expanded} must define 'base_url'.",
             )
 
         api_token = cfg.get("api_token")
@@ -102,7 +105,7 @@ class OqtopusConfig:
         base_url_env: str = "OQTOPUS_BASE_URL",
         proxy_env: str = "OQTOPUS_PROXY",
         api_token_env: str = "OQTOPUS_API_TOKEN",
-    ) -> "OqtopusConfig":
+    ) -> OqtopusConfig:
         """Load configuration from environment variables."""
         base_url = os.getenv(base_url_env)
         if not base_url:

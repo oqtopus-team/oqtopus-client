@@ -6,11 +6,9 @@ import base64
 import binascii
 import io
 import zipfile
-from collections.abc import Callable
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
-from typing import Any
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from .. import rest as models
 
@@ -34,9 +32,10 @@ class OqtopusJobResult:
         job_info: models.JobsJobInfo | Mapping[str, Any] | None = None,
         transpile_result: models.JobsTranspileResult | Mapping[str, Any] | None = None,
         message: str | None = None,
-        execution_time: float | int | None = None,
+        execution_time: float | None = None,
         client: OqtopusClient | None = None,
     ) -> None:
+        """Initialize a job result wrapper from raw API payload and metadata."""
         self._raw = raw
         self._job_id = job_id
         self._job_type = self._normalize_job_type(job_type) or self._infer_job_type(raw)
@@ -150,6 +149,7 @@ class OqtopusJobResult:
         return None
 
     def __repr__(self) -> str:
+        """Return a concise debug representation."""
         return (
             f"OqtopusJobResult("
             f"job_id={self.job_id!r}, job_type={self.job_type!r}, status={self.status!r})"
@@ -176,6 +176,7 @@ class OqtopusJobResult:
             estimation = raw.get("estimation")
             return estimation if isinstance(estimation, Mapping) else None
         return None
+
 
 class OqtopusSamplingJobResult(OqtopusJobResult):
     """Specialized SDK result object for sampling jobs."""
@@ -210,6 +211,7 @@ class OqtopusSamplingJobResult(OqtopusJobResult):
         return {}
 
     def __repr__(self) -> str:
+        """Return a concise debug representation."""
         return f"OqtopusSamplingJobResult(job_id={self.job_id!r})"
 
 
@@ -259,6 +261,7 @@ class OqtopusEstimationJobResult(OqtopusJobResult):
         return None
 
     def __repr__(self) -> str:
+        """Return a concise debug representation."""
         return f"OqtopusEstimationJobResult(job_id={self.job_id!r})"
 
 
@@ -285,11 +288,12 @@ class OqtopusMultiManualJobResult(OqtopusSamplingJobResult):
             if not isinstance(counts, Mapping):
                 continue
             normalized[str(result_key)] = bitstring_dict_to_int_keys(
-                {str(k): v for k, v in counts.items()}
+                {str(k): v for k, v in counts.items()},
             )
         return normalized
 
     def __repr__(self) -> str:
+        """Return a concise debug representation."""
         return f"OqtopusMultiManualJobResult(job_id={self.job_id!r})"
 
 
@@ -397,4 +401,5 @@ class OqtopusSseJobResult(OqtopusSamplingJobResult):
         return self._client
 
     def __repr__(self) -> str:
+        """Return a concise debug representation."""
         return f"OqtopusSseJobResult(job_id={self.job_id!r})"
