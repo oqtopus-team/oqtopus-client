@@ -209,4 +209,4 @@ Sample output:
 
 ## Further reading
 
-- [API reference overview](../reference/index.md)
+- [API reference](../reference/)

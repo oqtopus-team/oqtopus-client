@@ -9,15 +9,7 @@ nav:
       - Getting started: usage/getting_started.md
       - OQTOPUS Client Examples: "https://github.com/oqtopus-team/oqtopus-client/tree/main/examples"
   - API reference:
-      - Overview: reference/index.md
-      - client: reference/client.md
-      - config: reference/config.md
-      - device: reference/device.md
-      - errors: reference/errors.md
-      - estimation_operator: reference/estimation_operator.md
-      - job_results: reference/job_results.md
-      - job_spec: reference/job_spec.md
-      - models: reference/models.md
+      - oqtopus_client: reference/
   - Developer Guidelines:
       - Setup Development Environment: developer_guidelines/setup.md
       - Development Flow: developer_guidelines/development_flow.md
@@ -52,6 +44,11 @@ theme:
 
 plugins:
   - search
+  - gen-files:
+      scripts:
+        - scripts/gen_ref_nav.py
+  - literate-nav:
+      nav_file: API_reference.md
   - mkdocstrings:
       handlers:
         python:
@@ -75,10 +72,8 @@ plugins:
             show_symbol_type_heading: true
             show_symbol_type_toc: true
             signature_crossrefs: true
-            docstring_style: google
-            show_if_no_docstring: true
-            members_order: alphabetical
-            show_category_heading: true
+            preload_modules: [mkdocstrings]
+            show_inheritance_diagram: true
             summary:
               modules: false
               classes: true

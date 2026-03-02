@@ -23,15 +23,9 @@ Python client SDK for the OQTOPUS Cloud User API.
 
 ## API reference
 
-- [Overview](./reference/index.md)
-- [`OqtopusClient`](./reference/client.md)
-- [`OqtopusConfig`](./reference/config.md)
-- [`OqtopusJobSpec`](./reference/job_spec.md)
-- [`OqtopusEstimationOperator`](./reference/estimation_operator.md)
-- [`OqtopusJobResult` family](./reference/job_results.md)
-- [`device` wrapper](./reference/device.md)
-- [`UserApiError` / `ResponseValidationError`](./reference/errors.md)
-- [models](./reference/models.md)
+- [API Reference](./reference/)
+
+The API reference section is generated automatically from source code and organized by module.
 
 ## Developer Guidelines
 

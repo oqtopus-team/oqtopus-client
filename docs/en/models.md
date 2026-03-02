@@ -1,5 +1,5 @@
 # Models (English Guide)
 
-Model details are provided in the shared reference page:
+Model details are provided in the shared reference section:
 
-- [Generated Models](../reference/models.md)
+- [API Reference](../reference/)
