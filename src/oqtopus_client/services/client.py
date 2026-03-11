@@ -129,14 +129,8 @@ class _AsyncOqtopusClient:
 
     def _apply_api_token(self, api_token: str) -> None:
         self._headers["q-api-token"] = api_token
-        self._headers["Authorization"] = f"Bearer {api_token}"
         if self._rest_client is not None:  # pragma: no cover - integration path
             self._rest_client.set_default_header("q-api-token", api_token)
-            self._rest_client.set_default_header(
-                "Authorization", f"Bearer {api_token}"
-            )
-        if self._rest_config is not None:  # pragma: no cover - integration path
-            self._rest_config.access_token = api_token
 
     def _initialize_rest_api(self) -> None:  # pragma: no cover - integration path
         if self._rest_client is not None:
