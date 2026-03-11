@@ -15,6 +15,8 @@ from .. import rest as models
 if TYPE_CHECKING:
     from datetime import datetime
 
+    from typing_extensions import Self
+
     from .client import OqtopusClient
 
 SamplingPayload = models.JobsSamplingResult | Mapping[str, Any] | None
@@ -24,8 +26,86 @@ EstimationPayload = models.JobsEstimationResult | Mapping[str, Any] | None
 class OqtopusJobResult:  # noqa: PLR0904
     """SDK result object for a job's state and execution output payloads."""
 
+    _raw: models.JobsJobResult | Mapping[str, Any] | None
+    _job_id: str | None
+    _job_type: models.JobsJobType | None
+    _status: models.JobsJobStatus | None
+    _name: str | None
+    _description: str | None
+    _device_id: str | None
+    _shots: int | None
+    _job_info: models.JobsJobInfo | Mapping[str, Any] | None
+    _transpiler_info: Mapping[str, Any] | None
+    _simulator_info: Mapping[str, Any] | None
+    _mitigation_info: Mapping[str, Any] | None
+    _transpile_result: models.JobsTranspileResult | Mapping[str, Any] | None
+    _message: str | None
+    _execution_time: float | None
+    _submitted_at: datetime | None
+    _ready_at: datetime | None
+    _running_at: datetime | None
+    _ended_at: datetime | None
+    _client: object | None
+
     def __init__(
         self,
+        raw: models.JobsJobResult | Mapping[str, Any] | None,
+        *,
+        job_id: str,
+        job_type: models.JobsJobType | str,
+        status: models.JobsJobStatus | str,
+        name: str,
+        description: str | None = None,
+        device_id: str,
+        shots: int,
+        job_info: models.JobsJobInfo | Mapping[str, Any],
+        transpiler_info: Mapping[str, Any] | None = None,
+        simulator_info: Mapping[str, Any] | None = None,
+        mitigation_info: Mapping[str, Any] | None = None,
+        transpile_result: models.JobsTranspileResult | Mapping[str, Any] | None = None,
+        message: str | None = None,
+        execution_time: float | None = None,
+        submitted_at: datetime | None = None,
+        ready_at: datetime | None = None,
+        running_at: datetime | None = None,
+        ended_at: datetime | None = None,
+        client: object | None = None,
+    ) -> None:
+        """Initialize a job result wrapper from raw API payload and metadata.
+
+        Raises:
+            ValueError: If ``job_type`` or ``status`` is invalid.
+
+        """
+        self._raw = raw
+        self._job_id = job_id
+        self._job_type = self._normalize_job_type(job_type)
+        self._status = self._normalize_status(status)
+        self._name = name
+        self._description = description
+        self._device_id = device_id
+        self._shots = shots
+        self._job_info = job_info
+        self._transpiler_info = transpiler_info
+        self._simulator_info = simulator_info
+        self._mitigation_info = mitigation_info
+        self._transpile_result = transpile_result
+        self._message = message
+        self._execution_time = execution_time
+        self._submitted_at = submitted_at
+        self._ready_at = ready_at
+        self._running_at = running_at
+        self._ended_at = ended_at
+        self._client = client
+
+        if self._job_type is None:
+            raise ValueError(f"Invalid job_type: {job_type!r}")
+        if self._status is None:
+            raise ValueError(f"Invalid status: {status!r}")
+
+    @classmethod
+    def from_raw(
+        cls,
         raw: models.JobsJobResult | Mapping[str, Any] | None,
         *,
         job_id: str | None = None,
@@ -46,13 +126,71 @@ class OqtopusJobResult:  # noqa: PLR0904
         ready_at: datetime | None = None,
         running_at: datetime | None = None,
         ended_at: datetime | None = None,
-        client: OqtopusClient | None = None,
+        client: object | None = None,
+    ) -> Self:
+        """Build a fallback result object from partial raw payload metadata.
+
+        Returns:
+            A result object that may contain partial metadata.
+
+        """
+        normalized_job_type = cls._normalize_job_type(
+            job_type,
+        ) or cls._infer_job_type(raw)
+        normalized_status = cls._normalize_status(status)
+        result = cls.__new__(cls)
+        result._assign_partial_metadata(  # noqa: SLF001
+            raw=raw,
+            job_id=job_id,
+            job_type=normalized_job_type,
+            status=normalized_status,
+            name=name,
+            description=description,
+            device_id=device_id,
+            shots=shots,
+            job_info=job_info,
+            transpiler_info=transpiler_info,
+            simulator_info=simulator_info,
+            mitigation_info=mitigation_info,
+            transpile_result=transpile_result,
+            message=message,
+            execution_time=execution_time,
+            submitted_at=submitted_at,
+            ready_at=ready_at,
+            running_at=running_at,
+            ended_at=ended_at,
+            client=client,
+        )
+        return result
+
+    def _assign_partial_metadata(
+        self,
+        *,
+        raw: models.JobsJobResult | Mapping[str, Any] | None,
+        job_id: str | None,
+        job_type: models.JobsJobType | None,
+        status: models.JobsJobStatus | None,
+        name: str | None,
+        description: str | None,
+        device_id: str | None,
+        shots: int | None,
+        job_info: models.JobsJobInfo | Mapping[str, Any] | None,
+        transpiler_info: Mapping[str, Any] | None,
+        simulator_info: Mapping[str, Any] | None,
+        mitigation_info: Mapping[str, Any] | None,
+        transpile_result: models.JobsTranspileResult | Mapping[str, Any] | None,
+        message: str | None,
+        execution_time: float | None,
+        submitted_at: datetime | None,
+        ready_at: datetime | None,
+        running_at: datetime | None,
+        ended_at: datetime | None,
+        client: object | None,
     ) -> None:
-        """Initialize a job result wrapper from raw API payload and metadata."""
         self._raw = raw
         self._job_id = job_id
-        self._job_type = self._normalize_job_type(job_type) or self._infer_job_type(raw)
-        self._status = self._normalize_status(status)
+        self._job_type = job_type
+        self._status = status
         self._name = name
         self._description = description
         self._device_id = device_id
@@ -593,7 +731,7 @@ class OqtopusSseJobResult(OqtopusSamplingJobResult):
             raise ValueError(
                 "SSE log operations require a client-bound OqtopusSseJobResult."
             )
-        return self._client
+        return self._client  # type: ignore[return-value]
 
     def __repr__(self) -> str:
         """Return a concise debug representation.
