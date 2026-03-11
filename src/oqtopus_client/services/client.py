@@ -933,7 +933,7 @@ class OqtopusClient:
             return list(executor.map(self.submit_job, jobs))
 
     @staticmethod
-    def _ensure_job_spec(
+    def _validate_job_spec(
         job: OqtopusJobSpec,
         *,
         expected: models.JobsJobType | None = None,
@@ -961,7 +961,7 @@ class OqtopusClient:
             The finished job as an SDK result wrapper.
 
         """
-        spec = self._ensure_job_spec(job, method="run_job")
+        spec = self._validate_job_spec(job, method="run_job")
         finished_job = self._call("run_job", spec.to_model(), **kwargs)
         return self._to_result(finished_job)
 
@@ -983,7 +983,7 @@ class OqtopusClient:
             ResponseValidationError: If the API response is not a sampling result.
 
         """
-        spec = self._ensure_job_spec(
+        spec = self._validate_job_spec(
             job, expected=models.JobsJobType.SAMPLING, method="run_sampling"
         )
         finished_job = self._call(
@@ -1015,7 +1015,7 @@ class OqtopusClient:
             ResponseValidationError: If the API response is not an estimation result.
 
         """
-        spec = self._ensure_job_spec(
+        spec = self._validate_job_spec(
             job, expected=models.JobsJobType.ESTIMATION, method="run_estimation"
         )
         finished_job = self._call(
@@ -1047,7 +1047,7 @@ class OqtopusClient:
             ResponseValidationError: If the API response is not a multi-manual result.
 
         """
-        spec = self._ensure_job_spec(
+        spec = self._validate_job_spec(
             job, expected=models.JobsJobType.MULTI_MANUAL, method="run_multi_manual"
         )
         finished_job = self._call(
@@ -1077,7 +1077,7 @@ class OqtopusClient:
             ResponseValidationError: If the API response is not an SSE result.
 
         """
-        spec = self._ensure_job_spec(
+        spec = self._validate_job_spec(
             job, expected=models.JobsJobType.SSE, method="run_sse"
         )
         finished_job = self._call("run_sse", spec.to_model(), **kwargs)
