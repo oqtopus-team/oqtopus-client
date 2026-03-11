@@ -380,7 +380,7 @@ class OqtopusJobResult:  # noqa: PLR0904
 
     @property
     def execution_time(self) -> float | int | None:
-        """Return related execution time when known."""
+        """Return related execution time in seconds when known."""
         return self._execution_time
 
     @property
