@@ -141,7 +141,7 @@ class _AsyncOqtopusClient:
     def _initialize_rest_api(self) -> None:  # pragma: no cover - integration path
         if self._rest_client is not None:
             return
-        rest_host = self.base_url or "http://localhost"
+        rest_host = self.base_url or "http://localhost:8080"
         self._rest_config = RestConfiguration(host=rest_host)
         self._rest_config.proxy = self._proxy
         self._rest_config.retries = (
@@ -669,7 +669,10 @@ class OqtopusClient:
 
         Args:
             config (Optional): Client configuration bundle. If omitted,
-                `OqtopusConfig.from_file()` is used.
+                `OqtopusConfig.from_file()` is used. If the resolved config has an
+                empty `base_url`, the internal REST client falls back to
+                `http://localhost:8080`, which matches the default local
+                OQTOPUS Cloud port.
             default_headers (Optional): Additional headers merged into every
                 request.
             user_agent (Optional): Custom User-Agent header value.
