@@ -81,6 +81,12 @@ The `Qiskit` example requires an extra dependency:
 pip install qiskit
 ```
 
+The `QURI Parts` example requires extra dependencies as well:
+
+```bash
+pip install quri-parts-circuit quri-parts-openqasm
+```
+
 Result normalization helper:
 
 ```python

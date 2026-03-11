@@ -1,10 +1,11 @@
+![OQTOPUS logo](./docs/asset/oqtopus-logo.png)
 # oqtopus-client
 
-Python SDK for the OQTOPUS Cloud User API.
+Python client library for the OQTOPUS Cloud User API.
 
 ## Overview
 
-`oqtopus-client` provides a typed Python interface for the OQTOPUS Cloud User API.
+`oqtopus-client` provides a typed Python client library for the OQTOPUS Cloud User API.
 
 - Submit and manage jobs from Python.
 - Use generated Pydantic models for request and response validation.
@@ -22,10 +23,10 @@ For local development, see [Setup Development Environment](./docs/developer_guid
 
 ## Documentation
 
-- [Documentation Home](./docs/en/index.md)
+- [Documentation Home](./docs/index.md)
 - [Getting Started](./docs/en/quickstart.md)
 - [Examples](./docs/en/examples.md)
-- [API Reference](./docs/en/api.md)
+- [API Reference](./docs/api.md)
 
 ## Developer Guidelines
 
@@ -34,3 +35,17 @@ For local development, see [Setup Development Environment](./docs/developer_guid
 - [How to Contribute](./docs/CONTRIBUTING.md)
 - [Code of Conduct](https://github.com/oqtopus-team/.github/blob/main/CODE_OF_CONDUCT.md)
 - [Security](https://github.com/oqtopus-team/.github/blob/main/SECURITY.md)
+
+## Citation
+
+Citation information is also available in the [CITATION](https://github.com/oqtopus-team/oqtopus-client/blob/main/CITATION.cff) file.
+
+## Contact
+
+You can contact us by creating an issue in this repository or by email:
+
+- [oqtopus-team[at]googlegroups.com](mailto:oqtopus-team[at]googlegroups.com)
+
+## License
+
+`oqtopus-client` is released under the [Apache License 2.0](https://github.com/oqtopus-team/oqtopus-client/blob/main/LICENSE).

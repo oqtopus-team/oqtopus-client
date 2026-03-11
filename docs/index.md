@@ -1,6 +1,6 @@
 # oqtopus-client
 
-Python SDK for OQTOPUS Cloud User API.
+Python client library for the OQTOPUS Cloud User API.
 
 This documentation auto-generates API references from docstrings in `src/oqtopus_client`.
 
@@ -16,7 +16,7 @@ This documentation auto-generates API references from docstrings in `src/oqtopus
 
 ## Quick Links
 
-- [Quickstart](quickstart.md)
-- [API Reference](api.md)
-- [Models](models.md)
-- [Examples](examples.md)
+- [Getting Started](en/quickstart.md)
+- [API Reference](reference/API_reference.md)
+- [Examples](en/examples.md)
+- [Developer Guidelines](developer_guidelines/development_flow.md)

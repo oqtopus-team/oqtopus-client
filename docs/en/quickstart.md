@@ -1,4 +1,4 @@
-# Quickstart
+# Getting Started
 
 ## Installation
 
@@ -16,10 +16,16 @@ pip install -e .
 
 ## Recommended Configuration Flow
 
-The recommended setup is to define the `default` profile in
-`$XDG_CONFIG_HOME/oqtopus/config.ini` when `XDG_CONFIG_HOME` is set, or
-`~/.config/oqtopus/config.ini` otherwise, and construct `OqtopusClient()`
-without arguments.
+The recommended setup is to define the `default` profile and construct
+`OqtopusClient()` without arguments.
+
+`OqtopusConfig.from_file()` resolves the config file path as follows:
+
+1. If you do not specify `path`, it reads the default config location.
+2. If you specify `path`, it reads that location.
+3. When `path` is not specified and `XDG_CONFIG_HOME` is set, the default
+   location is `$XDG_CONFIG_HOME/oqtopus/config.ini`; otherwise it is
+   `~/.config/oqtopus/config.ini`.
 
 Create the config file in that location:
 
@@ -35,7 +41,6 @@ Then initialize the client:
 from oqtopus_client import OqtopusClient
 
 client = OqtopusClient()
-print(client.list_devices())
 ```
 
 `OqtopusClient()` uses `OqtopusConfig.from_file()` internally, and
@@ -61,7 +66,6 @@ api_token = <token>
 from oqtopus_client import OqtopusClient, OqtopusConfig
 
 client = OqtopusClient(OqtopusConfig.from_file("oqtopus-dev"))
-print(client.list_devices())
 ```
 
 ### Load configuration from environment variables
@@ -75,7 +79,6 @@ export OQTOPUS_API_TOKEN=<token>
 from oqtopus_client import OqtopusClient, OqtopusConfig
 
 client = OqtopusClient(OqtopusConfig.from_env())
-print(client.list_devices())
 ```
 
 ### Override configuration explicitly in code
@@ -93,7 +96,6 @@ client = OqtopusClient(
         retry_backoff_seconds=0.2,
     )
 )
-print(client.list_devices())
 ```
 
 The token is sent using the `q-api-token` request header.
@@ -148,6 +150,12 @@ finished_job = client.run_job(req, timeout=300.0)
 print(finished_job.status)
 ```
 
+Example output:
+
+```text
+succeeded
+```
+
 You can also use job-type-specific shortcuts (raise `ValueError` on mismatch):
 
 ```python
@@ -158,6 +166,12 @@ sampling_req = OqtopusJobSpec.sampling(
 )
 final_sampling = client.run_sampling(sampling_req)
 print(final_sampling.submitted_at)
+```
+
+Example output:
+
+```text
+2026-03-11 18:30:12+00:00
 ```
 
 ### Style 2: `submit_job + wait` (step-by-step)
@@ -181,6 +195,39 @@ finished_job = client.wait(job_id, interval=1.0, interval_backoff=1.2, max_inter
 print(finished_job.status)
 ```
 
+Example output:
+
+```text
+069b1464-c124-79b3-8000-fb41f3dfdc50
+submitted
+succeeded
+```
+
+## Check Job Results
+
+After a sampling job succeeds, you can inspect the measured counts from the returned
+result object:
+
+```python
+from oqtopus_client import OqtopusClient, OqtopusJobSpec
+
+client = OqtopusClient()
+req = OqtopusJobSpec.sampling(
+    device_id="Kawasaki",
+    shots=1000,
+    program=program,
+)
+
+finished_job = client.run_sampling(req, timeout=300.0)
+print(finished_job.get_counts())
+```
+
+Example output:
+
+```text
+{'00': 506, '11': 494}
+```
+
 ## Job Status Values
 
 `finished_job.status` and `client.status(job_id)` return one of these values:
@@ -198,4 +245,4 @@ status is typically `succeeded`, `failed`, or `cancelled`.
 ## Further Reading
 
 - [Examples](examples.md)
-- [API Reference](api.md)
+- [API Reference](../reference/API_reference.md)
