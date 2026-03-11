@@ -13,13 +13,15 @@ from typing import TYPE_CHECKING, Any
 from .. import rest as models
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from .client import OqtopusClient
 
 SamplingPayload = models.JobsSamplingResult | Mapping[str, Any] | None
 EstimationPayload = models.JobsEstimationResult | Mapping[str, Any] | None
 
 
-class OqtopusJobResult:
+class OqtopusJobResult:  # noqa: PLR0904
     """SDK result object for a job's state and execution output payloads."""
 
     def __init__(
@@ -29,10 +31,21 @@ class OqtopusJobResult:
         job_id: str | None = None,
         job_type: models.JobsJobType | str | None = None,
         status: models.JobsJobStatus | str | None = None,
+        name: str | None = None,
+        description: str | None = None,
+        device_id: str | None = None,
+        shots: int | None = None,
         job_info: models.JobsJobInfo | Mapping[str, Any] | None = None,
+        transpiler_info: Mapping[str, Any] | None = None,
+        simulator_info: Mapping[str, Any] | None = None,
+        mitigation_info: Mapping[str, Any] | None = None,
         transpile_result: models.JobsTranspileResult | Mapping[str, Any] | None = None,
         message: str | None = None,
         execution_time: float | None = None,
+        submitted_at: datetime | None = None,
+        ready_at: datetime | None = None,
+        running_at: datetime | None = None,
+        ended_at: datetime | None = None,
         client: OqtopusClient | None = None,
     ) -> None:
         """Initialize a job result wrapper from raw API payload and metadata."""
@@ -40,10 +53,21 @@ class OqtopusJobResult:
         self._job_id = job_id
         self._job_type = self._normalize_job_type(job_type) or self._infer_job_type(raw)
         self._status = self._normalize_status(status)
+        self._name = name
+        self._description = description
+        self._device_id = device_id
+        self._shots = shots
         self._job_info = job_info
+        self._transpiler_info = transpiler_info
+        self._simulator_info = simulator_info
+        self._mitigation_info = mitigation_info
         self._transpile_result = transpile_result
         self._message = message
         self._execution_time = execution_time
+        self._submitted_at = submitted_at
+        self._ready_at = ready_at
+        self._running_at = running_at
+        self._ended_at = ended_at
         self._client = client
 
     @property
@@ -67,9 +91,44 @@ class OqtopusJobResult:
         return self._status
 
     @property
+    def name(self) -> str | None:
+        """Return related job name when known."""
+        return self._name
+
+    @property
+    def description(self) -> str | None:
+        """Return related job description when known."""
+        return self._description
+
+    @property
+    def device_id(self) -> str | None:
+        """Return related device id when known."""
+        return self._device_id
+
+    @property
+    def shots(self) -> int | None:
+        """Return related shots when known."""
+        return self._shots
+
+    @property
     def job_info(self) -> models.JobsJobInfo | Mapping[str, Any] | None:
         """Return related job_info payload when known."""
         return self._job_info
+
+    @property
+    def transpiler_info(self) -> Mapping[str, Any] | None:
+        """Return related transpiler info when known."""
+        return self._transpiler_info
+
+    @property
+    def simulator_info(self) -> Mapping[str, Any] | None:
+        """Return related simulator info when known."""
+        return self._simulator_info
+
+    @property
+    def mitigation_info(self) -> Mapping[str, Any] | None:
+        """Return related mitigation info when known."""
+        return self._mitigation_info
 
     @property
     def transpile_result(self) -> models.JobsTranspileResult | Mapping[str, Any] | None:
@@ -85,6 +144,26 @@ class OqtopusJobResult:
     def execution_time(self) -> float | int | None:
         """Return related execution time when known."""
         return self._execution_time
+
+    @property
+    def submitted_at(self) -> datetime | None:
+        """Return related submission time when known."""
+        return self._submitted_at
+
+    @property
+    def ready_at(self) -> datetime | None:
+        """Return related ready time when known."""
+        return self._ready_at
+
+    @property
+    def running_at(self) -> datetime | None:
+        """Return related running time when known."""
+        return self._running_at
+
+    @property
+    def ended_at(self) -> datetime | None:
+        """Return related end time when known."""
+        return self._ended_at
 
     def is_sampling(self) -> bool:
         """Return ``True`` when this result belongs to a sampling job.

@@ -155,6 +155,7 @@ sampling_req = OqtopusJobSpec.sampling(
     program=program,
 )
 final_sampling = client.run_sampling(sampling_req)
+print(final_sampling.submitted_at)
 ```
 
 ### Style 2: `submit_job + wait` (step-by-step)

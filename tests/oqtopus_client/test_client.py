@@ -29,13 +29,21 @@ def _job(job_type: models.JobsJobType, *, status: models.JobsJobStatus = models.
         result = models.JobsJobResult(estimation=models.JobsEstimationResult(exp_value=1.0, stds=0.1))
     else:
         result = models.JobsJobResult(sampling=models.JobsSamplingResult(counts={"00": 1}))
+    submitted_at = datetime(2025, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
+    ready_at = datetime(2025, 1, 2, 3, 4, 6, tzinfo=timezone.utc)
+    running_at = datetime(2025, 1, 2, 3, 4, 7, tzinfo=timezone.utc)
+    ended_at = datetime(2025, 1, 2, 3, 4, 8, tzinfo=timezone.utc)
     return models.JobsJobDef(
         job_id="job-1",
         name="job",
+        description="test job",
         job_type=job_type,
         status=status,
         device_id="K",
         shots=1,
+        transpiler_info={"backend": "oqtopus"},
+        simulator_info={"seed": 7},
+        mitigation_info={"enabled": True},
         job_info=models.JobsJobInfo(
             program=["OPENQASM 3; qubit[1] q;"],
             result=result,
@@ -47,6 +55,10 @@ def _job(job_type: models.JobsJobType, *, status: models.JobsJobStatus = models.
             message="queued",
         ),
         execution_time=1.23,
+        submitted_at=submitted_at,
+        ready_at=ready_at,
+        running_at=running_at,
+        ended_at=ended_at,
     )
 
 
@@ -83,7 +95,18 @@ def test_get_job_returns_extended_job_result() -> None:
     assert isinstance(result, OqtopusSamplingJobResult)
     assert result.job_id == "job-1"
     assert result.status == models.JobsJobStatus.SUCCEEDED
+    assert result.name == "job"
+    assert result.description == "test job"
+    assert result.device_id == "K"
+    assert result.shots == 1
     assert result.execution_time == 1.23
+    assert result.transpiler_info == {"backend": "oqtopus"}
+    assert result.simulator_info == {"seed": 7}
+    assert result.mitigation_info == {"enabled": True}
+    assert result.submitted_at == datetime(2025, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
+    assert result.ready_at == datetime(2025, 1, 2, 3, 4, 6, tzinfo=timezone.utc)
+    assert result.running_at == datetime(2025, 1, 2, 3, 4, 7, tzinfo=timezone.utc)
+    assert result.ended_at == datetime(2025, 1, 2, 3, 4, 8, tzinfo=timezone.utc)
     assert result.message == "queued"
     assert isinstance(result.transpile_result, models.JobsTranspileResult)
 
@@ -113,7 +136,19 @@ def test_run_helpers_return_typed_results() -> None:
     client = _build_client_with_fake_call(fake_call)
 
     assert isinstance(client.run_job(OqtopusJobSpec.sampling(device_id="K", program="x")), OqtopusJobResult)
-    assert isinstance(client.run_sampling(OqtopusJobSpec.sampling(device_id="K", program="x")), OqtopusSamplingJobResult)
+    sampling_result = client.run_sampling(
+        OqtopusJobSpec.sampling(device_id="K", program="x"),
+    )
+    assert isinstance(sampling_result, OqtopusSamplingJobResult)
+    assert sampling_result.submitted_at == datetime(
+        2025,
+        1,
+        2,
+        3,
+        4,
+        5,
+        tzinfo=timezone.utc,
+    )
     assert isinstance(
         client.run_estimation(OqtopusJobSpec.estimation(device_id="K", program="x", operator=[{"pauli": "Z0", "coeff": 1}])),
         OqtopusEstimationJobResult,

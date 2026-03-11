@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import io
 import zipfile
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -48,6 +49,7 @@ def test_job_result_kind_for_mapping_estimation() -> None:
 
 def test_job_result_from_job_model_like_payload() -> None:
     """Test case: test_job_result_from_job_model_like_payload."""
+    submitted_at = datetime(2025, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
     job = models.JobsJobDef(
         job_id="job-3",
         name="job",
@@ -55,21 +57,39 @@ def test_job_result_from_job_model_like_payload() -> None:
         status=models.JobsJobStatus.SUCCEEDED,
         device_id="Kawasaki",
         shots=100,
+        transpiler_info={"backend": "oqtopus"},
+        simulator_info={"seed": 7},
+        mitigation_info={"enabled": True},
         job_info=models.JobsJobInfo(
             program=["OPENQASM 3; qubit[1] q;"],
             result=models.JobsJobResult(
                 sampling=models.JobsSamplingResult(counts={"01": 10}),
             ),
         ),
+        submitted_at=submitted_at,
     )
 
     result = OqtopusJobResult(
         job.job_info.result if job.job_info is not None else None,
         job_id=job.job_id,
         job_type=job.job_type,
+        name=job.name,
+        device_id=job.device_id,
+        shots=job.shots,
+        transpiler_info=job.transpiler_info,
+        simulator_info=job.simulator_info,
+        mitigation_info=job.mitigation_info,
+        submitted_at=job.submitted_at,
     )
     assert result.job_id == "job-3"
     assert result.job_type == models.JobsJobType.SAMPLING
+    assert result.name == "job"
+    assert result.device_id == "Kawasaki"
+    assert result.shots == 100
+    assert result.transpiler_info == {"backend": "oqtopus"}
+    assert result.simulator_info == {"seed": 7}
+    assert result.mitigation_info == {"enabled": True}
+    assert result.submitted_at == submitted_at
     assert isinstance(result.raw, models.JobsJobResult)
 
 
@@ -78,6 +98,10 @@ def test_job_result_without_result_has_unknown_type() -> None:
     result = OqtopusJobResult(None, job_id="job-4")
     assert result.job_id == "job-4"
     assert result.job_type is None
+    assert result.submitted_at is None
+    assert result.ready_at is None
+    assert result.running_at is None
+    assert result.ended_at is None
 
 
 def test_sampling_result_direct_construction() -> None:
