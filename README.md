@@ -38,6 +38,10 @@ For local development, see [Setup Development Environment](./docs/developer_guid
 
 ## Citation
 
+You can use the DOI to cite OQTOPUS in your research.
+
+[![DOI](https://zenodo.org/badge/943222082.svg)](https://zenodo.org/badge/latestdoi/943222082)
+
 Citation information is also available in the [CITATION](https://github.com/oqtopus-team/oqtopus-client/blob/main/CITATION.cff) file.
 
 ## Contact
