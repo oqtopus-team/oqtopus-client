@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import atexit
 import base64
 import json
 import os
@@ -74,57 +73,6 @@ class _AsyncRuntime:
     def close(self) -> None:
         self._loop.call_soon_threadsafe(self._loop.stop)
         self._thread.join(timeout=5.0)
-
-
-class _SharedRuntimeRegistry:
-    def __init__(self) -> None:
-        self.runtime: _AsyncRuntime | None = None
-        self.lock = threading.Lock()
-        self.atexit_registered = False
-        self.tracked_async_clients: weakref.WeakSet[_AsyncOqtopusClient] = (
-            weakref.WeakSet()
-        )
-
-
-_shared_runtime_registry = _SharedRuntimeRegistry()
-
-
-def _get_shared_runtime() -> _AsyncRuntime:
-    with _shared_runtime_registry.lock:
-        if _shared_runtime_registry.runtime is None:
-            _shared_runtime_registry.runtime = _AsyncRuntime()
-        if not _shared_runtime_registry.atexit_registered:
-            atexit.register(_shutdown_shared_runtime)
-            _shared_runtime_registry.atexit_registered = True
-        return _shared_runtime_registry.runtime
-
-
-def _track_async_client(async_client: _AsyncOqtopusClient) -> None:
-    with _shared_runtime_registry.lock:
-        _shared_runtime_registry.tracked_async_clients.add(async_client)
-
-
-def _untrack_async_client(async_client: _AsyncOqtopusClient) -> None:
-    with _shared_runtime_registry.lock:
-        _shared_runtime_registry.tracked_async_clients.discard(async_client)
-
-
-def _shutdown_shared_runtime() -> None:
-    with _shared_runtime_registry.lock:
-        runtime = _shared_runtime_registry.runtime
-        clients = list(_shared_runtime_registry.tracked_async_clients)
-        _shared_runtime_registry.tracked_async_clients.clear()
-        _shared_runtime_registry.runtime = None
-
-    if runtime is None:
-        return
-
-    for async_client in clients:
-        with suppress(Exception):
-            runtime.run(async_client.close())
-
-    with suppress(Exception):
-        runtime.close()
 
 
 class _AsyncOqtopusClient:
@@ -728,20 +676,23 @@ class OqtopusClient:
 
         """
         resolved_config = config or OqtopusConfig.from_file()
-        self._runtime = _get_shared_runtime()
-
-        self._async = self._runtime.run(
-            asyncio.sleep(
-                0,
-                result=_AsyncOqtopusClient(
-                    config=resolved_config,
-                    default_headers=default_headers,
-                    user_agent=user_agent,
-                ),
+        self._runtime = _AsyncRuntime()
+        try:
+            self._async = self._runtime.run(
+                asyncio.sleep(
+                    0,
+                    result=_AsyncOqtopusClient(
+                        config=resolved_config,
+                        default_headers=default_headers,
+                        user_agent=user_agent,
+                    ),
+                )
             )
-        )
+        except Exception:
+            with suppress(Exception):
+                self._runtime.close()
+            raise
         self._closed = False
-        _track_async_client(self._async)
         self._finalizer = weakref.finalize(
             self, self._finalize_resources, self._runtime, self._async
         )
@@ -762,7 +713,8 @@ class OqtopusClient:
     ) -> None:
         with suppress(Exception):
             runtime.run(async_client.close())
-        _untrack_async_client(async_client)
+        with suppress(Exception):
+            runtime.close()
 
     def _call(self, method_name: str, *args: Any, **kwargs: Any) -> Any:
         if self._closed:

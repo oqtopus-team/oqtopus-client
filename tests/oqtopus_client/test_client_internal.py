@@ -387,22 +387,36 @@ def test_sync_client_close_is_idempotent_and_blocks_calls() -> None:
         client.list_devices()
 
 
-def test_sync_clients_share_runtime() -> None:
-    """Test case: test_sync_clients_share_runtime."""
-    client_module._shutdown_shared_runtime()
+def test_sync_clients_use_isolated_runtimes() -> None:
+    """Test case: test_sync_clients_use_isolated_runtimes."""
     client1 = OqtopusClient(OqtopusConfig(base_url="http://test.local"))
     client2 = OqtopusClient(OqtopusConfig(base_url="http://test.local"))
     try:
-        assert client1._runtime is client2._runtime
+        assert client1._runtime is not client2._runtime
     finally:
         client1.close()
         client2.close()
-        client_module._shutdown_shared_runtime()
+
+
+def test_sync_client_close_does_not_affect_other_clients() -> None:
+    """Test case: test_sync_client_close_does_not_affect_other_clients."""
+    client1 = OqtopusClient(OqtopusConfig(base_url="http://test.local"))
+    client2 = OqtopusClient(OqtopusConfig(base_url="http://test.local"))
+
+    async def _list_devices() -> list[models.DevicesDeviceInfo]:
+        return []
+
+    client2._async.list_devices = _list_devices  # type: ignore[method-assign]
+
+    try:
+        client1.close()
+        assert client2.list_devices() == []
+    finally:
+        client2.close()
 
 
 def test_sync_client_uses_config_from_file_when_omitted(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test case: test_sync_client_uses_config_from_file_when_omitted."""
-    client_module._shutdown_shared_runtime()
     observed: dict[str, str | Path] = {}
 
     def _from_file_stub(
@@ -425,7 +439,25 @@ def test_sync_client_uses_config_from_file_when_omitted(monkeypatch: pytest.Monk
         assert observed["path"] == "~/.config/oqtopus/config.ini"
     finally:
         client.close()
-        client_module._shutdown_shared_runtime()
+
+
+def test_sync_client_can_run_with_active_event_loop() -> None:
+    """Test case: test_sync_client_can_run_with_active_event_loop."""
+
+    async def _scenario() -> None:
+        client = OqtopusClient(OqtopusConfig(base_url="http://test.local"))
+
+        async def _list_devices() -> list[models.DevicesDeviceInfo]:
+            return []
+
+        client._async.list_devices = _list_devices  # type: ignore[method-assign]
+
+        try:
+            assert client.list_devices() == []
+        finally:
+            client.close()
+
+    asyncio.run(_scenario())
 
 
 def test_get_job_requires_valid_job_def_shape() -> None:
