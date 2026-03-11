@@ -7,6 +7,8 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+_DEFAULT_CONFIG_PATH = object()
+
 
 @dataclass(frozen=True)
 class OqtopusConfig:
@@ -36,7 +38,7 @@ class OqtopusConfig:
     def from_file(
         cls,
         section: str = "default",
-        path: str | Path = "~/.config/oqtopus/config.ini",
+        path: str | Path | object = _DEFAULT_CONFIG_PATH,
     ) -> OqtopusConfig:
         """Load configuration from an INI-style profile file.
 
@@ -61,7 +63,16 @@ class OqtopusConfig:
         if path is None:
             raise ValueError("path should not be None.")
 
-        expanded = Path(os.path.expandvars(str(path))).expanduser()
+        if path is _DEFAULT_CONFIG_PATH:
+            xdg_config_home = os.getenv("XDG_CONFIG_HOME")
+            resolved_path = (
+                Path(xdg_config_home, "oqtopus", "config.ini")
+                if xdg_config_home
+                else Path("~/.config/oqtopus/config.ini")
+            )
+        else:
+            resolved_path = Path(os.path.expandvars(str(path))).expanduser()
+        expanded = resolved_path.expanduser()
         parser = configparser.ConfigParser()
         parser.read(expanded, encoding="utf-8")
         if section not in parser:

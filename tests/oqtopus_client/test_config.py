@@ -68,6 +68,46 @@ def test_from_file_reads_proxy(tmp_path: Path) -> None:
     assert config.proxy == "http://proxy.local:8080"
 
 
+def test_from_file_uses_xdg_config_home_when_path_is_omitted(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test case: test_from_file_uses_xdg_config_home_when_path_is_omitted."""
+    xdg_dir = tmp_path / "xdg"
+    config_file = xdg_dir / "oqtopus" / "config.ini"
+    config_file.parent.mkdir(parents=True)
+    config_file.write_text(
+        "[default]\nbase_url=https://api.example.com\napi_token=secret\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(xdg_dir))
+
+    config = OqtopusConfig.from_file()
+
+    assert config.base_url == "https://api.example.com"
+    assert config.api_token == "secret"
+
+
+def test_from_file_falls_back_to_home_config_when_xdg_is_unset(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test case: test_from_file_falls_back_to_home_config_when_xdg_is_unset."""
+    config_file = tmp_path / ".config" / "oqtopus" / "config.ini"
+    config_file.parent.mkdir(parents=True)
+    config_file.write_text(
+        "[default]\nbase_url=https://api.example.com\napi_token=secret\n",
+        encoding="utf-8",
+    )
+    monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    config = OqtopusConfig.from_file()
+
+    assert config.base_url == "https://api.example.com"
+    assert config.api_token == "secret"
+
+
 def test_from_env_requires_base_url(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test case: test_from_env_requires_base_url."""
     monkeypatch.delenv("OQTOPUS_BASE_URL", raising=False)

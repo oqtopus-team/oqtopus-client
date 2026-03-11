@@ -16,10 +16,12 @@ pip install -e .
 
 ## Recommended Configuration Flow
 
-The recommended setup is to define the `default` profile in `~/.config/oqtopus/config.ini`
-and construct `OqtopusClient()` without arguments.
+The recommended setup is to define the `default` profile in
+`$XDG_CONFIG_HOME/oqtopus/config.ini` when `XDG_CONFIG_HOME` is set, or
+`~/.config/oqtopus/config.ini` otherwise, and construct `OqtopusClient()`
+without arguments.
 
-Create `~/.config/oqtopus/config.ini`:
+Create the config file in that location:
 
 ```ini
 [default]
