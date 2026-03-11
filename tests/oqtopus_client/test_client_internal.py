@@ -85,8 +85,8 @@ def test_async_client_allows_empty_base_url_in_sse_container(monkeypatch: pytest
         asyncio.run(client.close())
 
 
-def test_async_client_sets_headers_and_generated_config() -> None:
-    """Test case: test_async_client_sets_headers_and_generated_config."""
+def test_async_client_sets_headers_and_rest_config() -> None:
+    """Test case: test_async_client_sets_headers_and_rest_config."""
     client = _AsyncOqtopusClient(
         OqtopusConfig(base_url="http://test", api_token="from-config", proxy="http://proxy.local:8080"),
         default_headers={"X-Test": "1"},
@@ -94,15 +94,15 @@ def test_async_client_sets_headers_and_generated_config() -> None:
     try:
         assert client._headers["q-api-token"] == "from-config"
         assert client._headers["X-Test"] == "1"
-        asyncio.run(_initialize_generated_api(client))
-        assert client._generated_config is not None
-        assert client._generated_config.proxy == "http://proxy.local:8080"
+        asyncio.run(_initialize_rest_api(client))
+        assert client._rest_config is not None
+        assert client._rest_config.proxy == "http://proxy.local:8080"
     finally:
         asyncio.run(client.close())
 
 
-async def _initialize_generated_api(client: _AsyncOqtopusClient) -> None:
-    client._initialize_generated_api()
+async def _initialize_rest_api(client: _AsyncOqtopusClient) -> None:
+    client._initialize_rest_api()
 
 
 def test_extract_error_message_variants() -> None:

@@ -26,9 +26,9 @@ from ..rest.api.announcements_api import AnnouncementsApi
 from ..rest.api.api_token_api import ApiTokenApi
 from ..rest.api.device_api import DeviceApi
 from ..rest.api.job_api import JobApi
-from ..rest.api_client import ApiClient as GeneratedApiClient
-from ..rest.configuration import Configuration as GeneratedConfiguration
-from ..rest.exceptions import ApiException as GeneratedApiException
+from ..rest.api_client import ApiClient as RestApiClient
+from ..rest.configuration import Configuration as RestConfiguration
+from ..rest.exceptions import ApiException as RestApiException
 from .config import OqtopusConfig
 from .device import (
     OqtopusDevice,
@@ -103,13 +103,13 @@ class _AsyncOqtopusClient:
         self._retry_methods = {
             m.upper() for m in (config.retry_methods or {"GET", "DELETE"})
         }
-        self._generated_timeout = config.timeout
+        self._rest_timeout = config.timeout
 
         if default_headers:
             self._headers.update(default_headers)
 
-        self._generated_config: GeneratedConfiguration | None = None
-        self._generated_client: GeneratedApiClient | None = None
+        self._rest_config: RestConfiguration | None = None
+        self._rest_client: RestApiClient | None = None
         self._job_api: JobApi | None = None
         self._device_api: DeviceApi | None = None
         self._token_api: ApiTokenApi | None = None
@@ -122,45 +122,45 @@ class _AsyncOqtopusClient:
         try:
             asyncio.get_running_loop()
         except RuntimeError:
-            # Defer generated API initialization until first API call.
+            # Defer REST API initialization until first API call.
             pass
         else:
-            self._initialize_generated_api()
+            self._initialize_rest_api()
 
     def _apply_api_token(self, api_token: str) -> None:
         self._headers["q-api-token"] = api_token
         self._headers["Authorization"] = f"Bearer {api_token}"
-        if self._generated_client is not None:  # pragma: no cover - integration path
-            self._generated_client.set_default_header("q-api-token", api_token)
-            self._generated_client.set_default_header(
+        if self._rest_client is not None:  # pragma: no cover - integration path
+            self._rest_client.set_default_header("q-api-token", api_token)
+            self._rest_client.set_default_header(
                 "Authorization", f"Bearer {api_token}"
             )
-        if self._generated_config is not None:  # pragma: no cover - integration path
-            self._generated_config.access_token = api_token
+        if self._rest_config is not None:  # pragma: no cover - integration path
+            self._rest_config.access_token = api_token
 
-    def _initialize_generated_api(self) -> None:  # pragma: no cover - integration path
-        if self._generated_client is not None:
+    def _initialize_rest_api(self) -> None:  # pragma: no cover - integration path
+        if self._rest_client is not None:
             return
-        generated_host = self.base_url or "http://localhost"
-        self._generated_config = GeneratedConfiguration(host=generated_host)
-        self._generated_config.proxy = self._proxy
-        self._generated_config.retries = (
+        rest_host = self.base_url or "http://localhost"
+        self._rest_config = RestConfiguration(host=rest_host)
+        self._rest_config.proxy = self._proxy
+        self._rest_config.retries = (
             self._retry_max_attempts if self._retry_max_attempts > 1 else None
         )
-        self._generated_client = GeneratedApiClient(
-            configuration=self._generated_config
+        self._rest_client = RestApiClient(
+            configuration=self._rest_config
         )
-        self._generated_client.user_agent = self._headers["User-Agent"]
+        self._rest_client.user_agent = self._headers["User-Agent"]
         for header_name, header_value in self._headers.items():
-            self._generated_client.set_default_header(header_name, header_value)
-        self._job_api = JobApi(self._generated_client)
-        self._device_api = DeviceApi(self._generated_client)
-        self._token_api = ApiTokenApi(self._generated_client)
-        self._announcements_api = AnnouncementsApi(self._generated_client)
+            self._rest_client.set_default_header(header_name, header_value)
+        self._job_api = JobApi(self._rest_client)
+        self._device_api = DeviceApi(self._rest_client)
+        self._token_api = ApiTokenApi(self._rest_client)
+        self._announcements_api = AnnouncementsApi(self._rest_client)
 
     def _ensure_job_api(self) -> JobApi:
         if self._job_api is None:
-            self._initialize_generated_api()
+            self._initialize_rest_api()
         if self._job_api is None:  # pragma: no cover - defensive guard
             msg = "Job API client is not initialized."
             raise RuntimeError(msg)
@@ -168,7 +168,7 @@ class _AsyncOqtopusClient:
 
     def _ensure_device_api(self) -> DeviceApi:
         if self._device_api is None:
-            self._initialize_generated_api()
+            self._initialize_rest_api()
         if self._device_api is None:  # pragma: no cover - defensive guard
             msg = "Device API client is not initialized."
             raise RuntimeError(msg)
@@ -176,7 +176,7 @@ class _AsyncOqtopusClient:
 
     def _ensure_token_api(self) -> ApiTokenApi:
         if self._token_api is None:
-            self._initialize_generated_api()
+            self._initialize_rest_api()
         if self._token_api is None:  # pragma: no cover - defensive guard
             msg = "API token client is not initialized."
             raise RuntimeError(msg)
@@ -184,22 +184,22 @@ class _AsyncOqtopusClient:
 
     def _ensure_announcements_api(self) -> AnnouncementsApi:
         if self._announcements_api is None:
-            self._initialize_generated_api()
+            self._initialize_rest_api()
         if self._announcements_api is None:  # pragma: no cover - defensive guard
             msg = "Announcements API client is not initialized."
             raise RuntimeError(msg)
         return self._announcements_api
 
     async def close(self) -> None:
-        if self._generated_client is not None:  # pragma: no cover - integration path
-            await self._generated_client.close()
+        if self._rest_client is not None:  # pragma: no cover - integration path
+            await self._rest_client.close()
 
-    async def _call_generated(
+    async def _call_rest(
         self, call: Awaitable[Any]
     ) -> Any:  # pragma: no cover - integration path
         try:
             return await call
-        except GeneratedApiException as exc:
+        except RestApiException as exc:
             payload = exc.data if exc.data is not None else exc.body
             message = (
                 self._extract_error_message(payload) or exc.reason or "request failed"
@@ -324,8 +324,8 @@ class _AsyncOqtopusClient:
         device_api = self._ensure_device_api()
         return cast(
             "list[models.DevicesDeviceInfo]",
-            await self._call_generated(
-                device_api.list_devices(_request_timeout=self._generated_timeout)
+            await self._call_rest(
+                device_api.list_devices(_request_timeout=self._rest_timeout)
             ),
         )
 
@@ -333,10 +333,10 @@ class _AsyncOqtopusClient:
         device_api = self._ensure_device_api()
         return cast(
             "models.DevicesDeviceInfo",
-            await self._call_generated(
+            await self._call_rest(
                 device_api.get_device(
                     device_id,
-                    _request_timeout=self._generated_timeout,
+                    _request_timeout=self._rest_timeout,
                 )
             ),
         )
@@ -355,7 +355,7 @@ class _AsyncOqtopusClient:
         job_api = self._ensure_job_api()
         return cast(
             "list[models.JobsGetJobsResponse]",
-            await self._call_generated(
+            await self._call_rest(
                 job_api.list_jobs(
                     fields=fields,
                     start_time=start_time,
@@ -364,7 +364,7 @@ class _AsyncOqtopusClient:
                     page=page,
                     size=size,
                     order=order,
-                    _request_timeout=self._generated_timeout,
+                    _request_timeout=self._rest_timeout,
                 ),
             ),
         )
@@ -385,8 +385,8 @@ class _AsyncOqtopusClient:
         )
         return cast(
             "models.JobsSubmitJobResponse",
-            await self._call_generated(
-                job_api.submit_job(request, _request_timeout=self._generated_timeout)
+            await self._call_rest(
+                job_api.submit_job(request, _request_timeout=self._rest_timeout)
             ),
         )
 
@@ -493,8 +493,8 @@ class _AsyncOqtopusClient:
         job_api = self._ensure_job_api()
         return cast(
             "models.JobsJobDef",
-            await self._call_generated(
-                job_api.get_job(job_id, _request_timeout=self._generated_timeout)
+            await self._call_rest(
+                job_api.get_job(job_id, _request_timeout=self._rest_timeout)
             ),
         )
 
@@ -570,8 +570,8 @@ class _AsyncOqtopusClient:
         job_api = self._ensure_job_api()
         return cast(
             "models.SuccessSuccessResponse",
-            await self._call_generated(
-                job_api.delete_job(job_id, _request_timeout=self._generated_timeout)
+            await self._call_rest(
+                job_api.delete_job(job_id, _request_timeout=self._rest_timeout)
             ),
         )
 
@@ -579,8 +579,8 @@ class _AsyncOqtopusClient:
         job_api = self._ensure_job_api()
         return cast(
             "models.JobsGetJobStatusResponse",
-            await self._call_generated(
-                job_api.get_job_status(job_id, _request_timeout=self._generated_timeout)
+            await self._call_rest(
+                job_api.get_job_status(job_id, _request_timeout=self._rest_timeout)
             ),
         )
 
@@ -588,8 +588,8 @@ class _AsyncOqtopusClient:
         job_api = self._ensure_job_api()
         return cast(
             "models.SuccessSuccessResponse",
-            await self._call_generated(
-                job_api.cancel_job(job_id, _request_timeout=self._generated_timeout)
+            await self._call_rest(
+                job_api.cancel_job(job_id, _request_timeout=self._rest_timeout)
             ),
         )
 
@@ -597,8 +597,8 @@ class _AsyncOqtopusClient:
         job_api = self._ensure_job_api()
         return cast(
             "models.JobsGetSselogResponse",
-            await self._call_generated(
-                job_api.get_sselog(job_id, _request_timeout=self._generated_timeout)
+            await self._call_rest(
+                job_api.get_sselog(job_id, _request_timeout=self._rest_timeout)
             ),
         )
 
@@ -606,8 +606,8 @@ class _AsyncOqtopusClient:
         token_api = self._ensure_token_api()
         token = cast(
             "models.ApiTokenApiToken",
-            await self._call_generated(
-                token_api.create_api_token(_request_timeout=self._generated_timeout)
+            await self._call_rest(
+                token_api.create_api_token(_request_timeout=self._rest_timeout)
             ),
         )
         if token is None:  # pragma: no cover
@@ -618,15 +618,15 @@ class _AsyncOqtopusClient:
         token_api = self._ensure_token_api()
         return cast(
             "models.ApiTokenApiToken",
-            await self._call_generated(
-                token_api.get_api_token(_request_timeout=self._generated_timeout)
+            await self._call_rest(
+                token_api.get_api_token(_request_timeout=self._rest_timeout)
             ),
         )
 
     async def delete_api_token(self) -> None:
         token_api = self._ensure_token_api()
-        await self._call_generated(
-            token_api.delete_api_token(_request_timeout=self._generated_timeout)
+        await self._call_rest(
+            token_api.delete_api_token(_request_timeout=self._rest_timeout)
         )
 
     async def get_announcements_list(
@@ -635,9 +635,9 @@ class _AsyncOqtopusClient:
         announcements_api = self._ensure_announcements_api()
         return cast(
             "models.AnnouncementsGetAnnouncementsListResponse",
-            await self._call_generated(
+            await self._call_rest(
                 announcements_api.get_announcements_list(
-                    _request_timeout=self._generated_timeout
+                    _request_timeout=self._rest_timeout
                 )
             ),
         )
@@ -648,9 +648,9 @@ class _AsyncOqtopusClient:
         announcements_api = self._ensure_announcements_api()
         return cast(
             "models.AnnouncementsGetAnnouncementResponse",
-            await self._call_generated(
+            await self._call_rest(
                 announcements_api.get_announcement(
-                    announcement_id, _request_timeout=self._generated_timeout
+                    announcement_id, _request_timeout=self._rest_timeout
                 )
             ),
         )
