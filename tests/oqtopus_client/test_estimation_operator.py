@@ -18,18 +18,16 @@ def test_estimation_operator_to_and_from_model() -> None:
     assert restored == wrapper
 
 
-def test_estimation_operator_create_helpers() -> None:
-    """Test case: test_estimation_operator_create_helpers."""
-    single = OqtopusEstimationOperator.create(coeff=0.5, pauli="X 0 Z 1")
+def test_estimation_operator_direct_construction() -> None:
+    """Test case: test_estimation_operator_direct_construction."""
+    single = OqtopusEstimationOperator(coeff=0.5, pauli="X 0 Z 1")
     assert single.coeff == 0.5
     assert single.pauli == "X 0 Z 1"
 
-    many = OqtopusEstimationOperator.create_many(
-        [
-            (1.0, "Z 0"),
-            (-0.25, "X 0 X 1"),
-        ],
-    )
+    many = [
+        OqtopusEstimationOperator(coeff=1.0, pauli="Z 0"),
+        OqtopusEstimationOperator(coeff=-0.25, pauli="X 0 X 1"),
+    ]
     assert [op.coeff for op in many] == [1.0, -0.25]
     assert [op.pauli for op in many] == ["Z 0", "X 0 X 1"]
 

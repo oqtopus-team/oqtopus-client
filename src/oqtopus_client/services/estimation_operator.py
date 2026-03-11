@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from dataclasses import dataclass
 
 from .. import rest as models
@@ -14,34 +13,6 @@ class OqtopusEstimationOperator:
 
     pauli: str
     coeff: float | None = None
-
-    @classmethod
-    def create(
-        cls,
-        *,
-        coeff: float | None,
-        pauli: str,
-    ) -> OqtopusEstimationOperator:
-        """Create one operator term from explicit ``coeff`` and ``pauli``.
-
-        Returns:
-            The created operator wrapper.
-
-        """
-        return cls(pauli=pauli, coeff=coeff)
-
-    @classmethod
-    def create_many(
-        cls,
-        terms: Sequence[tuple[float | None, str]],
-    ) -> list[OqtopusEstimationOperator]:
-        """Create multiple operator terms from ``(coeff, pauli)`` tuples.
-
-        Returns:
-            Operator wrappers for the provided terms.
-
-        """
-        return [cls(coeff=coeff, pauli=pauli) for coeff, pauli in terms]
 
     def to_model(self) -> models.JobsOperatorItem:
         """Convert this wrapper to the generated ``JobsOperatorItem`` model.
