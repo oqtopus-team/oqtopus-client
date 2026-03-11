@@ -14,37 +14,59 @@ For local development:
 pip install -e .
 ```
 
-## Authentication
+## Recommended Configuration Flow
 
-`OqtopusClient` supports either:
+The recommended setup is to define the `default` profile in `~/.config/oqtopus/config.ini`
+and construct `OqtopusClient()` without arguments.
 
-- `api_token`: direct token string (recommended)
+Create `~/.config/oqtopus/config.ini`:
 
-The token is sent using the `q-api-token` request header.
-
-For common workflows, you can use `OqtopusJobSpec` and `run_*` helpers so you do not need to build generated OpenAPI request models manually.
-
-## Minimal Example
-
-```python
-from oqtopus_client import OqtopusClient, OqtopusConfig, OqtopusJobSpec
-
-client = OqtopusClient(OqtopusConfig(base_url="https://api.example.com", api_token="<token>"))
-devices = client.list_devices()
-req = OqtopusJobSpec.sampling(
-    device_id="Kawasaki",
-    shots=1000,
-    program='OPENQASM 3; include "stdgates.inc"; qubit[2] q; bit[2] c; h q[0]; cx q[0], q[1]; c = measure q;',
-)
-job_id = client.submit_job(req).job_id
-print(job_id)
+```ini
+[default]
+base_url = <url>
+api_token = <token>
 ```
 
-## Initialize From Environment Variables
+Then initialize the client:
+
+```python
+from oqtopus_client import OqtopusClient
+
+client = OqtopusClient()
+print(client.list_devices())
+```
+
+`OqtopusClient()` uses `OqtopusConfig.from_file()` internally, and
+`OqtopusConfig.from_file()` uses the `default` section when no profile is specified.
+
+## Other Configuration Patterns
+
+### Use a named profile from `config.ini`
+
+Add additional sections when you need multiple environments:
+
+```ini
+[default]
+base_url = <url>
+api_token = <token>
+
+[oqtopus-dev]
+base_url = <url>
+api_token = <token>
+```
+
+```python
+from oqtopus_client import OqtopusClient, OqtopusConfig
+
+client = OqtopusClient(OqtopusConfig.from_file("oqtopus-dev"))
+print(client.list_devices())
+```
+
+### Load configuration from environment variables
 
 ```bash
-export OQTOPUS_BASE_URL="https://api.example.com"
-export OQTOPUS_API_TOKEN="<token>"
+export OQTOPUS_BASE_URL=<url>
+export OQTOPUS_API_TOKEN=<token>
 ```
 
 ```python
@@ -54,10 +76,48 @@ client = OqtopusClient(OqtopusConfig.from_env())
 print(client.list_devices())
 ```
 
-Optional variables and settings:
+### Override configuration explicitly in code
+
+Use explicit `OqtopusConfig(...)` when you need a one-off override:
+
+```python
+from oqtopus_client import OqtopusClient, OqtopusConfig
+
+client = OqtopusClient(
+    OqtopusConfig(
+        base_url="<url>",
+        api_token="<token>",
+        retry_max_attempts=3,
+        retry_backoff_seconds=0.2,
+    )
+)
+print(client.list_devices())
+```
+
+The token is sent using the `q-api-token` request header.
+
+Optional variables and settings include:
 
 - `default_headers`: add common headers
 - `user_agent`: override User-Agent
+
+## First Job
+
+For common workflows, you can use `OqtopusJobSpec` and `run_*` helpers so you do not need
+to build generated OpenAPI request models manually.
+
+The examples below use this shared OpenQASM program:
+
+```python
+program = """OPENQASM 3.0;
+include "stdgates.inc";
+qubit[2] q;
+bit[2] c;
+h q[0];
+cx q[0], q[1];
+c = measure q;
+"""
+```
 
 ## Job Execution Styles
 
@@ -71,15 +131,15 @@ You can write job execution in two styles:
 Use `OqtopusClient.run_job()` to execute `submit + wait` in one call:
 
 ```python
-from oqtopus_client import OqtopusClient, OqtopusConfig, OqtopusJobSpec
+from oqtopus_client import OqtopusClient, OqtopusJobSpec
 
 req = OqtopusJobSpec.sampling(
     device_id="Kawasaki",
     shots=1000,
-    program='OPENQASM 3; include "stdgates.inc"; qubit[1] q; bit[1] c; h q[0]; c[0] = measure q[0];',
+    program=program,
 )
 
-client = OqtopusClient(OqtopusConfig(base_url="https://api.example.com", api_token="<token>"))
+client = OqtopusClient()
 finished_job = client.run_job(req, timeout=300.0)
 print(finished_job.status)
 ```
@@ -90,7 +150,7 @@ You can also use job-type-specific shortcuts (raise `ValueError` on mismatch):
 sampling_req = OqtopusJobSpec.sampling(
     device_id="Kawasaki",
     shots=1000,
-    program='OPENQASM 3; include "stdgates.inc"; qubit[1] q; bit[1] c; h q[0]; c[0] = measure q[0];',
+    program=program,
 )
 final_sampling = client.run_sampling(sampling_req)
 ```
@@ -100,13 +160,13 @@ final_sampling = client.run_sampling(sampling_req)
 To handle a submitted job in steps, use `job_id` with client methods:
 
 ```python
-from oqtopus_client import OqtopusClient, OqtopusConfig, OqtopusJobSpec
+from oqtopus_client import OqtopusClient, OqtopusJobSpec
 
-client = OqtopusClient(OqtopusConfig(base_url="https://api.example.com", api_token="<token>"))
+client = OqtopusClient()
 req = OqtopusJobSpec.sampling(
     device_id="Kawasaki",
     shots=1000,
-    program='OPENQASM 3; include "stdgates.inc"; qubit[1] q; bit[1] c; h q[0]; c[0] = measure q[0];',
+    program=program,
 )
 
 job_id = client.submit_job(req).job_id
@@ -115,3 +175,8 @@ print(client.status(job_id))
 finished_job = client.wait(job_id, interval=1.0, interval_backoff=1.2, max_interval=5.0, timeout=300.0)
 print(finished_job.status)
 ```
+
+## Further Reading
+
+- [Examples](examples.md)
+- [API Reference](api.md)

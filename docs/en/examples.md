@@ -1,71 +1,84 @@
 # Examples
 
-Python script samples are available under `examples/`:
+Python script samples are available under `examples/`.
 
-- `get_devices.py`
-- `run_sampling.py`
-- `run_estimation.py`
-- `run_multi_manual.py`
-- `run_sse_file.py`
-- `run_sampling_quri_parts.py`
-- `run_sampling_qiskit.py`
-- `submit_jobs_parallel.py` (`OqtopusClient.submit_jobs` / `wait_for_jobs`)
-- `run_job_generic.py` (`OqtopusClient.run_job`)
-- `job_handle_lifecycle.py` (`status` / `wait` / `result` / `cancel_job` methods)
-- `run_jobs_batch.py` (`run_jobs_batch`)
-- `wait_and_delete_job.py` (`wait_for_job`, `delete_job`)
-- `manage_api_token.py` (`create_api_token`, `delete_api_token`)
-- `get_announcement_detail.py` (`get_announcements_list`, `get_announcement`)
-- `init_client_from_env.py` (`from_env`, client config attributes)
-- `list_devices_and_jobs.py` (`list_devices`, `get_device`, `list_jobs`)
-- `get_user_and_status.py` (`get_announcements_list`, `get_api_token`)
-- `get_job.py`
-- `cancel_job.py`
+## Recommended Baseline
 
-Simple style:
+Most examples assume the recommended default-profile setup:
 
-```python
-from oqtopus_client import OqtopusClient, OqtopusConfig, OqtopusJobSpec
-
-client = OqtopusClient(OqtopusConfig.from_file("oqtopus-dev"))
-request = OqtopusJobSpec.sampling(
-    device_id="Kawasaki",
-    shots=1000,
-    program='OPENQASM 3; include "stdgates.inc"; qubit[1] q; bit[1] c; h q[0]; c[0] = measure q[0];',
-)
-finished_job = client.run_job(request, timeout=300.0)
-print(finished_job.status)
+```ini
+[default]
+base_url = <url>
+api_token = <token>
 ```
 
-Run:
+```python
+from oqtopus_client import OqtopusClient
+
+client = OqtopusClient()
+```
+
+Run an example script with:
 
 ```bash
 python examples/get_devices.py
 ```
 
-Additional dependency for the Qiskit example:
+## Example Index
+
+### Device and account inspection
+
+- `get_devices.py`: list available devices.
+- `list_devices_and_jobs.py`: inspect devices and recent jobs together.
+- `get_user_and_status.py`: inspect account-level information.
+- `manage_api_token.py`: create and delete API tokens.
+- `get_announcement_detail.py`: list announcements and fetch a detail entry.
+
+### Single-job execution
+
+- `run_sampling.py`: execute a sampling job with `run_sampling`.
+- `run_estimation.py`: execute an estimation job.
+- `run_multi_manual.py`: execute a multi-manual job.
+- `run_job_generic.py`: use `OqtopusClient.run_job`.
+- `job_handle_lifecycle.py`: control a job with `status`, `wait`, `result`, and `cancel_job`.
+- `wait_and_delete_job.py`: wait for completion and then delete a job.
+- `get_job.py`: fetch one job by id.
+- `cancel_job.py`: cancel a submitted job.
+
+### Parallel and batch helpers
+
+- `submit_jobs_parallel.py`: submit multiple jobs with `submit_jobs` and wait with `wait_for_jobs`.
+- `run_jobs_batch.py`: combine batch submission and waiting with `run_jobs_batch`.
+
+Parallel submit/wait is useful when you want explicit control over submission and waiting workers:
+
+```python
+responses = client.submit_jobs([req1, req2], max_workers=2)
+finished_jobs = client.wait_for_jobs([response.job_id for response in responses], max_workers=2)
+```
+
+`run_jobs_batch` is a shorter helper when the full flow is "submit all, then wait for all":
+
+```python
+results = client.run_jobs_batch([req1, req2], submit_workers=2, wait_workers=2)
+```
+
+### Integration-specific examples
+
+- `run_sampling_quri_parts.py`: run a sampling flow with QURI Parts integration.
+- `run_sampling_qiskit.py`: run a sampling flow with Qiskit integration.
+- `run_sse_file.py`: submit `examples/userprogram.py` as an SSE job and inspect logs.
+- `init_client_from_env.py`: initialize from `OqtopusConfig.from_env()`.
+
+## Extra Notes
+
+`run_sse_file.py` handles SSE logs in memory by default. Persist them explicitly with
+`download_log(..., persist=True)` when needed.
+
+The `Qiskit` example requires an extra dependency:
 
 ```bash
 pip install qiskit
-```
-
-`run_sse_file.py` submits `examples/userprogram.py` as an SSE job, then
-downloads and prints SSE logs.
-
-Wait for job completion:
-
-```python
-from oqtopus_client import OqtopusClient, OqtopusConfig, OqtopusJobSpec
-
-client = OqtopusClient(OqtopusConfig.from_env())
-request = OqtopusJobSpec.sampling(
-    device_id="Kawasaki",
-    shots=1000,
-    program='OPENQASM 3; include "stdgates.inc"; qubit[1] q; bit[1] c; h q[0]; c[0] = measure q[0];',
-)
-job_id = client.submit_job(request).job_id
-finished_job = client.wait_for_job(job_id, interval=2.0, timeout=300.0)
-print(finished_job.status)
 ```
 
 Result normalization helper:

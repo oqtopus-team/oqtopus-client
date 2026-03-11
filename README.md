@@ -2,35 +2,15 @@
 
 Python SDK for the OQTOPUS Cloud User API.
 
-## Key Characteristics
+## Overview
 
-- Core client usage has no runtime dependency on other quantum software SDKs.
-- OpenAPI-generated models are used internally, while helper APIs such as `OqtopusJobSpec` and `run_*` keep common usage simple.
-- HTTP communication is executed asynchronously inside the client runtime, while a synchronous API is exposed for ease of use.
-- Built-in retry/backoff controls and typed result wrappers improve operational robustness.
+`oqtopus-client` provides a typed Python interface for the OQTOPUS Cloud User API.
 
-## Quick Example
-
-```python
-from oqtopus_client import OqtopusJobSpec, OqtopusClient, OqtopusConfig
-
-client = OqtopusClient(OqtopusConfig(base_url="https://api.example.com", api_token="<token>"))
-req = OqtopusJobSpec.sampling(
-    device_id="Kawasaki",
-    program='OPENQASM 3; include "stdgates.inc"; qubit[2] q; bit[2] c; h q[0]; cx q[0], q[1]; c = measure q;',
-    shots=1000,
-)
-finished_job = client.run_sampling(req, interval=2.0, timeout=300.0)
-print(finished_job.status)
-print(finished_job.get_counts())
-```
-
-Sample output:
-
-```text
-JobsJobStatus.SUCCEEDED
-{'00': 503, '11': 497}
-```
+- Submit and manage jobs from Python.
+- Use generated Pydantic models for request and response validation.
+- Authenticate with config profiles, environment variables, or explicit `OqtopusConfig`.
+- Use helper APIs such as `OqtopusJobSpec` and `run_*` to reduce boilerplate.
+- Rely on built-in retry and typed job result wrappers for stable operation.
 
 ## Installation
 
@@ -38,122 +18,19 @@ JobsJobStatus.SUCCEEDED
 pip install oqtopus-client
 ```
 
-For development setup, see [Setup Development Environment](./docs/developer_guidelines/setup.md).
+For local development, see [Setup Development Environment](./docs/developer_guidelines/setup.md).
 
-## Usage
+## Documentation
 
-To initialize from environment variables, use `OqtopusConfig.from_env()`.
+- [Documentation Home](./docs/en/index.md)
+- [Getting Started](./docs/en/quickstart.md)
+- [Examples](./docs/en/examples.md)
+- [API Reference](./docs/en/api.md)
 
-```bash
-export OQTOPUS_BASE_URL="https://api.example.com"
-export OQTOPUS_API_TOKEN="<token>"
-```
+## Developer Guidelines
 
-```python
-from oqtopus_client import OqtopusClient, OqtopusConfig
-
-client = OqtopusClient(OqtopusConfig.from_env())
-```
-
-You can tune retry behavior via initialization arguments (default: retry `GET/DELETE` on 429/5xx).
-
-```python
-from oqtopus_client import OqtopusClient
-from oqtopus_client import OqtopusConfig
-
-client = OqtopusClient(
-    OqtopusConfig(
-        base_url="https://api.example.com",
-        api_token="<token>",
-        retry_max_attempts=3,
-        retry_backoff_seconds=0.2,
-    ),
-)
-```
-
-## Examples
-
-`examples/` contains runnable Python examples.
-
-- `get_devices.py`
-- `run_sampling.py` (`run_sampling`)
-- `run_estimation.py` (`run_estimation`)
-- `run_multi_manual.py` (`run_multi_manual`)
-- `run_sse_file.py` (`run_sse_file`; SSE logs are handled in memory by default. Persist explicitly with `download_log(..., persist=True)`.)
-- `run_sampling_qiskit.py`
-- `run_sampling_quri_parts.py`
-- `submit_jobs_parallel.py` (`OqtopusClient.submit_jobs` / `wait_for_jobs`)
-- `run_job_generic.py` (`OqtopusClient.run_job`)
-- `job_handle_lifecycle.py` (`status` / `wait` / `result` / `cancel_job` helpers)
-- `run_jobs_batch.py` (`OqtopusClient.run_jobs_batch`)
-- `wait_and_delete_job.py` (`wait_for_job` / `delete_job`)
-- `manage_api_token.py` (`create_api_token` / `delete_api_token`)
-- `get_announcement_detail.py` (`get_announcements_list` / `get_announcement`)
-- `init_client_from_env.py` (`OqtopusConfig.from_env` / client config attributes)
-- `list_devices_and_jobs.py` (`list_devices` / `get_device` / `list_jobs`)
-- `get_user_and_status.py` (`get_announcements_list` / `get_api_token`)
-- `get_job.py`
-- `cancel_job.py`
-
-Basic style:
-
-```python
-from oqtopus_client import OqtopusClient, OqtopusConfig
-
-client = OqtopusClient(OqtopusConfig.from_file("oqtopus-dev"))
-```
-
-Run example:
-
-```bash
-python examples/get_devices.py
-```
-
-A helper class is available to parallelize submit/wait across multiple jobs.
-
-```python
-responses = client.submit_jobs([req1, req2], max_workers=2)
-finished_jobs = client.wait_for_jobs([r.job_id for r in responses], max_workers=2)
-```
-
-For step-by-step job control, use `job_id` with client methods.
-
-```python
-job_id = client.submit_job(req).job_id
-print(client.status(job_id))
-finished_job = client.wait(job_id, interval=1.0, interval_backoff=1.2, max_interval=5.0, timeout=300.0)
-print(finished_job.status)
-print(finished_job.get_counts())
-```
-
-Sample output:
-
-```text
-JobsJobStatus.SUBMITTED
-JobsJobStatus.SUCCEEDED
-{'00': 503, '11': 497}
-```
-
-One-shot submit+wait and batch helper APIs are also provided.
-
-```python
-finished_job = client.run_job(req, timeout=300.0)
-batch_results = client.run_jobs_batch([req1, req2], submit_workers=2, wait_workers=2)
-```
-
-## Project layout
-
-- OpenAPI schema source is managed in `spec/openapi.yaml` (gitignored)
-- `spec/`: OpenAPI schema and model-generation configuration
-- `Makefile`: contributor workflow entrypoint for checks/docs/model generation
-- `docs/`: API and usage documentation
-- `mkdocs.yml`: documentation build settings
-- `src/oqtopus_client/rest/`: low-level interface module for REST API access (OpenAPI Generator output)
-- `src/oqtopus_client/services/`: high-level interface module that composes low-level APIs into service-level features
-- `src/oqtopus_client/__init__.py`: public package exports
-- `examples/`: SDK usage examples
-- `tests/`: SDK tests
-
-For contributor commands (`make` targets), see [Developer Guidelines](./docs/developer_guidelines/index.md).
-For module structure intent (`rest` vs `services`), see
-[Setup Development Environment](./docs/developer_guidelines/setup.md#source-module-structure).
+- [Development Flow](./docs/developer_guidelines/development_flow.md)
+- [Setup Development Environment](./docs/developer_guidelines/setup.md)
+- [How to Contribute](./docs/CONTRIBUTING.md)
+- [Code of Conduct](https://oqtopus-team.github.io/code-of-conduct/)
+- [Security](https://oqtopus-team.github.io/security-policy/)

@@ -4,11 +4,13 @@ repo_name: oqtopus-client
 repo_url: "https://github.com/oqtopus-team/oqtopus-client"
 
 nav:
-  - Home: index.md
+  - Home: en/index.md
   - Usage:
-      - Getting started: usage/getting_started.md
-      - OQTOPUS Client Examples: "https://github.com/oqtopus-team/oqtopus-client/tree/main/examples"
+      - Getting started: en/quickstart.md
+      - Examples: en/examples.md
   - API reference:
+      - Guide: en/api.md
+      - Models: en/models.md
       - oqtopus_client: reference/
   - Developer Guidelines:
       - Development Flow: developer_guidelines/development_flow.md
@@ -19,9 +21,7 @@ nav:
 
 exclude_docs: |
   /api.md
-  /models.md
-  /quickstart.md
-  /examples.md
+  /developer_guidelines/index.md
   /cmd_*.md
 
 theme:
