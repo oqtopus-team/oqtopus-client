@@ -123,12 +123,14 @@ c = measure q;
 
 You can write job execution in two styles:
 
-- `run_*` style: one-shot `submit + wait` with less code.
+- `run_*` style: submit-and-wait with less code and without writing polling control yourself.
 - `submit_job + wait` style: explicit `job_id` lifecycle control.
 
-### Style 1: `run_*` (one-shot)
+### Style 1: `run_*` (submit-and-wait)
 
-Use `OqtopusClient.run_job()` to execute `submit + wait` in one call:
+Use `OqtopusClient.run_job()` to execute `submit + wait` in one call.
+The client still polls job status internally until completion, but you do not need to
+implement that lifecycle control yourself:
 
 ```python
 from oqtopus_client import OqtopusClient, OqtopusJobSpec

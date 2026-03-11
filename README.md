@@ -32,5 +32,5 @@ For local development, see [Setup Development Environment](./docs/developer_guid
 - [Development Flow](./docs/developer_guidelines/development_flow.md)
 - [Setup Development Environment](./docs/developer_guidelines/setup.md)
 - [How to Contribute](./docs/CONTRIBUTING.md)
-- [Code of Conduct](https://oqtopus-team.github.io/code-of-conduct/)
-- [Security](https://oqtopus-team.github.io/security-policy/)
+- [Code of Conduct](https://github.com/oqtopus-team/.github/blob/main/CODE_OF_CONDUCT.md)
+- [Security](https://github.com/oqtopus-team/.github/blob/main/SECURITY.md)
