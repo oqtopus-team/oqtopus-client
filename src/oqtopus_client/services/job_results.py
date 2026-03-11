@@ -87,19 +87,39 @@ class OqtopusJobResult:
         return self._execution_time
 
     def is_sampling(self) -> bool:
-        """Return ``True`` when this result belongs to a sampling job."""
+        """Return ``True`` when this result belongs to a sampling job.
+
+        Returns:
+            ``True`` when the job type is sampling.
+
+        """
         return self.job_type == models.JobsJobType.SAMPLING
 
     def is_estimation(self) -> bool:
-        """Return ``True`` when this result belongs to an estimation job."""
+        """Return ``True`` when this result belongs to an estimation job.
+
+        Returns:
+            ``True`` when the job type is estimation.
+
+        """
         return self.job_type == models.JobsJobType.ESTIMATION
 
     def is_multi_manual(self) -> bool:
-        """Return ``True`` when this result belongs to a multi-manual job."""
+        """Return ``True`` when this result belongs to a multi-manual job.
+
+        Returns:
+            ``True`` when the job type is multi-manual.
+
+        """
         return self.job_type == models.JobsJobType.MULTI_MANUAL
 
     def is_sse(self) -> bool:
-        """Return ``True`` when this result belongs to an SSE job."""
+        """Return ``True`` when this result belongs to an SSE job.
+
+        Returns:
+            ``True`` when the job type is SSE.
+
+        """
         return self.job_type == models.JobsJobType.SSE
 
     @staticmethod
@@ -149,15 +169,27 @@ class OqtopusJobResult:
         return None
 
     def __repr__(self) -> str:
-        """Return a concise debug representation."""
+        """Return a concise debug representation.
+
+        Returns:
+            A debug-friendly string representation.
+
+        """
         return (
-            f"OqtopusJobResult("
-            f"job_id={self.job_id!r}, job_type={self.job_type!r}, status={self.status!r})"
+            "OqtopusJobResult("
+            f"job_id={self.job_id!r}, "
+            f"job_type={self.job_type!r}, "
+            f"status={self.status!r})"
         )
 
     @property
     def sampling(self) -> SamplingPayload:
-        """Return sampling payload when result is sampling-like."""
+        """Return sampling payload when result is sampling-like.
+
+        Returns:
+            Sampling payload when available.
+
+        """
         raw = self._raw
         if isinstance(raw, models.JobsJobResult):
             return raw.sampling
@@ -168,7 +200,12 @@ class OqtopusJobResult:
 
     @property
     def estimation(self) -> EstimationPayload:
-        """Return estimation payload when result is estimation-like."""
+        """Return estimation payload when result is estimation-like.
+
+        Returns:
+            Estimation payload when available.
+
+        """
         raw = self._raw
         if isinstance(raw, models.JobsJobResult):
             return raw.estimation
@@ -183,7 +220,12 @@ class OqtopusSamplingJobResult(OqtopusJobResult):
 
     @property
     def sampling(self) -> SamplingPayload:
-        """Return sampling payload only, or ``None`` when unavailable."""
+        """Return sampling payload only, or ``None`` when unavailable.
+
+        Returns:
+            Sampling payload when available.
+
+        """
         raw = self.raw
         if isinstance(raw, models.JobsJobResult):
             return raw.sampling
@@ -194,13 +236,23 @@ class OqtopusSamplingJobResult(OqtopusJobResult):
         return None
 
     def normalized_counts(self) -> dict[str, dict[int, Any]]:
-        """Normalize bitstring keys into integer keys for sampling payload."""
+        """Normalize bitstring keys into integer keys for sampling payload.
+
+        Returns:
+            Sampling counts with integer keys.
+
+        """
         from .result_utils import normalize_sampling_result
 
         return normalize_sampling_result(self.sampling)
 
     def get_counts(self) -> dict[str, Any]:
-        """Return raw counts with original bitstring keys."""
+        """Return raw counts with original bitstring keys.
+
+        Returns:
+            Raw sampling counts keyed by bitstring.
+
+        """
         sampling = self.sampling
         if isinstance(sampling, models.JobsSamplingResult):
             return dict(sampling.counts or {})
@@ -211,7 +263,12 @@ class OqtopusSamplingJobResult(OqtopusJobResult):
         return {}
 
     def __repr__(self) -> str:
-        """Return a concise debug representation."""
+        """Return a concise debug representation.
+
+        Returns:
+            A debug-friendly string representation.
+
+        """
         return f"OqtopusSamplingJobResult(job_id={self.job_id!r})"
 
 
@@ -220,7 +277,12 @@ class OqtopusEstimationJobResult(OqtopusJobResult):
 
     @property
     def estimation(self) -> EstimationPayload:
-        """Return estimation payload only, or ``None`` when unavailable."""
+        """Return estimation payload only, or ``None`` when unavailable.
+
+        Returns:
+            Estimation payload when available.
+
+        """
         raw = self.raw
         if isinstance(raw, models.JobsJobResult):
             return raw.estimation
@@ -232,16 +294,31 @@ class OqtopusEstimationJobResult(OqtopusJobResult):
 
     @property
     def exp_value(self) -> float | None:
-        """Alias of :meth:`get_exp_value`."""
+        """Alias of :meth:`get_exp_value`.
+
+        Returns:
+            Estimated expectation value when available.
+
+        """
         return self.get_exp_value()
 
     @property
     def stds(self) -> float | None:
-        """Alias of :meth:`get_stds`."""
+        """Alias of :meth:`get_stds`.
+
+        Returns:
+            Estimated standard deviation when available.
+
+        """
         return self.get_stds()
 
     def get_exp_value(self) -> float | None:
-        """Return estimation exp_value."""
+        """Return estimation exp_value.
+
+        Returns:
+            Estimated expectation value when available.
+
+        """
         estimation = self.estimation
         if isinstance(estimation, models.JobsEstimationResult):
             return estimation.exp_value
@@ -251,7 +328,12 @@ class OqtopusEstimationJobResult(OqtopusJobResult):
         return None
 
     def get_stds(self) -> float | None:
-        """Return estimation stds."""
+        """Return estimation stds.
+
+        Returns:
+            Estimated standard deviation when available.
+
+        """
         estimation = self.estimation
         if isinstance(estimation, models.JobsEstimationResult):
             return estimation.stds
@@ -261,7 +343,12 @@ class OqtopusEstimationJobResult(OqtopusJobResult):
         return None
 
     def __repr__(self) -> str:
-        """Return a concise debug representation."""
+        """Return a concise debug representation.
+
+        Returns:
+            A debug-friendly string representation.
+
+        """
         return f"OqtopusEstimationJobResult(job_id={self.job_id!r})"
 
 
@@ -269,7 +356,12 @@ class OqtopusMultiManualJobResult(OqtopusSamplingJobResult):
     """Specialized SDK result object for multi_manual jobs."""
 
     def get_divided_counts(self) -> dict[str, dict[int, Any]]:
-        """Return normalized counts per sub-result from `divided_counts`."""
+        """Return normalized counts per sub-result from `divided_counts`.
+
+        Returns:
+            Normalized counts keyed by sub-result id.
+
+        """
         sampling = self.sampling
         if isinstance(sampling, models.JobsSamplingResult):
             divided_counts = sampling.divided_counts
@@ -293,7 +385,12 @@ class OqtopusMultiManualJobResult(OqtopusSamplingJobResult):
         return normalized
 
     def __repr__(self) -> str:
-        """Return a concise debug representation."""
+        """Return a concise debug representation.
+
+        Returns:
+            A debug-friendly string representation.
+
+        """
         return f"OqtopusMultiManualJobResult(job_id={self.job_id!r})"
 
 
@@ -345,6 +442,13 @@ class OqtopusSseJobResult(OqtopusSamplingJobResult):
 
         Default behavior keeps processing in-memory and returns archive bytes.
         Set `persist=True` to write the archive file to disk and return its path.
+
+        Returns:
+            Archive bytes in memory, or a saved file path when ``persist=True``.
+
+        Raises:
+            ValueError: If persistence arguments are inconsistent with ``persist``.
+
         """
         archive_bytes, default_file_name = self._get_log_archive_bytes()
         if not persist:
@@ -364,7 +468,12 @@ class OqtopusSseJobResult(OqtopusSamplingJobResult):
         encoding: str = "utf-8",
         errors: str = "replace",
     ) -> str:
-        """Decode SSE log response and return readable text."""
+        """Decode SSE log response and return readable text.
+
+        Returns:
+            Decoded SSE log text.
+
+        """
         decoded, _ = self._get_log_archive_bytes()
 
         try:
@@ -387,7 +496,12 @@ class OqtopusSseJobResult(OqtopusSamplingJobResult):
         errors: str = "replace",
         print_fn: Callable[[str], Any] = print,
     ) -> str:
-        """Read SSE log text and print it. Returns printed text."""
+        """Read SSE log text and print it.
+
+        Returns:
+            The printed SSE log text.
+
+        """
         text = self.read_log_text(
             encoding=encoding,
             errors=errors,
@@ -397,9 +511,16 @@ class OqtopusSseJobResult(OqtopusSamplingJobResult):
 
     def _require_client(self) -> OqtopusClient:
         if self._client is None:
-            raise ValueError("SSE log operations require a client-bound OqtopusSseJobResult.")
+            raise ValueError(
+                "SSE log operations require a client-bound OqtopusSseJobResult."
+            )
         return self._client
 
     def __repr__(self) -> str:
-        """Return a concise debug representation."""
+        """Return a concise debug representation.
+
+        Returns:
+            A debug-friendly string representation.
+
+        """
         return f"OqtopusSseJobResult(job_id={self.job_id!r})"

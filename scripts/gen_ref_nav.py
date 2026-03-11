@@ -12,7 +12,12 @@ src = root / "src"
 
 
 def _is_excluded(parts: tuple[str, ...]) -> bool:
-    """Return whether a module path should be excluded from generated reference."""
+    """Return whether a module path should be excluded from generated reference.
+
+    Returns:
+        ``True`` when the module path should be skipped from the generated nav.
+
+    """
     if not parts or parts[0] != "oqtopus_client":
         return True
     if parts[-1].startswith("_"):

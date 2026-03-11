@@ -31,6 +31,7 @@ class OqtopusConfig:
     retry_backoff_seconds: float = 0.2
     retry_status_codes: frozenset[int] | None = None
     retry_methods: frozenset[str] | None = None
+
     def __init__(
         self,
         base_url: str,
@@ -63,6 +64,13 @@ class OqtopusConfig:
         Example:
             OqtopusClient(OqtopusConfig.from_file("oqtopus-dev"))
 
+        Returns:
+            Configuration loaded from the requested profile.
+
+        Raises:
+            ValueError: If ``section`` or ``path`` is invalid, or if the profile is
+                missing required values.
+
         """
         if os.getenv("OQTOPUS_ENV") == "sse_container":
             # Same behavior as quri-parts-oqtopus: config file is not required
@@ -78,7 +86,9 @@ class OqtopusConfig:
         parser = configparser.ConfigParser()
         parser.read(expanded, encoding="utf-8")
         if section not in parser:
-            raise ValueError(f"Section '{section}' not found in config file: {expanded}")
+            raise ValueError(
+                f"Section '{section}' not found in config file: {expanded}"
+            )
 
         cfg = parser[section]
         base_url = cfg.get("base_url")
@@ -106,7 +116,15 @@ class OqtopusConfig:
         proxy_env: str = "OQTOPUS_PROXY",
         api_token_env: str = "OQTOPUS_API_TOKEN",
     ) -> OqtopusConfig:
-        """Load configuration from environment variables."""
+        """Load configuration from environment variables.
+
+        Returns:
+            Configuration loaded from environment variables.
+
+        Raises:
+            ValueError: If the base URL environment variable is not set.
+
+        """
         base_url = os.getenv(base_url_env)
         if not base_url:
             raise ValueError(f"Environment variable {base_url_env} is required.")

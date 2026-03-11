@@ -26,8 +26,18 @@ c[0] = measure q[0];
 """
 
 jobs = [
-    OqtopusJobSpec.sampling(device_id="Kawasaki", shots=500, program=PROGRAM_A, name="Batch A"),
-    OqtopusJobSpec.sampling(device_id="Kawasaki", shots=500, program=PROGRAM_B, name="Batch B"),
+    OqtopusJobSpec.sampling(
+        device_id="Kawasaki",
+        shots=500,
+        program=PROGRAM_A,
+        name="Batch A",
+    ),
+    OqtopusJobSpec.sampling(
+        device_id="Kawasaki",
+        shots=500,
+        program=PROGRAM_B,
+        name="Batch B",
+    ),
 ]
 
 client = OqtopusClient(OqtopusConfig.from_file(SECTION, path=CONFIG_PATH))

@@ -22,7 +22,12 @@ class OqtopusEstimationOperator:
         coeff: float | None,
         pauli: str,
     ) -> OqtopusEstimationOperator:
-        """Create one operator term from explicit ``coeff`` and ``pauli``."""
+        """Create one operator term from explicit ``coeff`` and ``pauli``.
+
+        Returns:
+            The created operator wrapper.
+
+        """
         return cls(pauli=pauli, coeff=coeff)
 
     @classmethod
@@ -30,14 +35,29 @@ class OqtopusEstimationOperator:
         cls,
         terms: Sequence[tuple[float | int | None, str]],
     ) -> list[OqtopusEstimationOperator]:
-        """Create multiple operator terms from ``(coeff, pauli)`` tuples."""
+        """Create multiple operator terms from ``(coeff, pauli)`` tuples.
+
+        Returns:
+            Operator wrappers for the provided terms.
+
+        """
         return [cls(coeff=coeff, pauli=pauli) for coeff, pauli in terms]
 
     def to_model(self) -> models.JobsOperatorItem:
-        """Convert this wrapper to the generated ``JobsOperatorItem`` model."""
+        """Convert this wrapper to the generated ``JobsOperatorItem`` model.
+
+        Returns:
+            The generated API model for this operator.
+
+        """
         return models.JobsOperatorItem(pauli=self.pauli, coeff=self.coeff)
 
     @classmethod
     def from_model(cls, operator: models.JobsOperatorItem) -> OqtopusEstimationOperator:
-        """Build a wrapper from a generated ``JobsOperatorItem`` model."""
+        """Build a wrapper from a generated ``JobsOperatorItem`` model.
+
+        Returns:
+            The converted operator wrapper.
+
+        """
         return cls(pauli=operator.pauli, coeff=operator.coeff)

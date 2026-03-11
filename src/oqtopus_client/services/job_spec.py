@@ -18,11 +18,17 @@ def _normalize_programs(program: str | Sequence[str]) -> list[str]:
 
 
 def _encode_programs_base64(program: str | Sequence[str]) -> list[str]:
-    return [base64.b64encode(text.encode("utf-8")).decode("utf-8") for text in _normalize_programs(program)]
+    return [
+        base64.b64encode(text.encode("utf-8")).decode("utf-8")
+        for text in _normalize_programs(program)
+    ]
 
 
 def _normalize_operators(
-    operator: Sequence[OqtopusEstimationOperator | models.JobsOperatorItem | Mapping[str, Any]] | None,
+    operator: Sequence[
+        OqtopusEstimationOperator | models.JobsOperatorItem | Mapping[str, Any]
+    ]
+    | None,
 ) -> list[models.JobsOperatorItem] | None:
     if operator is None:
         return None
@@ -66,7 +72,12 @@ class OqtopusJobSpec:
     transpiler_info: Mapping[str, Any] = field(default_factory=dict)
     simulator_info: Mapping[str, Any] = field(default_factory=dict)
     mitigation_info: Mapping[str, Any] = field(default_factory=dict)
-    operator: Sequence[OqtopusEstimationOperator | models.JobsOperatorItem | Mapping[str, Any]] | None = None
+    operator: (
+        Sequence[
+            OqtopusEstimationOperator | models.JobsOperatorItem | Mapping[str, Any]
+        ]
+        | None
+    ) = None
 
     @classmethod
     def sampling(
@@ -80,7 +91,10 @@ class OqtopusJobSpec:
         transpiler_info: Mapping[str, Any] | None = None,
         simulator_info: Mapping[str, Any] | None = None,
         mitigation_info: Mapping[str, Any] | None = None,
-        operator: Sequence[OqtopusEstimationOperator | models.JobsOperatorItem | Mapping[str, Any]] | None = None,
+        operator: Sequence[
+            OqtopusEstimationOperator | models.JobsOperatorItem | Mapping[str, Any]
+        ]
+        | None = None,
     ) -> OqtopusJobSpec:
         """Create a sampling job request helper.
 
@@ -94,6 +108,9 @@ class OqtopusJobSpec:
             simulator_info (Optional): Simulator settings.
             mitigation_info (Optional): Error mitigation settings.
             operator (Optional): Operator definitions.
+
+        Returns:
+            A sampling job specification.
 
         """
         return cls(
@@ -121,7 +138,10 @@ class OqtopusJobSpec:
         transpiler_info: Mapping[str, Any] | None = None,
         simulator_info: Mapping[str, Any] | None = None,
         mitigation_info: Mapping[str, Any] | None = None,
-        operator: Sequence[OqtopusEstimationOperator | models.JobsOperatorItem | Mapping[str, Any]] | None = None,
+        operator: Sequence[
+            OqtopusEstimationOperator | models.JobsOperatorItem | Mapping[str, Any]
+        ]
+        | None = None,
     ) -> OqtopusJobSpec:
         """Create an estimation job request helper.
 
@@ -135,6 +155,9 @@ class OqtopusJobSpec:
             simulator_info (Optional): Simulator settings.
             mitigation_info (Optional): Error mitigation settings.
             operator (Optional): Operator definitions.
+
+        Returns:
+            An estimation job specification.
 
         """
         return cls(
@@ -162,7 +185,10 @@ class OqtopusJobSpec:
         transpiler_info: Mapping[str, Any] | None = None,
         simulator_info: Mapping[str, Any] | None = None,
         mitigation_info: Mapping[str, Any] | None = None,
-        operator: Sequence[OqtopusEstimationOperator | models.JobsOperatorItem | Mapping[str, Any]] | None = None,
+        operator: Sequence[
+            OqtopusEstimationOperator | models.JobsOperatorItem | Mapping[str, Any]
+        ]
+        | None = None,
     ) -> OqtopusJobSpec:
         """Create a multi-manual job request helper.
 
@@ -176,6 +202,9 @@ class OqtopusJobSpec:
             simulator_info (Optional): Simulator settings.
             mitigation_info (Optional): Error mitigation settings.
             operator (Optional): Operator definitions.
+
+        Returns:
+            A multi-manual job specification.
 
         """
         return cls(
@@ -217,6 +246,9 @@ class OqtopusJobSpec:
             simulator_info (Optional): Simulator settings.
             mitigation_info (Optional): Error mitigation settings.
 
+        Returns:
+            An SSE job specification.
+
         """
         return cls(
             device_id=device_id,
@@ -236,6 +268,10 @@ class OqtopusJobSpec:
 
         This method has no arguments. It converts required/optional fields
         already set on this instance.
+
+        Returns:
+            The generated job submission request model.
+
         """
         job_type = self.job_type
         if isinstance(job_type, str):

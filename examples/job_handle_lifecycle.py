@@ -31,7 +31,13 @@ job_id = client.submit_job(job_spec).job_id
 print("initial_status:", client.status(job_id))
 print("is_finished:", client.is_finished(job_id))
 
-waited = client.wait(job_id, interval=1.0, interval_backoff=1.1, max_interval=5.0, timeout=300.0)
+waited = client.wait(
+    job_id,
+    interval=1.0,
+    interval_backoff=1.1,
+    max_interval=5.0,
+    timeout=300.0,
+)
 refreshed = client.refresh(job_id)
 current = client.result(job_id)
 fetched = client.wait(job_id, timeout=1.0)
