@@ -39,9 +39,9 @@ def test_job_spec_estimation_accepts_operator_wrapper() -> None:
     spec = OqtopusJobSpec.estimation(
         device_id="Kawasaki",
         program="OPENQASM 3; qubit[1] q;",
-        operator=[OqtopusEstimationOperator(pauli="Z0", coeff=1)],
+        operator=[OqtopusEstimationOperator(pauli="Z0", coeff=1.0)],
     )
     submit = spec.to_model()
     assert submit.job_info.operator is not None
     assert submit.job_info.operator[0].pauli == "Z0"
-    assert submit.job_info.operator[0].coeff == 1
+    assert submit.job_info.operator[0].coeff == 1.0

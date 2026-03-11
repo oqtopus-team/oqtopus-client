@@ -13,7 +13,7 @@ class OqtopusEstimationOperator:
     """Typed operator wrapper for estimation-style job specifications."""
 
     pauli: str
-    coeff: float | int | None = None
+    coeff: float | None = None
 
     @classmethod
     def create(
@@ -33,7 +33,7 @@ class OqtopusEstimationOperator:
     @classmethod
     def create_many(
         cls,
-        terms: Sequence[tuple[float | int | None, str]],
+        terms: Sequence[tuple[float | None, str]],
     ) -> list[OqtopusEstimationOperator]:
         """Create multiple operator terms from ``(coeff, pauli)`` tuples.
 
