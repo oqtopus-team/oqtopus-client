@@ -119,13 +119,26 @@ class _AsyncOqtopusClient:
         if token:
             self._apply_api_token(token)
 
-        try:
-            asyncio.get_running_loop()
-        except RuntimeError:
-            # Defer REST API initialization until first API call.
-            pass
-        else:
-            self._initialize_rest_api()
+    @classmethod
+    async def create(
+        cls,
+        config: OqtopusConfig,
+        default_headers: Mapping[str, str] | None = None,
+        user_agent: str | None = None,
+    ) -> _AsyncOqtopusClient:
+        """Create an async client and initialize REST API resources.
+
+        Returns:
+            An initialized async client instance.
+
+        """
+        client = cls(
+            config=config,
+            default_headers=default_headers,
+            user_agent=user_agent,
+        )
+        client._initialize_rest_api()
+        return client
 
     def _apply_api_token(self, api_token: str) -> None:
         self._headers["q-api-token"] = api_token
@@ -153,32 +166,24 @@ class _AsyncOqtopusClient:
         self._announcements_api = AnnouncementsApi(self._rest_client)
 
     def _ensure_job_api(self) -> JobApi:
-        if self._job_api is None:
-            self._initialize_rest_api()
         if self._job_api is None:  # pragma: no cover - defensive guard
             msg = "Job API client is not initialized."
             raise RuntimeError(msg)
         return self._job_api
 
     def _ensure_device_api(self) -> DeviceApi:
-        if self._device_api is None:
-            self._initialize_rest_api()
         if self._device_api is None:  # pragma: no cover - defensive guard
             msg = "Device API client is not initialized."
             raise RuntimeError(msg)
         return self._device_api
 
     def _ensure_token_api(self) -> ApiTokenApi:
-        if self._token_api is None:
-            self._initialize_rest_api()
         if self._token_api is None:  # pragma: no cover - defensive guard
             msg = "API token client is not initialized."
             raise RuntimeError(msg)
         return self._token_api
 
     def _ensure_announcements_api(self) -> AnnouncementsApi:
-        if self._announcements_api is None:
-            self._initialize_rest_api()
         if self._announcements_api is None:  # pragma: no cover - defensive guard
             msg = "Announcements API client is not initialized."
             raise RuntimeError(msg)
@@ -666,13 +671,10 @@ class OqtopusClient:
         self._runtime = _AsyncRuntime()
         try:
             self._async = self._runtime.run(
-                asyncio.sleep(
-                    0,
-                    result=_AsyncOqtopusClient(
-                        config=resolved_config,
-                        default_headers=default_headers,
-                        user_agent=user_agent,
-                    ),
+                _AsyncOqtopusClient.create(
+                    config=resolved_config,
+                    default_headers=default_headers,
+                    user_agent=user_agent,
                 )
             )
         except Exception:
