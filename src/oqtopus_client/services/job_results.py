@@ -316,7 +316,16 @@ class OqtopusJobResult:  # noqa: PLR0904
 
     @property
     def status(self) -> models.JobsJobStatus | None:
-        """Return related job status when known."""
+        """Return related job status when known.
+
+        Possible values are ``submitted``, ``ready``, ``running``,
+        ``succeeded``, ``failed``, and ``cancelled``.
+
+        For helpers that wait for completion such as ``wait()`` and ``run_*()``,
+        the returned status is typically ``succeeded``, ``failed``, or
+        ``cancelled``.
+
+        """
         return self._status
 
     @property

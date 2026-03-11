@@ -181,6 +181,20 @@ finished_job = client.wait(job_id, interval=1.0, interval_backoff=1.2, max_inter
 print(finished_job.status)
 ```
 
+## Job Status Values
+
+`finished_job.status` and `client.status(job_id)` return one of these values:
+
+- `submitted`: the job was accepted and queued.
+- `ready`: the job is prepared and waiting to start.
+- `running`: the job is executing.
+- `succeeded`: the job finished successfully.
+- `failed`: the job finished with an error.
+- `cancelled`: the job was cancelled before successful completion.
+
+When you use `run_*()` or `wait()`, the returned job is already finished, so its
+status is typically `succeeded`, `failed`, or `cancelled`.
+
 ## Further Reading
 
 - [Examples](examples.md)
