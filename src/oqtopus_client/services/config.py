@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-@dataclass(frozen=True, init=False)
+@dataclass(frozen=True)
 class OqtopusConfig:
     """Shared client configuration bundle.
 
@@ -31,27 +31,6 @@ class OqtopusConfig:
     retry_backoff_seconds: float = 0.2
     retry_status_codes: frozenset[int] | None = None
     retry_methods: frozenset[str] | None = None
-
-    def __init__(
-        self,
-        base_url: str,
-        api_token: str | None = None,
-        proxy: str | None = None,
-        timeout: float = 30.0,
-        retry_max_attempts: int = 3,
-        retry_backoff_seconds: float = 0.2,
-        retry_status_codes: frozenset[int] | None = None,
-        retry_methods: frozenset[str] | None = None,
-    ) -> None:
-        """Initialize configuration values for API access and retries."""
-        object.__setattr__(self, "base_url", base_url)
-        object.__setattr__(self, "api_token", api_token)
-        object.__setattr__(self, "proxy", proxy)
-        object.__setattr__(self, "timeout", timeout)
-        object.__setattr__(self, "retry_max_attempts", retry_max_attempts)
-        object.__setattr__(self, "retry_backoff_seconds", retry_backoff_seconds)
-        object.__setattr__(self, "retry_status_codes", retry_status_codes)
-        object.__setattr__(self, "retry_methods", retry_methods)
 
     @classmethod
     def from_file(
