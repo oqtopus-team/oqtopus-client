@@ -263,7 +263,7 @@ class OqtopusJobSpec:
             operator=None,
         )
 
-    def to_submit_job_request(self) -> models.JobsSubmitJobRequest:
+    def to_model(self) -> models.JobsSubmitJobRequest:
         """Convert to the generated ``JobsSubmitJobRequest`` model.
 
         This method has no arguments. It converts required/optional fields

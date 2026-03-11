@@ -285,7 +285,7 @@ class _AsyncOqtopusClient:
         if isinstance(job, models.JobsSubmitJobRequest):
             return job
         if isinstance(job, OqtopusJobSpec):
-            return job.to_submit_job_request()
+            return job.to_model()
         return models.JobsSubmitJobRequest.model_validate(dict(job))
 
     @classmethod
@@ -424,7 +424,7 @@ class _AsyncOqtopusClient:
     async def submit_job(self, body: _SubmitJobInput) -> models.JobsSubmitJobResponse:
         payload: models.JobsSubmitJobRequest | dict[str, Any]
         if isinstance(body, OqtopusJobSpec):
-            payload = body.to_submit_job_request()
+            payload = body.to_model()
         elif isinstance(body, models.JobsSubmitJobRequest):
             payload = body
         else:
@@ -1023,7 +1023,7 @@ class OqtopusClient:
 
         """
         spec = self._ensure_job_spec(job, method="run_job")
-        finished_job = self._call("run_job", spec.to_submit_job_request(), **kwargs)
+        finished_job = self._call("run_job", spec.to_model(), **kwargs)
         return self._to_result(finished_job)
 
     def run_sampling(
@@ -1048,7 +1048,7 @@ class OqtopusClient:
             job, expected=models.JobsJobType.SAMPLING, method="run_sampling"
         )
         finished_job = self._call(
-            "run_sampling", spec.to_submit_job_request(), **kwargs
+            "run_sampling", spec.to_model(), **kwargs
         )
         result = self._to_result(finished_job)
         if not isinstance(result, OqtopusSamplingJobResult):
@@ -1080,7 +1080,7 @@ class OqtopusClient:
             job, expected=models.JobsJobType.ESTIMATION, method="run_estimation"
         )
         finished_job = self._call(
-            "run_estimation", spec.to_submit_job_request(), **kwargs
+            "run_estimation", spec.to_model(), **kwargs
         )
         result = self._to_result(finished_job)
         if not isinstance(result, OqtopusEstimationJobResult):
@@ -1112,7 +1112,7 @@ class OqtopusClient:
             job, expected=models.JobsJobType.MULTI_MANUAL, method="run_multi_manual"
         )
         finished_job = self._call(
-            "run_multi_manual", spec.to_submit_job_request(), **kwargs
+            "run_multi_manual", spec.to_model(), **kwargs
         )
         result = self._to_result(finished_job)
         if not isinstance(result, OqtopusMultiManualJobResult):
@@ -1141,7 +1141,7 @@ class OqtopusClient:
         spec = self._ensure_job_spec(
             job, expected=models.JobsJobType.SSE, method="run_sse"
         )
-        finished_job = self._call("run_sse", spec.to_submit_job_request(), **kwargs)
+        finished_job = self._call("run_sse", spec.to_model(), **kwargs)
         result = self._to_result(finished_job)
         if not isinstance(result, OqtopusSseJobResult):
             raise ResponseValidationError(
