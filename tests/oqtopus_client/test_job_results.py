@@ -112,6 +112,39 @@ def test_job_result_from_raw_without_result_has_unknown_type() -> None:
     assert result.ended_at is None
 
 
+def test_job_result_accepts_matching_raw_metadata() -> None:
+    """Test case: test_job_result_accepts_matching_raw_metadata."""
+    result = OqtopusJobResult.from_raw(
+        {
+            "job_id": "job-4",
+            "job_type": "sampling",
+            "status": "succeeded",
+            "name": "job-4",
+            "device_id": "Kawasaki",
+            "shots": 10,
+        },
+        job_id="job-4",
+        job_type=models.JobsJobType.SAMPLING,
+        status=models.JobsJobStatus.SUCCEEDED,
+        name="job-4",
+        device_id="Kawasaki",
+        shots=10,
+    )
+
+    assert result.job_id == "job-4"
+    assert result.job_type == models.JobsJobType.SAMPLING
+    assert result.status == models.JobsJobStatus.SUCCEEDED
+
+
+def test_job_result_rejects_conflicting_raw_metadata() -> None:
+    """Test case: test_job_result_rejects_conflicting_raw_metadata."""
+    with pytest.raises(ValueError, match="Conflicting values for 'job_id'"):
+        OqtopusJobResult.from_raw(
+            {"job_id": "job-raw"},
+            job_id="job-arg",
+        )
+
+
 def test_sampling_result_direct_construction() -> None:
     """Test case: test_sampling_result_direct_construction."""
     result = OqtopusSamplingJobResult(

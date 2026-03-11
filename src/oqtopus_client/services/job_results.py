@@ -74,9 +74,23 @@ class OqtopusJobResult:  # noqa: PLR0904
         """Initialize a job result wrapper from raw API payload and metadata.
 
         Raises:
-            ValueError: If ``job_type`` or ``status`` is invalid.
+            ValueError: If metadata is invalid or conflicts with ``raw``.
 
         """
+        self._validate_raw_metadata_conflicts(
+            raw=raw,
+            job_id=job_id,
+            job_type=job_type,
+            status=status,
+            name=name,
+            description=description,
+            device_id=device_id,
+            shots=shots,
+            submitted_at=submitted_at,
+            ready_at=ready_at,
+            running_at=running_at,
+            ended_at=ended_at,
+        )
         self._raw = raw
         self._job_id = job_id
         self._job_type = self._normalize_job_type(job_type)
@@ -134,6 +148,20 @@ class OqtopusJobResult:  # noqa: PLR0904
             A result object that may contain partial metadata.
 
         """
+        cls._validate_raw_metadata_conflicts(
+            raw=raw,
+            job_id=job_id,
+            job_type=job_type,
+            status=status,
+            name=name,
+            description=description,
+            device_id=device_id,
+            shots=shots,
+            submitted_at=submitted_at,
+            ready_at=ready_at,
+            running_at=running_at,
+            ended_at=ended_at,
+        )
         normalized_job_type = cls._normalize_job_type(
             job_type,
         ) or cls._infer_job_type(raw)
@@ -207,6 +235,69 @@ class OqtopusJobResult:  # noqa: PLR0904
         self._running_at = running_at
         self._ended_at = ended_at
         self._client = client
+
+    @classmethod
+    def _validate_raw_metadata_conflicts(
+        cls,
+        *,
+        raw: models.JobsJobResult | Mapping[str, Any] | None,
+        job_id: str | None,
+        job_type: models.JobsJobType | str | None,
+        status: models.JobsJobStatus | str | None,
+        name: str | None,
+        description: str | None,
+        device_id: str | None,
+        shots: int | None,
+        submitted_at: datetime | None,
+        ready_at: datetime | None,
+        running_at: datetime | None,
+        ended_at: datetime | None,
+    ) -> None:
+        if not isinstance(raw, Mapping):
+            return
+
+        cls._validate_raw_value("job_id", raw, job_id)
+        cls._validate_raw_value("name", raw, name)
+        cls._validate_raw_value("description", raw, description)
+        cls._validate_raw_value("device_id", raw, device_id)
+        cls._validate_raw_value("shots", raw, shots)
+        cls._validate_raw_value("submitted_at", raw, submitted_at)
+        cls._validate_raw_value("ready_at", raw, ready_at)
+        cls._validate_raw_value("running_at", raw, running_at)
+        cls._validate_raw_value("ended_at", raw, ended_at)
+
+        normalized_job_type = cls._normalize_job_type(job_type)
+        if normalized_job_type is not None:
+            cls._validate_raw_value("job_type", raw, normalized_job_type)
+
+        normalized_status = cls._normalize_status(status)
+        if normalized_status is not None:
+            cls._validate_raw_value("status", raw, normalized_status)
+
+    @staticmethod
+    def _validate_raw_value(
+        key: str,
+        raw: Mapping[str, Any],
+        provided: object,
+    ) -> None:
+        if provided is None or key not in raw:
+            return
+
+        raw_value = raw[key]
+        if not OqtopusJobResult._is_comparable_metadata_value(provided, raw_value):
+            return
+        if raw_value != provided:
+            raise ValueError(
+                f"Conflicting values for '{key}': "
+                f"raw={raw_value!r}, provided={provided!r}",
+            )
+
+    @staticmethod
+    def _is_comparable_metadata_value(
+        provided: object,
+        raw_value: object,
+    ) -> bool:
+        return isinstance(raw_value, type(provided))
 
     @property
     def raw(self) -> models.JobsJobResult | Mapping[str, Any] | None:
