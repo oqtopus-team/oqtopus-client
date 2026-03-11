@@ -221,7 +221,7 @@ class _AsyncOqtopusClient:
         return None
 
     @staticmethod
-    def _coerce_submit_job_request(
+    def _to_submit_job_request(
         job: _RunInput,
     ) -> models.JobsSubmitJobRequest:
         if isinstance(job, models.JobsSubmitJobRequest):
@@ -385,7 +385,7 @@ class _AsyncOqtopusClient:
         )
 
     async def run_job(self, job: _SubmitJobInput, **kwargs: Any) -> models.JobsJobDef:
-        request = self._coerce_submit_job_request(job)
+        request = self._to_submit_job_request(job)
         if self._is_sse_container():
             if request.job_type in {
                 models.JobsJobType.SAMPLING,
@@ -406,24 +406,24 @@ class _AsyncOqtopusClient:
         return await self.wait_for_job(response.job_id, **kwargs)
 
     async def run_sampling(self, job: _RunInput, **kwargs: Any) -> models.JobsJobDef:
-        request = self._coerce_submit_job_request(job)
+        request = self._to_submit_job_request(job)
         self._validate_run_job_type(request, models.JobsJobType.SAMPLING)
         return await self.run_job(request, **kwargs)
 
     async def run_estimation(self, job: _RunInput, **kwargs: Any) -> models.JobsJobDef:
-        request = self._coerce_submit_job_request(job)
+        request = self._to_submit_job_request(job)
         self._validate_run_job_type(request, models.JobsJobType.ESTIMATION)
         return await self.run_job(request, **kwargs)
 
     async def run_multi_manual(
         self, job: _RunInput, **kwargs: Any
     ) -> models.JobsJobDef:
-        request = self._coerce_submit_job_request(job)
+        request = self._to_submit_job_request(job)
         self._validate_run_job_type(request, models.JobsJobType.MULTI_MANUAL)
         return await self.run_job(request, **kwargs)
 
     async def run_sse(self, job: _RunInput, **kwargs: Any) -> models.JobsJobDef:
-        request = self._coerce_submit_job_request(job)
+        request = self._to_submit_job_request(job)
         self._validate_run_job_type(request, models.JobsJobType.SSE)
         return await self.run_job(request, **kwargs)
 

@@ -116,7 +116,7 @@ def test_extract_error_message_variants() -> None:
 
 def test_coerce_and_validate_job_type() -> None:
     """Test case: test_coerce_and_validate_job_type."""
-    req = _AsyncOqtopusClient._coerce_submit_job_request(
+    req = _AsyncOqtopusClient._to_submit_job_request(
         OqtopusJobSpec.sampling(device_id="K", program="x"),
     )
     assert req.job_type == models.JobsJobType.SAMPLING
