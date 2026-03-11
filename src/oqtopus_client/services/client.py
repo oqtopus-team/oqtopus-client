@@ -524,10 +524,7 @@ class _AsyncOqtopusClient:
             models.JobsJobStatus.FAILED,
             models.JobsJobStatus.CANCELLED,
         }
-        failed = failure_statuses or {
-            models.JobsJobStatus.FAILED,
-            models.JobsJobStatus.CANCELLED,
-        }
+        _ = failure_statuses
 
         deadline = monotonic() + timeout if timeout is not None else None
         next_interval = interval
@@ -538,14 +535,7 @@ class _AsyncOqtopusClient:
                 on_status(status_response)
             current = status_response.status
             if current in terminal:
-                job = await self.get_job(job_id)
-                if current in failed:
-                    raise UserApiError(
-                        0,
-                        f"job {job_id} finished with status '{current.value}'",
-                        payload={"job_id": job_id, "status": current.value},
-                    )
-                return job
+                return await self.get_job(job_id)
 
             if deadline is not None and monotonic() >= deadline:
                 raise TimeoutError(

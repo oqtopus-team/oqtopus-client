@@ -141,8 +141,8 @@ def test_wait_for_job_failure_and_timeout(monkeypatch: pytest.MonkeyPatch) -> No
 
         monkeypatch.setattr(client, "get_job_status", status_failed)
         monkeypatch.setattr(client, "get_job", get_job)
-        with pytest.raises(UserApiError):
-            asyncio.run(client.wait_for_job("job-1", interval=0.001, timeout=0.01))
+        result = asyncio.run(client.wait_for_job("job-1", interval=0.001, timeout=0.01))
+        assert result.status == models.JobsJobStatus.FAILED
 
         monkeypatch.setattr(client, "get_job_status", status_running)
         with pytest.raises(TimeoutError):

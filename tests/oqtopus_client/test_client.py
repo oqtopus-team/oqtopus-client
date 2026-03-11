@@ -157,6 +157,21 @@ def test_run_helpers_return_typed_results() -> None:
     assert isinstance(client.run_sse(OqtopusJobSpec.sse(device_id="K", program="print('x')")), OqtopusSseJobResult)
 
 
+def test_wait_for_job_returns_failed_result() -> None:
+    """Test case: test_wait_for_job_returns_failed_result."""
+
+    def fake_call(name: str, *args: Any, **kwargs: Any) -> Any:
+        assert name == "wait_for_job"
+        return _job(models.JobsJobType.SAMPLING, status=models.JobsJobStatus.FAILED)
+
+    client = _build_client_with_fake_call(fake_call)
+
+    result = client.wait_for_job("job-1")
+
+    assert isinstance(result, OqtopusSamplingJobResult)
+    assert result.status == models.JobsJobStatus.FAILED
+
+
 def test_list_jobs_and_filters_passthrough() -> None:
     """Test case: test_list_jobs_and_filters_passthrough."""
     now = datetime.now(timezone.utc)
