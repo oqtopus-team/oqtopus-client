@@ -46,6 +46,7 @@ from .job_spec import OqtopusJobSpec
 PACKAGE_NAME = "oqtopus-client"
 _SubmitJobInput = models.JobsSubmitJobRequest | Mapping[str, Any] | OqtopusJobSpec
 _RunInput = _SubmitJobInput
+_DEFAULT_BLOCKING_MAX_WORKERS = 4
 
 
 def _resolve_user_agent() -> str:
@@ -114,6 +115,10 @@ class _AsyncOqtopusClient:
         self._device_api: DeviceApi | None = None
         self._token_api: ApiTokenApi | None = None
         self._announcements_api: AnnouncementsApi | None = None
+        self._blocking_executor = ThreadPoolExecutor(
+            max_workers=_DEFAULT_BLOCKING_MAX_WORKERS,
+            thread_name_prefix="oqtopus-client",
+        )
 
         token = config.api_token
         if token:
@@ -192,6 +197,7 @@ class _AsyncOqtopusClient:
     async def close(self) -> None:
         if self._rest_client is not None:  # pragma: no cover - integration path
             await self._rest_client.close()
+        self._blocking_executor.shutdown(wait=True)
 
     async def _call_rest(
         self, call: Awaitable[Any]
@@ -283,7 +289,10 @@ class _AsyncOqtopusClient:
             ) from exc
 
         try:
-            response = sse_sampler.req_transpile_and_exec(  # type: ignore[attr-defined]
+            loop = asyncio.get_running_loop()
+            response = await loop.run_in_executor(
+                self._blocking_executor,
+                sse_sampler.req_transpile_and_exec,  # type: ignore[attr-defined]
                 request.job_info.program,
                 request.shots,
                 request.transpiler_info or {},

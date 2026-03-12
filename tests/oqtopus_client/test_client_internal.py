@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import importlib
 import sys
+import threading
 import types
 from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError
@@ -201,8 +202,14 @@ def test_run_sse_file_forwards_kwargs(tmp_path: Path, monkeypatch: pytest.Monkey
 def test_run_job_uses_sse_sampler_in_sse_container(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test case: test_run_job_uses_sse_sampler_in_sse_container."""
     monkeypatch.setenv("OQTOPUS_ENV", "sse_container")
-    fake_module = types.SimpleNamespace(
-        req_transpile_and_exec=lambda program, shots, transpiler_info: {
+    loop_thread_id = threading.get_ident()
+    observed: dict[str, int] = {}
+
+    def req_transpile_and_exec(
+        program: list[str], shots: int, transpiler_info: dict[str, Any]
+    ) -> dict[str, Any]:
+        observed["thread_id"] = threading.get_ident()
+        return {
             "job_id": "job-sse-container",
             "name": "job",
             "job_type": "sampling",
@@ -210,7 +217,10 @@ def test_run_job_uses_sse_sampler_in_sse_container(monkeypatch: pytest.MonkeyPat
             "device_id": "sse",
             "shots": shots,
             "job_info": {"program": program, "result": {"sampling": {"counts": {"00": 1}}}},
-        },
+        }
+
+    fake_module = types.SimpleNamespace(
+        req_transpile_and_exec=req_transpile_and_exec,
     )
     monkeypatch.setitem(sys.modules, "sse_sampler", fake_module)
 
@@ -225,6 +235,7 @@ def test_run_job_uses_sse_sampler_in_sse_container(monkeypatch: pytest.MonkeyPat
         asyncio.run(client.close())
 
     assert result.job_id == "job-sse-container"
+    assert observed["thread_id"] != loop_thread_id
 
 
 def test_run_job_raises_when_sse_sampler_missing(monkeypatch: pytest.MonkeyPatch) -> None:
