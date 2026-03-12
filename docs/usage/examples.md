@@ -1,6 +1,7 @@
 # Examples
 
-Python script samples are available under `examples/`.
+Python script samples are available in the
+[`examples/` directory on GitHub](https://github.com/oqtopus-team/oqtopus-client/tree/main/examples).
 
 ## Recommended Baseline
 

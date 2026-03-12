@@ -245,4 +245,5 @@ status is typically `succeeded`, `failed`, or `cancelled`.
 ## Further Reading
 
 - [Examples](examples.md)
+- [`examples/` directory on GitHub](https://github.com/oqtopus-team/oqtopus-client/tree/main/examples)
 - [API Reference](../reference/API_reference.md)

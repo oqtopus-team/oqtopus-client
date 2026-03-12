@@ -26,6 +26,7 @@ For local development, see [Setup Development Environment](./docs/developer_guid
 - [Documentation Home](./docs/index.md)
 - [Getting Started](./docs/usage/getting_started.md)
 - [Examples](./docs/usage/examples.md)
+- [GitHub Examples Directory](https://github.com/oqtopus-team/oqtopus-client/tree/main/examples)
 - [API Reference](./docs/api.md)
 
 ## Developer Guidelines
