@@ -24,8 +24,8 @@ For local development, see [Setup Development Environment](./docs/developer_guid
 ## Documentation
 
 - [Documentation Home](./docs/index.md)
-- [Getting Started](./docs/en/quickstart.md)
-- [Examples](./docs/en/examples.md)
+- [Getting Started](./docs/usage/getting_started.md)
+- [Examples](./docs/usage/examples.md)
 - [API Reference](./docs/api.md)
 
 ## Developer Guidelines

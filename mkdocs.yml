@@ -6,8 +6,8 @@ repo_url: "https://github.com/oqtopus-team/oqtopus-client"
 nav:
   - Home: index.md
   - Usage:
-      - Getting Started: en/quickstart.md
-      - Examples: en/examples.md
+      - Getting Started: usage/getting_started.md
+      - Examples: usage/examples.md
   - API reference:
       - Package Reference: reference/
   - Developer Guidelines:

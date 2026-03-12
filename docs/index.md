@@ -16,7 +16,7 @@ This documentation auto-generates API references from docstrings in `src/oqtopus
 
 ## Quick Links
 
-- [Getting Started](en/quickstart.md)
+- [Getting Started](usage/getting_started.md)
 - [API Reference](reference/API_reference.md)
-- [Examples](en/examples.md)
+- [Examples](usage/examples.md)
 - [Developer Guidelines](developer_guidelines/development_flow.md)
