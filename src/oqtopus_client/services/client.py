@@ -8,45 +8,86 @@ import json
 import os
 import threading
 import weakref
-from collections.abc import Awaitable, Callable, Mapping, Sequence
-from concurrent.futures import ThreadPoolExecutor
+from collections.abc import Awaitable, Callable, Coroutine, Mapping, Sequence
+from concurrent.futures import Future, ThreadPoolExecutor
 from contextlib import suppress
-from datetime import datetime
 from importlib import import_module
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from time import monotonic
-from typing import Any, cast
+from typing import TYPE_CHECKING, TypeVar, cast
 
 from pydantic import TypeAdapter, ValidationError
-from typing_extensions import Self
+from typing_extensions import Self, TypedDict, Unpack
 
-from .. import rest as models
-from ..rest.api.announcements_api import AnnouncementsApi
-from ..rest.api.api_token_api import ApiTokenApi
-from ..rest.api.device_api import DeviceApi
-from ..rest.api.job_api import JobApi
-from ..rest.api_client import ApiClient as RestApiClient
-from ..rest.configuration import Configuration as RestConfiguration
-from ..rest.exceptions import ApiException as RestApiException
-from .config import OqtopusConfig
-from .device import (
+from oqtopus_client import rest as models
+from oqtopus_client.rest.api.announcements_api import AnnouncementsApi
+from oqtopus_client.rest.api.api_token_api import ApiTokenApi
+from oqtopus_client.rest.api.device_api import DeviceApi
+from oqtopus_client.rest.api.job_api import JobApi
+from oqtopus_client.rest.api_client import ApiClient as RestApiClient
+from oqtopus_client.rest.configuration import Configuration as RestConfiguration
+from oqtopus_client.rest.exceptions import ApiException as RestApiException
+from oqtopus_client.services.config import OqtopusConfig
+from oqtopus_client.services.device import (
     OqtopusDevice,
 )
-from .errors import ResponseValidationError, UserApiError
-from .job_results import (
+from oqtopus_client.services.errors import ResponseValidationError, UserApiError
+from oqtopus_client.services.job_results import (
     OqtopusEstimationJobResult,
     OqtopusJobResult,
     OqtopusMultiManualJobResult,
     OqtopusSamplingJobResult,
     OqtopusSseJobResult,
 )
-from .job_spec import OqtopusJobSpec
+from oqtopus_client.services.job_spec import OqtopusJobSpec
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 PACKAGE_NAME = "oqtopus-client"
-_SubmitJobInput = models.JobsSubmitJobRequest | Mapping[str, Any] | OqtopusJobSpec
+_SubmitJobInput = (
+    models.JobsSubmitJobRequest | Mapping[str, object] | OqtopusJobSpec
+)
 _RunInput = _SubmitJobInput
 _DEFAULT_BLOCKING_MAX_WORKERS = 4
+_T = TypeVar("_T")
+
+
+class ListJobsKwargs(TypedDict, total=False):
+    """Optional filters accepted by `list_jobs`."""
+
+    fields: str | None
+    start_time: datetime | None
+    end_time: datetime | None
+    q: str | None
+    page: int | None
+    size: int | None
+    order: str | None
+
+
+class WaitForJobKwargs(TypedDict, total=False):
+    """Polling options accepted by job wait helpers."""
+
+    interval: float
+    interval_backoff: float
+    max_interval: float | None
+    timeout: float | None
+    terminal_statuses: set[models.JobsJobStatus] | None
+    failure_statuses: set[models.JobsJobStatus] | None
+    on_status: Callable[[models.JobsGetJobStatusResponse], None] | None
+
+
+class RunSseFileKwargs(WaitForJobKwargs, total=False):
+    """Keyword arguments accepted by `run_sse_file`."""
+
+    name: str | None
+    description: str | None
+    transpiler_info: dict[str, object] | None
+    simulator_info: dict[str, object] | None
+    mitigation_info: dict[str, object] | None
+    shots: int
+    max_encoded_file_size: int
 
 
 def _resolve_user_agent() -> str:
@@ -67,8 +108,8 @@ class _AsyncRuntime:
         asyncio.set_event_loop(self._loop)
         self._loop.run_forever()
 
-    def run(self, coro: Any) -> Any:
-        fut = asyncio.run_coroutine_threadsafe(coro, self._loop)
+    def run(self, coro: Coroutine[object, object, _T]) -> _T:
+        fut: Future[_T] = asyncio.run_coroutine_threadsafe(coro, self._loop)
         return fut.result()
 
     def close(self) -> None:
@@ -76,7 +117,7 @@ class _AsyncRuntime:
         self._thread.join(timeout=5.0)
 
 
-class _AsyncOqtopusClient:
+class _AsyncOqtopusClient:  # noqa: PLR0904
     def __init__(
         self,
         config: OqtopusConfig,
@@ -84,7 +125,8 @@ class _AsyncOqtopusClient:
         user_agent: str | None = None,
     ) -> None:
         if not config.base_url and not self._is_sse_container():
-            raise ValueError("config.base_url is required.")
+            msg = "config.base_url is required."
+            raise ValueError(msg)
 
         self.base_url = config.base_url.rstrip("/") if config.base_url else ""
         self._proxy = config.proxy
@@ -93,9 +135,11 @@ class _AsyncOqtopusClient:
         }
 
         if config.retry_max_attempts < 1:
-            raise ValueError("retry_max_attempts must be >= 1.")
+            msg = "retry_max_attempts must be >= 1."
+            raise ValueError(msg)
         if config.retry_backoff_seconds < 0:
-            raise ValueError("retry_backoff_seconds must be >= 0.")
+            msg = "retry_backoff_seconds must be >= 0."
+            raise ValueError(msg)
         self._retry_max_attempts = config.retry_max_attempts
         self._retry_backoff_seconds = config.retry_backoff_seconds
         self._retry_status_codes = set(
@@ -200,8 +244,8 @@ class _AsyncOqtopusClient:
         self._blocking_executor.shutdown(wait=True)
 
     async def _call_rest(
-        self, call: Awaitable[Any]
-    ) -> Any:  # pragma: no cover - integration path
+        self, call: Awaitable[_T]
+    ) -> _T:  # pragma: no cover - integration path
         try:
             return await call
         except RestApiException as exc:
@@ -213,23 +257,27 @@ class _AsyncOqtopusClient:
 
     @staticmethod
     def _job_type_of(
-        job: models.JobsSubmitJobRequest | Mapping[str, Any] | OqtopusJobSpec,
+        job: models.JobsSubmitJobRequest | Mapping[str, object] | OqtopusJobSpec,
     ) -> str | None:
         if isinstance(job, OqtopusJobSpec):
             spec_job_type = job.job_type
-            if isinstance(spec_job_type, models.JobsJobType):
-                return spec_job_type.value
-            if isinstance(spec_job_type, str):
-                return spec_job_type
-            return None
+            return (
+                spec_job_type.value
+                if isinstance(spec_job_type, models.JobsJobType)
+                else spec_job_type
+                if isinstance(spec_job_type, str)
+                else None
+            )
         if isinstance(job, models.JobsSubmitJobRequest):
             return job.job_type.value
         mapping_job_type = job.get("job_type")
-        if isinstance(mapping_job_type, models.JobsJobType):
-            return mapping_job_type.value
-        if isinstance(mapping_job_type, str):
-            return mapping_job_type
-        return None
+        return (
+            mapping_job_type.value
+            if isinstance(mapping_job_type, models.JobsJobType)
+            else mapping_job_type
+            if isinstance(mapping_job_type, str)
+            else None
+        )
 
     @staticmethod
     def _to_submit_job_request(
@@ -244,17 +292,19 @@ class _AsyncOqtopusClient:
     @classmethod
     def _validate_run_job_type(
         cls,
-        job: models.JobsSubmitJobRequest | Mapping[str, Any] | OqtopusJobSpec,
+        job: models.JobsSubmitJobRequest | Mapping[str, object] | OqtopusJobSpec,
         expected: models.JobsJobType,
     ) -> None:
         actual = cls._job_type_of(job)
         if actual != expected.value:
-            raise ValueError(
-                f"job_type must be '{expected.value}' for this helper (got {actual!r})."
+            msg = (
+                f"job_type must be '{expected.value}' for this helper "
+                f"(got {actual!r})."
             )
+            raise ValueError(msg)
 
     @staticmethod
-    def _extract_error_message(payload: Any) -> str | None:
+    def _extract_error_message(payload: object) -> str | None:
         if isinstance(payload, dict):
             message = payload.get("message")
             if isinstance(message, str) and message.strip():
@@ -304,7 +354,7 @@ class _AsyncOqtopusClient:
                 payload={"mode": "sse_container", "job_type": request.job_type.value},
             ) from exc
 
-        response_payload: Any = response
+        response_payload: object = response
         # Accept pydantic model instances returned by external runtime modules,
         # including models generated from a different package version.
         if hasattr(response, "model_dump_json") and callable(
@@ -349,7 +399,7 @@ class _AsyncOqtopusClient:
             ),
         )
 
-    async def list_jobs(
+    async def list_jobs(  # noqa: PLR0913
         self,
         *,
         fields: str | None = None,
@@ -378,7 +428,7 @@ class _AsyncOqtopusClient:
         )
 
     async def submit_job(self, body: _SubmitJobInput) -> models.JobsSubmitJobResponse:
-        payload: models.JobsSubmitJobRequest | dict[str, Any]
+        payload: models.JobsSubmitJobRequest | dict[str, object]
         if isinstance(body, OqtopusJobSpec):
             payload = body.to_model()
         elif isinstance(body, models.JobsSubmitJobRequest):
@@ -398,7 +448,11 @@ class _AsyncOqtopusClient:
             ),
         )
 
-    async def run_job(self, job: _SubmitJobInput, **kwargs: Any) -> models.JobsJobDef:
+    async def run_job(
+        self,
+        job: _SubmitJobInput,
+        **kwargs: Unpack[WaitForJobKwargs],
+    ) -> models.JobsJobDef:
         request = self._to_submit_job_request(job)
         if self._is_sse_container():
             if request.job_type in {
@@ -419,55 +473,71 @@ class _AsyncOqtopusClient:
         response = await self.submit_job(request)
         return await self.wait_for_job(response.job_id, **kwargs)
 
-    async def run_sampling(self, job: _RunInput, **kwargs: Any) -> models.JobsJobDef:
+    async def run_sampling(
+        self,
+        job: _RunInput,
+        **kwargs: Unpack[WaitForJobKwargs],
+    ) -> models.JobsJobDef:
         request = self._to_submit_job_request(job)
         self._validate_run_job_type(request, models.JobsJobType.SAMPLING)
         return await self.run_job(request, **kwargs)
 
-    async def run_estimation(self, job: _RunInput, **kwargs: Any) -> models.JobsJobDef:
+    async def run_estimation(
+        self,
+        job: _RunInput,
+        **kwargs: Unpack[WaitForJobKwargs],
+    ) -> models.JobsJobDef:
         request = self._to_submit_job_request(job)
         self._validate_run_job_type(request, models.JobsJobType.ESTIMATION)
         return await self.run_job(request, **kwargs)
 
     async def run_multi_manual(
-        self, job: _RunInput, **kwargs: Any
+        self, job: _RunInput, **kwargs: Unpack[WaitForJobKwargs]
     ) -> models.JobsJobDef:
         request = self._to_submit_job_request(job)
         self._validate_run_job_type(request, models.JobsJobType.MULTI_MANUAL)
         return await self.run_job(request, **kwargs)
 
-    async def run_sse(self, job: _RunInput, **kwargs: Any) -> models.JobsJobDef:
+    async def run_sse(
+        self,
+        job: _RunInput,
+        **kwargs: Unpack[WaitForJobKwargs],
+    ) -> models.JobsJobDef:
         request = self._to_submit_job_request(job)
         self._validate_run_job_type(request, models.JobsJobType.SSE)
         return await self.run_job(request, **kwargs)
 
     @staticmethod
-    def build_sse_job_request(
+    def build_sse_job_request(  # noqa: PLR0913
         file_path: str | Path,
         *,
         device_id: str,
         name: str | None = None,
         description: str | None = None,
-        transpiler_info: dict[str, Any] | None = None,
-        simulator_info: dict[str, Any] | None = None,
-        mitigation_info: dict[str, Any] | None = None,
+        transpiler_info: dict[str, object] | None = None,
+        simulator_info: dict[str, object] | None = None,
+        mitigation_info: dict[str, object] | None = None,
         shots: int = 1,
         max_encoded_file_size: int = 10 * 1024 * 1024,
     ) -> models.JobsSubmitJobRequest:
         path = Path(file_path)
         if not path.exists():
-            raise ValueError(f"The file does not exist: {path}")
+            msg = f"The file does not exist: {path}"
+            raise ValueError(msg)
         if not path.is_file():
-            raise ValueError(f"The path is not a file: {path}")
+            msg = f"The path is not a file: {path}"
+            raise ValueError(msg)
         if path.suffix != ".py":
-            raise ValueError(f"The file is not python file: {path}")
+            msg = f"The file is not python file: {path}"
+            raise ValueError(msg)
 
         encoded = base64.b64encode(path.read_bytes())
         if len(encoded) >= max_encoded_file_size:
-            raise ValueError(
+            msg = (
                 "size of the base64 encoded file is larger than "
                 f"{max_encoded_file_size}"
             )
+            raise ValueError(msg)
 
         return models.JobsSubmitJobRequest(
             name=name,
@@ -482,7 +552,11 @@ class _AsyncOqtopusClient:
         )
 
     async def run_sse_file(
-        self, *, file_path: str | Path, device_id: str, **kwargs: Any
+        self,
+        *,
+        file_path: str | Path,
+        device_id: str,
+        **kwargs: Unpack[RunSseFileKwargs],
     ) -> models.JobsJobDef:
         request = self.build_sse_job_request(
             file_path=file_path,
@@ -495,7 +569,8 @@ class _AsyncOqtopusClient:
             shots=kwargs.pop("shots", 1),
             max_encoded_file_size=kwargs.pop("max_encoded_file_size", 10 * 1024 * 1024),
         )
-        return await self.run_sse(request, **kwargs)
+        wait_kwargs = cast("WaitForJobKwargs", kwargs)
+        return await self.run_sse(request, **wait_kwargs)
 
     async def get_job(self, job_id: str) -> models.JobsJobDef:
         job_api = self._ensure_job_api()
@@ -506,7 +581,7 @@ class _AsyncOqtopusClient:
             ),
         )
 
-    async def wait_for_job(
+    async def wait_for_job(  # noqa: C901, PLR0913
         self,
         job_id: str,
         *,
@@ -519,13 +594,17 @@ class _AsyncOqtopusClient:
         on_status: Callable[[models.JobsGetJobStatusResponse], None] | None = None,
     ) -> models.JobsJobDef:
         if interval <= 0:
-            raise ValueError("interval must be greater than 0.")
+            msg = "interval must be greater than 0."
+            raise ValueError(msg)
         if interval_backoff < 1.0:
-            raise ValueError("interval_backoff must be >= 1.0.")
+            msg = "interval_backoff must be >= 1.0."
+            raise ValueError(msg)
         if max_interval is not None and max_interval <= 0:
-            raise ValueError("max_interval must be greater than 0 or None.")
+            msg = "max_interval must be greater than 0 or None."
+            raise ValueError(msg)
         if timeout is not None and timeout <= 0:
-            raise ValueError("timeout must be greater than 0 or None.")
+            msg = "timeout must be greater than 0 or None."
+            raise ValueError(msg)
 
         terminal = terminal_statuses or {
             models.JobsJobStatus.SUCCEEDED,
@@ -546,17 +625,18 @@ class _AsyncOqtopusClient:
                 return await self.get_job(job_id)
 
             if deadline is not None and monotonic() >= deadline:
-                raise TimeoutError(
-                    f"Timed out waiting for job {job_id} after {timeout} seconds."
-                )
+                msg = f"Timed out waiting for job {job_id} after {timeout} seconds."
+                raise TimeoutError(msg)
 
             sleep_for = next_interval
             if deadline is not None:
                 remaining = deadline - monotonic()
                 if remaining <= 0:
-                    raise TimeoutError(
-                        f"Timed out waiting for job {job_id} after {timeout} seconds."
+                    msg = (
+                        f"Timed out waiting for job {job_id} "
+                        f"after {timeout} seconds."
                     )
+                    raise TimeoutError(msg)
                 sleep_for = min(sleep_for, remaining)
 
             await asyncio.sleep(sleep_for)
@@ -609,7 +689,8 @@ class _AsyncOqtopusClient:
             ),
         )
         if token is None:  # pragma: no cover
-            raise ResponseValidationError("create_api_token response is empty.", token)
+            msg = "create_api_token response is empty."
+            raise ResponseValidationError(msg, token)
         return token
 
     async def get_api_token(self) -> models.ApiTokenApiToken:
@@ -654,7 +735,7 @@ class _AsyncOqtopusClient:
         )
 
 
-class OqtopusClient:
+class OqtopusClient:  # noqa: PLR0904
     """Synchronous public client; internal HTTP calls are executed asynchronously."""
 
     def __init__(
@@ -714,12 +795,21 @@ class OqtopusClient:
         with suppress(Exception):
             runtime.close()
 
-    def _call(self, method_name: str, *args: Any, **kwargs: Any) -> Any:
+    def _call(
+        self,
+        method_name: str,
+        *args: object,
+        **kwargs: object,
+    ) -> object:
         if self._closed:
-            raise RuntimeError("Client is closed.")
+            msg = "Client is closed."
+            raise RuntimeError(msg)
 
-        async def _run() -> Any:
-            method = getattr(self._async, method_name)
+        async def _run() -> object:
+            method = cast(
+                "Callable[..., Coroutine[object, object, object]]",
+                getattr(self._async, method_name),
+            )
             return await method(*args, **kwargs)
 
         return self._runtime.run(_run())
@@ -877,7 +967,11 @@ class OqtopusClient:
             Available devices wrapped as SDK device objects.
 
         """
-        return [self._to_device(device) for device in self._call("list_devices")]
+        devices = cast(
+            "list[models.DevicesDeviceInfo]",
+            self._call("list_devices"),
+        )
+        return [self._to_device(device) for device in devices]
 
     def get_device(self, device_id: str) -> OqtopusDevice:
         """Get one device by id.
@@ -886,16 +980,26 @@ class OqtopusClient:
             The requested device wrapped as an SDK device object.
 
         """
-        return self._to_device(self._call("get_device", device_id))
+        device = cast(
+            "models.DevicesDeviceInfo",
+            self._call("get_device", device_id),
+        )
+        return self._to_device(device)
 
-    def list_jobs(self, **kwargs: Any) -> list[models.JobsGetJobsResponse]:
+    def list_jobs(
+        self,
+        **kwargs: Unpack[ListJobsKwargs],
+    ) -> list[models.JobsGetJobsResponse]:
         """List jobs with optional filters.
 
         Returns:
             Jobs returned by the API.
 
         """
-        return self._call("list_jobs", **kwargs)
+        return cast(
+            "list[models.JobsGetJobsResponse]",
+            self._call("list_jobs", **kwargs),
+        )
 
     def submit_job(self, body: OqtopusJobSpec) -> models.JobsSubmitJobResponse:
         """Submit one job and return submission response.
@@ -911,8 +1015,12 @@ class OqtopusClient:
 
         """
         if not isinstance(body, OqtopusJobSpec):
-            raise TypeError("submit_job expects OqtopusJobSpec.")  # pragma: no cover
-        return self._call("submit_job", body)
+            msg = "submit_job expects OqtopusJobSpec."
+            raise TypeError(msg)  # pragma: no cover
+        return cast(
+            "models.JobsSubmitJobResponse",
+            self._call("submit_job", body),
+        )
 
     def submit_jobs(
         self,
@@ -935,11 +1043,11 @@ class OqtopusClient:
 
         """
         if max_workers < 1:
-            raise ValueError("max_workers must be >= 1.")
+            msg = "max_workers must be >= 1."
+            raise ValueError(msg)
         if any(not isinstance(job, OqtopusJobSpec) for job in jobs):
-            raise TypeError(
-                "submit_jobs expects a list of OqtopusJobSpec."
-            )  # pragma: no cover
+            msg = "submit_jobs expects a list of OqtopusJobSpec."
+            raise TypeError(msg)  # pragma: no cover
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             return list(executor.map(self.submit_job, jobs))
 
@@ -951,15 +1059,21 @@ class OqtopusClient:
         method: str = "run_job",
     ) -> OqtopusJobSpec:
         if not isinstance(job, OqtopusJobSpec):
-            raise TypeError(f"{method} expects OqtopusJobSpec.")  # pragma: no cover
+            msg = f"{method} expects OqtopusJobSpec."
+            raise TypeError(msg)  # pragma: no cover
         if expected is not None and models.JobsJobType(job.job_type) != expected:
-            raise ValueError(
+            msg = (
                 f"job.job_type must be '{expected.value}' for {method} "
                 f"(got {job.job_type!r})."
             )
+            raise ValueError(msg)
         return job
 
-    def run_job(self, job: OqtopusJobSpec, **kwargs: Any) -> OqtopusJobResult:
+    def run_job(
+        self,
+        job: OqtopusJobSpec,
+        **kwargs: Unpack[WaitForJobKwargs],
+    ) -> OqtopusJobResult:
         """Submit one job spec, wait until completion, and return typed result.
 
         Args:
@@ -973,11 +1087,14 @@ class OqtopusClient:
 
         """
         spec = self._validate_job_spec(job, method="run_job")
-        finished_job = self._call("run_job", spec.to_model(), **kwargs)
+        finished_job = cast(
+            "models.JobsJobDef",
+            self._call("run_job", spec.to_model(), **kwargs),
+        )
         return self._to_result(finished_job)
 
     def run_sampling(
-        self, job: OqtopusJobSpec, **kwargs: Any
+        self, job: OqtopusJobSpec, **kwargs: Unpack[WaitForJobKwargs]
     ) -> OqtopusSamplingJobResult:
         """Run a sampling job and return sampling-typed SDK result.
 
@@ -997,19 +1114,21 @@ class OqtopusClient:
         spec = self._validate_job_spec(
             job, expected=models.JobsJobType.SAMPLING, method="run_sampling"
         )
-        finished_job = self._call(
-            "run_sampling", spec.to_model(), **kwargs
+        finished_job = cast(
+            "models.JobsJobDef",
+            self._call("run_sampling", spec.to_model(), **kwargs),
         )
         result = self._to_result(finished_job)
         if not isinstance(result, OqtopusSamplingJobResult):
+            msg = "run_sampling returned non-sampling job result"
             raise ResponseValidationError(
-                "run_sampling returned non-sampling job result",
+                msg,
                 finished_job.model_dump(),
             )  # pragma: no cover
         return cast("OqtopusSamplingJobResult", result)
 
     def run_estimation(
-        self, job: OqtopusJobSpec, **kwargs: Any
+        self, job: OqtopusJobSpec, **kwargs: Unpack[WaitForJobKwargs]
     ) -> OqtopusEstimationJobResult:
         """Run an estimation job and return estimation-typed SDK result.
 
@@ -1029,19 +1148,21 @@ class OqtopusClient:
         spec = self._validate_job_spec(
             job, expected=models.JobsJobType.ESTIMATION, method="run_estimation"
         )
-        finished_job = self._call(
-            "run_estimation", spec.to_model(), **kwargs
+        finished_job = cast(
+            "models.JobsJobDef",
+            self._call("run_estimation", spec.to_model(), **kwargs),
         )
         result = self._to_result(finished_job)
         if not isinstance(result, OqtopusEstimationJobResult):
+            msg = "run_estimation returned non-estimation job result"
             raise ResponseValidationError(
-                "run_estimation returned non-estimation job result",
+                msg,
                 finished_job.model_dump(),
             )  # pragma: no cover
         return cast("OqtopusEstimationJobResult", result)
 
     def run_multi_manual(
-        self, job: OqtopusJobSpec, **kwargs: Any
+        self, job: OqtopusJobSpec, **kwargs: Unpack[WaitForJobKwargs]
     ) -> OqtopusMultiManualJobResult:
         """Run a multi-manual job and return multi-manual-typed SDK result.
 
@@ -1061,18 +1182,24 @@ class OqtopusClient:
         spec = self._validate_job_spec(
             job, expected=models.JobsJobType.MULTI_MANUAL, method="run_multi_manual"
         )
-        finished_job = self._call(
-            "run_multi_manual", spec.to_model(), **kwargs
+        finished_job = cast(
+            "models.JobsJobDef",
+            self._call("run_multi_manual", spec.to_model(), **kwargs),
         )
         result = self._to_result(finished_job)
         if not isinstance(result, OqtopusMultiManualJobResult):
+            msg = "run_multi_manual returned non-multi_manual job result"
             raise ResponseValidationError(
-                "run_multi_manual returned non-multi_manual job result",
+                msg,
                 finished_job.model_dump(),
             )  # pragma: no cover
         return cast("OqtopusMultiManualJobResult", result)
 
-    def run_sse(self, job: OqtopusJobSpec, **kwargs: Any) -> OqtopusSseJobResult:
+    def run_sse(
+        self,
+        job: OqtopusJobSpec,
+        **kwargs: Unpack[WaitForJobKwargs],
+    ) -> OqtopusSseJobResult:
         """Run an SSE job and return SSE-typed SDK result.
 
         Args:
@@ -1091,17 +1218,25 @@ class OqtopusClient:
         spec = self._validate_job_spec(
             job, expected=models.JobsJobType.SSE, method="run_sse"
         )
-        finished_job = self._call("run_sse", spec.to_model(), **kwargs)
+        finished_job = cast(
+            "models.JobsJobDef",
+            self._call("run_sse", spec.to_model(), **kwargs),
+        )
         result = self._to_result(finished_job)
         if not isinstance(result, OqtopusSseJobResult):
+            msg = "run_sse returned non-sse job result"
             raise ResponseValidationError(
-                "run_sse returned non-sse job result",
+                msg,
                 finished_job.model_dump(),
             )  # pragma: no cover
         return cast("OqtopusSseJobResult", result)
 
     def run_sse_file(
-        self, *, file_path: str | Path, device_id: str, **kwargs: Any
+        self,
+        *,
+        file_path: str | Path,
+        device_id: str,
+        **kwargs: Unpack[RunSseFileKwargs],
     ) -> OqtopusSseJobResult:
         """Build and run an SSE job directly from a script file and return SSE result.
 
@@ -1119,13 +1254,21 @@ class OqtopusClient:
             ResponseValidationError: If the API response is not an SSE result.
 
         """
-        finished_job = self._call(
-            "run_sse_file", file_path=file_path, device_id=device_id, **kwargs
+        finished_job = cast(
+            "models.JobsJobDef",
+            self._call(
+                "run_sse_file",
+                file_path=file_path,
+                device_id=device_id,
+                **kwargs,
+            ),
         )
         result = self._to_result(finished_job)
         if not isinstance(result, OqtopusSseJobResult):
+            msg = "run_sse_file returned non-sse job result"
             raise ResponseValidationError(
-                "run_sse_file returned non-sse job result", finished_job.model_dump()
+                msg,
+                finished_job.model_dump(),
             )  # pragma: no cover
         return cast("OqtopusSseJobResult", result)
 
@@ -1139,7 +1282,8 @@ class OqtopusClient:
             The fetched job as an SDK result wrapper.
 
         """
-        return self._to_result(self._call("get_job", job_id))
+        job = cast("models.JobsJobDef", self._call("get_job", job_id))
+        return self._to_result(job)
 
     def get_job_result(self, job_id: str) -> OqtopusJobResult:
         """Alias of :meth:`get_job`.
@@ -1171,7 +1315,11 @@ class OqtopusClient:
         """
         return self.get_job_result(job_id)
 
-    def wait_for_job(self, job_id: str, **kwargs: Any) -> OqtopusJobResult:
+    def wait_for_job(
+        self,
+        job_id: str,
+        **kwargs: Unpack[WaitForJobKwargs],
+    ) -> OqtopusJobResult:
         """Poll one job until terminal status/timeout and return typed result.
 
         Args:
@@ -1184,9 +1332,17 @@ class OqtopusClient:
             The finished job as an SDK result wrapper.
 
         """
-        return self._to_result(self._call("wait_for_job", job_id, **kwargs))
+        job = cast(
+            "models.JobsJobDef",
+            self._call("wait_for_job", job_id, **kwargs),
+        )
+        return self._to_result(job)
 
-    def wait(self, job_id: str, **kwargs: Any) -> OqtopusJobResult:
+    def wait(
+        self,
+        job_id: str,
+        **kwargs: Unpack[WaitForJobKwargs],
+    ) -> OqtopusJobResult:
         """Alias of :meth:`wait_for_job`.
 
         Returns:
@@ -1195,7 +1351,7 @@ class OqtopusClient:
         """
         return self.wait_for_job(job_id, **kwargs)
 
-    def wait_for_jobs(
+    def wait_for_jobs(  # noqa: PLR0913
         self,
         job_ids: list[str],
         *,
@@ -1223,7 +1379,8 @@ class OqtopusClient:
 
         """
         if max_workers < 1:
-            raise ValueError("max_workers must be >= 1.")
+            msg = "max_workers must be >= 1."
+            raise ValueError(msg)
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             return list(
                 executor.map(
@@ -1238,7 +1395,7 @@ class OqtopusClient:
                 ),
             )
 
-    def run_jobs_batch(
+    def run_jobs_batch(  # noqa: PLR0913
         self,
         jobs: list[OqtopusJobSpec],
         *,
@@ -1269,9 +1426,11 @@ class OqtopusClient:
 
         """
         if submit_workers < 1:
-            raise ValueError("submit_workers must be >= 1.")
+            msg = "submit_workers must be >= 1."
+            raise ValueError(msg)
         if any(not isinstance(job, OqtopusJobSpec) for job in jobs):
-            raise TypeError("run_jobs_batch expects a list of OqtopusJobSpec.")
+            msg = "run_jobs_batch expects a list of OqtopusJobSpec."
+            raise TypeError(msg)
         submitted = self.submit_jobs(jobs, max_workers=submit_workers)
         return self.wait_for_jobs(
             [job.job_id for job in submitted],
@@ -1292,7 +1451,10 @@ class OqtopusClient:
             Success response from the API.
 
         """
-        return self._call("delete_job", job_id)
+        return cast(
+            "models.SuccessSuccessResponse",
+            self._call("delete_job", job_id),
+        )
 
     def get_job_status(self, job_id: str) -> models.JobsGetJobStatusResponse:
         """Get current status for one job.
@@ -1304,7 +1466,10 @@ class OqtopusClient:
             Raw job status response from the API.
 
         """
-        return self._call("get_job_status", job_id)
+        return cast(
+            "models.JobsGetJobStatusResponse",
+            self._call("get_job_status", job_id),
+        )
 
     def status(self, job_id: str) -> models.JobsJobStatus:
         """Get current job status enum for one job.
@@ -1344,7 +1509,10 @@ class OqtopusClient:
             Success response from the API.
 
         """
-        return self._call("cancel_job", job_id)
+        return cast(
+            "models.SuccessSuccessResponse",
+            self._call("cancel_job", job_id),
+        )
 
     def get_sselog(self, job_id: str) -> models.JobsGetSselogResponse:
         """Get encoded SSE log archive for one job.
@@ -1353,7 +1521,10 @@ class OqtopusClient:
             Encoded SSE log archive response from the API.
 
         """
-        return self._call("get_sselog", job_id)
+        return cast(
+            "models.JobsGetSselogResponse",
+            self._call("get_sselog", job_id),
+        )
 
     def create_api_token(self) -> models.ApiTokenApiToken:
         """Create an API token.
@@ -1362,7 +1533,10 @@ class OqtopusClient:
             The created API token payload.
 
         """
-        return self._call("create_api_token")
+        return cast(
+            "models.ApiTokenApiToken",
+            self._call("create_api_token"),
+        )
 
     def get_api_token(self) -> models.ApiTokenApiToken:
         """Get API token.
@@ -1371,7 +1545,10 @@ class OqtopusClient:
             The current API token payload.
 
         """
-        return self._call("get_api_token")
+        return cast(
+            "models.ApiTokenApiToken",
+            self._call("get_api_token"),
+        )
 
     def delete_api_token(self) -> None:
         """Delete current API token."""
@@ -1386,7 +1563,10 @@ class OqtopusClient:
             Announcements list returned by the API.
 
         """
-        return self._call("get_announcements_list")
+        return cast(
+            "models.AnnouncementsGetAnnouncementsListResponse",
+            self._call("get_announcements_list"),
+        )
 
     def get_announcement(
         self, announcement_id: int
@@ -1397,4 +1577,7 @@ class OqtopusClient:
             The requested announcement payload.
 
         """
-        return self._call("get_announcement", announcement_id)
+        return cast(
+            "models.AnnouncementsGetAnnouncementResponse",
+            self._call("get_announcement", announcement_id),
+        )

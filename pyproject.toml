@@ -79,6 +79,9 @@ lint.ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
+"examples/**/*.py" = [
+  "T201",
+]
 "tests/**/*.py" = [
   "ANN201",
   "ANN205",
@@ -105,39 +108,6 @@ lint.ignore = [
   "SLF001",
   "TC003",
 ]
-"examples/**/*.py" = ["D", "INP001", "S101", "T201"]
-"scripts/**/*.py" = ["INP001", "PLR2004", "SIM102"]
-"src/oqtopus_client/services/client.py" = [
-  "ANN401",
-  "BLE001",
-  "C901",
-  "EM101",
-  "EM102",
-  "PERF203",
-  "PLR6301",
-  "PLR0904",
-  "PLR0911",
-  "PLR0913",
-  "PLR0917",
-  "TC003",
-  "TID252",
-  "TRY003",
-]
-"src/oqtopus_client/services/estimation_operator.py" = ["TC003", "TID252"]
-"src/oqtopus_client/services/config.py" = ["PLR0913", "PLR0917", "S107", "TRY003", "EM101", "EM102"]
-"src/oqtopus_client/services/device.py" = ["ANN401", "TC001", "TC003", "TID252"]
-"src/oqtopus_client/services/errors.py" = ["ANN401"]
-"src/oqtopus_client/services/job_results.py" = [
-  "EM101",
-  "EM102",
-  "PLC0415",
-  "PLR0911",
-  "PLR0913",
-  "TID252",
-  "TRY003",
-]
-"src/oqtopus_client/services/job_spec.py" = ["PLR0913", "TC003", "TID252"]
-"src/oqtopus_client/services/result_utils.py" = ["EM102", "TC003", "TID252", "TRY003"]
 
 [tool.mypy]
 files = ["src", "tests", "examples"]

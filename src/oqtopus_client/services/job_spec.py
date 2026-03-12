@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import base64
-from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from .. import rest as models
-from .estimation_operator import OqtopusEstimationOperator
+from oqtopus_client import rest as models
+from oqtopus_client.services.estimation_operator import OqtopusEstimationOperator
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
 
 
 def _normalize_programs(program: str | Sequence[str]) -> list[str]:
@@ -80,7 +82,7 @@ class OqtopusJobSpec:
     ) = None
 
     @classmethod
-    def sampling(
+    def sampling(  # noqa: PLR0913
         cls,
         *,
         device_id: str,
@@ -127,7 +129,7 @@ class OqtopusJobSpec:
         )
 
     @classmethod
-    def estimation(
+    def estimation(  # noqa: PLR0913
         cls,
         *,
         device_id: str,
@@ -174,7 +176,7 @@ class OqtopusJobSpec:
         )
 
     @classmethod
-    def multi_manual(
+    def multi_manual(  # noqa: PLR0913
         cls,
         *,
         device_id: str,
@@ -221,7 +223,7 @@ class OqtopusJobSpec:
         )
 
     @classmethod
-    def sse(
+    def sse(  # noqa: PLR0913
         cls,
         *,
         device_id: str,

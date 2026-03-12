@@ -6,6 +6,7 @@ import mkdocs_gen_files
 
 nav = mkdocs_gen_files.Nav()
 mod_symbol = '<code class="doc-symbol doc-symbol-nav doc-symbol-module"></code>'
+REST_ROOT_PARTS = 3
 
 root = Path(__file__).parent.parent
 src = root / "src"
@@ -22,11 +23,11 @@ def _is_excluded(parts: tuple[str, ...]) -> bool:
         return True
     if parts[-1].startswith("_"):
         return True
-    if len(parts) >= 3 and parts[1] == "rest":
-        # Keep only oqtopus_client.rest (package root); exclude generated internals.
-        if parts[2] != "__init__":
-            return True
-    return False
+    return (
+        len(parts) >= REST_ROOT_PARTS
+        and parts[1] == "rest"
+        and parts[2] != "__init__"
+    )
 
 
 for path in sorted(src.rglob("*.py")):

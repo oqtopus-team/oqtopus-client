@@ -42,5 +42,8 @@ result = client.run_job(
 print(result)
 print(result.job_id, result.job_type)
 if result.is_sampling():
-    assert isinstance(result, OqtopusSamplingJobResult)
-    print(result.normalized_counts())
+    sampling_result = result
+    if not isinstance(sampling_result, OqtopusSamplingJobResult):
+        msg = "expected a sampling result"
+        raise TypeError(msg)
+    print(sampling_result.normalized_counts())

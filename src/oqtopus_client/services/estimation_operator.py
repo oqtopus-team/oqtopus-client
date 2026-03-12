@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .. import rest as models
+from oqtopus_client import rest as models
 
 
 @dataclass(frozen=True, slots=True)

@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING
 
-from .. import rest as models
+if TYPE_CHECKING:
+    from datetime import datetime
+
+    from oqtopus_client import rest as models
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,7 +72,7 @@ class OqtopusDevice:
         """Human-readable device description."""
         return self.raw.description
 
-    def __getattr__(self, name: str) -> Any:
+    def __getattr__(self, name: str) -> object:
         """Delegate unknown attributes to the underlying generated model.
 
         Returns:

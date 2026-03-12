@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import Any
+from typing import TYPE_CHECKING, cast
 
-from .. import rest as models
+from oqtopus_client import rest as models
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 def bitstring_to_int(bitstring: str) -> int:
@@ -21,11 +23,14 @@ def bitstring_to_int(bitstring: str) -> int:
     normalized = bitstring.strip().replace("_", "").replace(" ", "")
     normalized = normalized.removeprefix("0b")
     if not normalized or any(char not in {"0", "1"} for char in normalized):
-        raise ValueError(f"Invalid bitstring: {bitstring!r}")
+        msg = f"Invalid bitstring: {bitstring!r}"
+        raise ValueError(msg)
     return int(normalized, 2)
 
 
-def bitstring_dict_to_int_keys(values: Mapping[str, Any] | None) -> dict[int, Any]:
+def bitstring_dict_to_int_keys(
+    values: Mapping[str, object] | None,
+) -> dict[int, object]:
     """Convert bitstring-keyed mappings to int-keyed mappings.
 
     Returns:
@@ -38,8 +43,8 @@ def bitstring_dict_to_int_keys(values: Mapping[str, Any] | None) -> dict[int, An
 
 
 def normalize_sampling_result(
-    sampling_result: models.JobsSamplingResult | Mapping[str, Any] | None,
-) -> dict[str, dict[int, Any]]:
+    sampling_result: models.JobsSamplingResult | Mapping[str, object] | None,
+) -> dict[str, dict[int, object]]:
     """Normalize sampling result counts by converting bitstring keys to integers.
 
     Returns:
@@ -49,12 +54,17 @@ def normalize_sampling_result(
     if sampling_result is None:
         return {"counts": {}, "divided_counts": {}}
 
+    counts: Mapping[str, object] | None
+    divided_counts: Mapping[str, object] | None
     if isinstance(sampling_result, models.JobsSamplingResult):
         counts = sampling_result.counts
         divided_counts = sampling_result.divided_counts
     else:
-        counts = sampling_result.get("counts")
-        divided_counts = sampling_result.get("divided_counts")
+        counts = cast("Mapping[str, object] | None", sampling_result.get("counts"))
+        divided_counts = cast(
+            "Mapping[str, object] | None",
+            sampling_result.get("divided_counts"),
+        )
 
     return {
         "counts": bitstring_dict_to_int_keys(counts),

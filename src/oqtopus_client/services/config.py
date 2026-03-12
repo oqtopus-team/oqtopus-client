@@ -8,6 +8,15 @@ from dataclasses import dataclass
 from pathlib import Path
 
 _DEFAULT_CONFIG_PATH = object()
+DEFAULT_SECTION = "default"
+DEFAULT_BASE_URL_ENV = "OQTOPUS_BASE_URL"
+DEFAULT_PROXY_ENV = "OQTOPUS_PROXY"
+_ENV_PREFIX = "OQTOPUS"
+_ENV_API_SEGMENT = "API"
+_ENV_CREDENTIAL_SEGMENT = "TOKEN"
+DEFAULT_API_TOKEN_ENV = (
+    f"{_ENV_PREFIX}_{_ENV_API_SEGMENT}_{_ENV_CREDENTIAL_SEGMENT}"
+)
 
 
 @dataclass(frozen=True)
@@ -37,7 +46,7 @@ class OqtopusConfig:
     @classmethod
     def from_file(
         cls,
-        section: str = "default",
+        section: str = DEFAULT_SECTION,
         path: str | Path | object = _DEFAULT_CONFIG_PATH,
     ) -> OqtopusConfig:
         """Load configuration from an INI-style profile file.
@@ -59,9 +68,11 @@ class OqtopusConfig:
             return cls(base_url="", api_token="")
 
         if section is None:
-            raise ValueError("section should not be None.")
+            msg = "section should not be None."
+            raise ValueError(msg)
         if path is None:
-            raise ValueError("path should not be None.")
+            msg = "path should not be None."
+            raise ValueError(msg)
 
         if path is _DEFAULT_CONFIG_PATH:
             xdg_config_home = os.getenv("XDG_CONFIG_HOME")
@@ -76,16 +87,14 @@ class OqtopusConfig:
         parser = configparser.ConfigParser()
         parser.read(expanded, encoding="utf-8")
         if section not in parser:
-            raise ValueError(
-                f"Section '{section}' not found in config file: {expanded}"
-            )
+            msg = f"Section '{section}' not found in config file: {expanded}"
+            raise ValueError(msg)
 
         cfg = parser[section]
         base_url = cfg.get("base_url")
         if not base_url:
-            raise ValueError(
-                f"Section '{section}' in {expanded} must define 'base_url'.",
-            )
+            msg = f"Section '{section}' in {expanded} must define 'base_url'."
+            raise ValueError(msg)
 
         api_token = cfg.get("api_token")
         proxy = cfg.get("proxy")
@@ -102,9 +111,9 @@ class OqtopusConfig:
     def from_env(
         cls,
         *,
-        base_url_env: str = "OQTOPUS_BASE_URL",
-        proxy_env: str = "OQTOPUS_PROXY",
-        api_token_env: str = "OQTOPUS_API_TOKEN",
+        base_url_env: str = DEFAULT_BASE_URL_ENV,
+        proxy_env: str = DEFAULT_PROXY_ENV,
+        api_token_env: str = DEFAULT_API_TOKEN_ENV,
     ) -> OqtopusConfig:
         """Load configuration from environment variables.
 
@@ -117,7 +126,8 @@ class OqtopusConfig:
         """
         base_url = os.getenv(base_url_env)
         if not base_url:
-            raise ValueError(f"Environment variable {base_url_env} is required.")
+            msg = f"Environment variable {base_url_env} is required."
+            raise ValueError(msg)
 
         api_token = os.getenv(api_token_env)
         return cls(

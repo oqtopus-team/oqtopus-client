@@ -10,7 +10,11 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from .. import rest as models
+from oqtopus_client import rest as models
+from oqtopus_client.services.result_utils import (
+    bitstring_dict_to_int_keys,
+    normalize_sampling_result,
+)
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -47,7 +51,7 @@ class OqtopusJobResult:  # noqa: PLR0904
     _ended_at: datetime | None
     _client: object | None
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         raw: models.JobsJobResult | Mapping[str, Any] | None,
         *,
@@ -113,12 +117,14 @@ class OqtopusJobResult:  # noqa: PLR0904
         self._client = client
 
         if self._job_type is None:
-            raise ValueError(f"Invalid job_type: {job_type!r}")
+            msg = f"Invalid job_type: {job_type!r}"
+            raise ValueError(msg)
         if self._status is None:
-            raise ValueError(f"Invalid status: {status!r}")
+            msg = f"Invalid status: {status!r}"
+            raise ValueError(msg)
 
     @classmethod
-    def from_raw(
+    def from_raw(  # noqa: PLR0913
         cls,
         raw: models.JobsJobResult | Mapping[str, Any] | None,
         *,
@@ -167,7 +173,7 @@ class OqtopusJobResult:  # noqa: PLR0904
         ) or cls._infer_job_type(raw)
         normalized_status = cls._normalize_status(status)
         result = cls.__new__(cls)
-        result._assign_partial_metadata(  # noqa: SLF001
+        result.assign_partial_metadata(
             raw=raw,
             job_id=job_id,
             job_type=normalized_job_type,
@@ -191,7 +197,7 @@ class OqtopusJobResult:  # noqa: PLR0904
         )
         return result
 
-    def _assign_partial_metadata(
+    def assign_partial_metadata(  # noqa: PLR0913
         self,
         *,
         raw: models.JobsJobResult | Mapping[str, Any] | None,
@@ -215,6 +221,7 @@ class OqtopusJobResult:  # noqa: PLR0904
         ended_at: datetime | None,
         client: object | None,
     ) -> None:
+        """Populate metadata fields for partially constructed result objects."""
         self._raw = raw
         self._job_id = job_id
         self._job_type = job_type
@@ -237,7 +244,7 @@ class OqtopusJobResult:  # noqa: PLR0904
         self._client = client
 
     @classmethod
-    def _validate_raw_metadata_conflicts(
+    def _validate_raw_metadata_conflicts(  # noqa: PLR0913
         cls,
         *,
         raw: models.JobsJobResult | Mapping[str, Any] | None,
@@ -287,10 +294,11 @@ class OqtopusJobResult:  # noqa: PLR0904
         if not OqtopusJobResult._is_comparable_metadata_value(provided, raw_value):
             return
         if raw_value != provided:
-            raise ValueError(
+            msg = (
                 f"Conflicting values for '{key}': "
-                f"raw={raw_value!r}, provided={provided!r}",
+                f"raw={raw_value!r}, provided={provided!r}"
             )
+            raise ValueError(msg)
 
     @staticmethod
     def _is_comparable_metadata_value(
@@ -474,16 +482,12 @@ class OqtopusJobResult:  # noqa: PLR0904
         if isinstance(raw, models.JobsJobResult):
             if raw.sampling is not None:
                 return models.JobsJobType.SAMPLING
-            if raw.estimation is not None:
-                return models.JobsJobType.ESTIMATION
-            return None
+            return models.JobsJobType.ESTIMATION if raw.estimation is not None else None
         sampling = raw.get("sampling")
         estimation = raw.get("estimation")
         if sampling is not None:
             return models.JobsJobType.SAMPLING
-        if estimation is not None:
-            return models.JobsJobType.ESTIMATION
-        return None
+        return models.JobsJobType.ESTIMATION if estimation is not None else None
 
     def __repr__(self) -> str:
         """Return a concise debug representation.
@@ -559,8 +563,6 @@ class OqtopusSamplingJobResult(OqtopusJobResult):
             Sampling counts with integer keys.
 
         """
-        from .result_utils import normalize_sampling_result
-
         return normalize_sampling_result(self.sampling)
 
     def get_counts(self) -> dict[str, Any]:
@@ -690,8 +692,6 @@ class OqtopusMultiManualJobResult(OqtopusSamplingJobResult):
         if not isinstance(divided_counts, Mapping):
             return {}
 
-        from .result_utils import bitstring_dict_to_int_keys
-
         normalized: dict[str, dict[int, Any]] = {}
         for result_key, counts in divided_counts.items():
             if not isinstance(counts, Mapping):
@@ -717,14 +717,17 @@ class OqtopusSseJobResult(OqtopusSamplingJobResult):
     def _get_log_archive_bytes(self) -> tuple[bytes, str]:
         client = self._require_client()
         if self.job_id is None:
-            raise ValueError("job_id is required for SSE log operations.")
+            msg = "job_id is required for SSE log operations."
+            raise ValueError(msg)
         response = client.get_sselog(self.job_id)
         if response.file is None or response.file_name is None:
-            raise ValueError("SSE log response does not contain valid file data.")
+            msg = "SSE log response does not contain valid file data."
+            raise ValueError(msg)
         try:
             decoded = base64.b64decode(response.file, validate=True)
         except binascii.Error as e:
-            raise ValueError("SSE log file field is not valid base64 data.") from e
+            msg = "SSE log file field is not valid base64 data."
+            raise ValueError(msg) from e
         return decoded, response.file_name
 
     @staticmethod
@@ -737,13 +740,16 @@ class OqtopusSseJobResult(OqtopusSamplingJobResult):
     ) -> str:
         out_dir = Path.cwd() if save_dir is None else Path(save_dir)
         if not out_dir.exists():
-            raise ValueError(f"The destination path does not exist: {out_dir}")
+            msg = f"The destination path does not exist: {out_dir}"
+            raise ValueError(msg)
         if not out_dir.is_dir():
-            raise ValueError(f"The destination path is not a directory: {out_dir}")
+            msg = f"The destination path is not a directory: {out_dir}"
+            raise ValueError(msg)
 
         out_path = out_dir / file_name
         if out_path.exists() and not overwrite:
-            raise ValueError(f"The file already exists: {out_path}")
+            msg = f"The file already exists: {out_path}"
+            raise ValueError(msg)
         out_path.write_bytes(archive_bytes)
         return str(out_path)
 
@@ -770,7 +776,8 @@ class OqtopusSseJobResult(OqtopusSamplingJobResult):
         archive_bytes, default_file_name = self._get_log_archive_bytes()
         if not persist:
             if save_dir is not None or file_name is not None or overwrite:
-                raise ValueError("save_dir/file_name/overwrite require persist=True.")
+                msg = "save_dir/file_name/overwrite require persist=True."
+                raise ValueError(msg)
             return archive_bytes
         return self._write_archive(
             archive_bytes,
@@ -828,9 +835,8 @@ class OqtopusSseJobResult(OqtopusSamplingJobResult):
 
     def _require_client(self) -> OqtopusClient:
         if self._client is None:
-            raise ValueError(
-                "SSE log operations require a client-bound OqtopusSseJobResult."
-            )
+            msg = "SSE log operations require a client-bound OqtopusSseJobResult."
+            raise ValueError(msg)
         return self._client  # type: ignore[return-value]
 
     def __repr__(self) -> str:
