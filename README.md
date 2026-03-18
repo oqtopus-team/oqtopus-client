@@ -20,7 +20,6 @@ Python client library for the OQTOPUS Cloud User API.
 - [Getting Started](./docs/usage/getting_started.md)
 - [Examples](./docs/usage/examples.md)
 - [GitHub Examples Directory](https://github.com/oqtopus-team/oqtopus-client/tree/main/examples)
-- [API Reference](./docs/api.md)
 
 ## Developer Guidelines
 
