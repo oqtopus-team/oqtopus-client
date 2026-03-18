@@ -2,21 +2,18 @@
 
 Python client library for the OQTOPUS Cloud User API.
 
-This documentation auto-generates API references from docstrings in `src/oqtopus_client`.
+This site collects the practical guides and generated API reference for
+`oqtopus-client`. Use it when you want installation and configuration steps,
+usage examples, or the full package reference generated from the source
+docstrings in `src/oqtopus_client`.
 
-## Key Features
+## Start Here
 
-- Operate User API endpoints via Python methods.
-- Type-safe request/response handling using Pydantic models generated from downloaded OpenAPI schema.
-- Supports configuration via the default `config.ini` profile, named profiles, environment variables, and explicit `OqtopusConfig`.
-- Core client usage does not require any other quantum software SDK.
-- OpenAPI-generated models are used internally, while helper APIs such as `OqtopusJobSpec` and `run_*` reduce boilerplate.
-- Internal HTTP communication is asynchronous, with an easy-to-use synchronous public API.
-- Built-in retry/backoff controls and typed result wrappers support stable operation.
-
-## Quick Links
-
-- [Getting Started](usage/getting_started.md)
-- [API Reference](reference/API_reference.md)
-- [Examples](usage/examples.md)
-- [Developer Guidelines](developer_guidelines/development_flow.md)
+- [Getting Started](usage/getting_started.md): installation, configuration, first job,
+  and result handling.
+- [Examples](usage/examples.md): sample scripts and pointers to the GitHub
+  `examples/` directory.
+- [API Reference](reference/API_reference.md): generated package reference from
+  source docstrings.
+- [Developer Guidelines](developer_guidelines/development_flow.md): development
+  flow, setup, and contribution guidance.

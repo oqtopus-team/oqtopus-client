@@ -9,29 +9,25 @@ Python client library for the OQTOPUS Cloud User API.
 `oqtopus-client` is a Python SDK for the OQTOPUS Cloud User API.
 
 It is designed for users who want to submit, monitor, and retrieve quantum jobs
-from Python without handling raw HTTP requests or generated API models directly.
-The library provides a synchronous public API for ease of use, while handling
-network communication asynchronously inside the client.
+from Python without handling raw HTTP requests directly. The library provides a
+synchronous public API for ease of use, while handling network communication
+asynchronously inside the client.
 
 The SDK covers both low-level API access and higher-level convenience helpers.
 You can work directly with typed request/response models when you need explicit
-control, or use helpers such as `OqtopusJobSpec`, `run_*`, `wait`, and typed
-result wrappers for a more concise workflow.
+control, or use helpers such as `OqtopusJobSpec`, `run_*`, and typed result
+wrappers for a more concise workflow.
 
 ## Features
 
 - Typed Python access to the OQTOPUS Cloud User API.
-- Synchronous public client API with asynchronous internal HTTP handling.
 - Job submission helpers for sampling, estimation, multi-manual, and SSE (Server-Side Execution)
   workflows.
-- Job lifecycle operations such as submit, wait, status check, refresh, cancel,
-  and delete.
-- Typed job result helpers for sampling, estimation, multi-manual, and SSE
-  result handling.
-- Generated Pydantic models for request and response validation.
-- Built-in retry and backoff controls for more stable API access.
-- Example scripts covering basic usage, parallel submission, and integration
-  workflows.
+- Job lifecycle operations such as submit, wait, status, cancel, and delete.
+- Typed result wrappers and generated Pydantic models.
+- Configuration via config files, environment variables, or explicit
+  `OqtopusConfig`.
+- Built-in retry and backoff controls.
 
 ## Documentation
 
