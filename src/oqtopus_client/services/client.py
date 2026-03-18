@@ -581,18 +581,14 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
             ),
         )
 
-    async def wait_for_job(  # noqa: C901, PLR0913
-        self,
-        job_id: str,
+    @staticmethod
+    def _validate_wait_for_job_args(
         *,
-        interval: float = 1.0,
-        interval_backoff: float = 1.0,
-        max_interval: float | None = None,
-        timeout: float | None = 300.0,
-        terminal_statuses: set[models.JobsJobStatus] | None = None,
-        failure_statuses: set[models.JobsJobStatus] | None = None,
-        on_status: Callable[[models.JobsGetJobStatusResponse], None] | None = None,
-    ) -> models.JobsJobDef:
+        interval: float,
+        interval_backoff: float,
+        max_interval: float | None,
+        timeout: float | None,
+    ) -> None:
         if interval <= 0:
             msg = "interval must be greater than 0."
             raise ValueError(msg)
@@ -606,11 +602,82 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
             msg = "timeout must be greater than 0 or None."
             raise ValueError(msg)
 
-        terminal = terminal_statuses or {
+    @staticmethod
+    def _resolve_terminal_statuses(
+        terminal_statuses: set[models.JobsJobStatus] | None,
+    ) -> set[models.JobsJobStatus]:
+        return terminal_statuses or {
             models.JobsJobStatus.SUCCEEDED,
             models.JobsJobStatus.FAILED,
             models.JobsJobStatus.CANCELLED,
         }
+
+    @staticmethod
+    def _raise_wait_timeout(
+        *,
+        job_id: str,
+        timeout: float | None,
+        deadline: float | None,
+    ) -> None:
+        if deadline is None:
+            return
+        if monotonic() < deadline:
+            return
+        msg = f"Timed out waiting for job {job_id} after {timeout} seconds."
+        raise TimeoutError(msg)
+
+    @classmethod
+    def _compute_wait_sleep_duration(
+        cls,
+        *,
+        next_interval: float,
+        deadline: float | None,
+        job_id: str,
+        timeout: float | None,
+    ) -> float:
+        if deadline is None:
+            return next_interval
+
+        remaining = deadline - monotonic()
+        if remaining <= 0:
+            cls._raise_wait_timeout(
+                job_id=job_id,
+                timeout=timeout,
+                deadline=deadline,
+            )
+        return min(next_interval, remaining)
+
+    @staticmethod
+    def _next_wait_interval(
+        *,
+        current_interval: float,
+        interval_backoff: float,
+        max_interval: float | None,
+    ) -> float:
+        next_interval = current_interval * interval_backoff
+        if max_interval is not None:
+            return min(next_interval, max_interval)
+        return next_interval
+
+    async def wait_for_job(  # noqa: PLR0913
+        self,
+        job_id: str,
+        *,
+        interval: float = 1.0,
+        interval_backoff: float = 1.0,
+        max_interval: float | None = None,
+        timeout: float | None = 300.0,
+        terminal_statuses: set[models.JobsJobStatus] | None = None,
+        failure_statuses: set[models.JobsJobStatus] | None = None,
+        on_status: Callable[[models.JobsGetJobStatusResponse], None] | None = None,
+    ) -> models.JobsJobDef:
+        self._validate_wait_for_job_args(
+            interval=interval,
+            interval_backoff=interval_backoff,
+            max_interval=max_interval,
+            timeout=timeout,
+        )
+        terminal = self._resolve_terminal_statuses(terminal_statuses)
         _ = failure_statuses
 
         deadline = monotonic() + timeout if timeout is not None else None
@@ -624,25 +691,24 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
             if current in terminal:
                 return await self.get_job(job_id)
 
-            if deadline is not None and monotonic() >= deadline:
-                msg = f"Timed out waiting for job {job_id} after {timeout} seconds."
-                raise TimeoutError(msg)
-
-            sleep_for = next_interval
-            if deadline is not None:
-                remaining = deadline - monotonic()
-                if remaining <= 0:
-                    msg = (
-                        f"Timed out waiting for job {job_id} "
-                        f"after {timeout} seconds."
-                    )
-                    raise TimeoutError(msg)
-                sleep_for = min(sleep_for, remaining)
+            self._raise_wait_timeout(
+                job_id=job_id,
+                timeout=timeout,
+                deadline=deadline,
+            )
+            sleep_for = self._compute_wait_sleep_duration(
+                next_interval=next_interval,
+                deadline=deadline,
+                job_id=job_id,
+                timeout=timeout,
+            )
 
             await asyncio.sleep(sleep_for)
-            next_interval *= interval_backoff
-            if max_interval is not None:
-                next_interval = min(next_interval, max_interval)
+            next_interval = self._next_wait_interval(
+                current_interval=next_interval,
+                interval_backoff=interval_backoff,
+                max_interval=max_interval,
+            )
 
     async def delete_job(self, job_id: str) -> models.SuccessSuccessResponse:
         job_api = self._ensure_job_api()
