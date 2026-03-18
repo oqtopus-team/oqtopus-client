@@ -134,6 +134,18 @@ class _AsyncRuntime:
         fut: Future[_T] = asyncio.run_coroutine_threadsafe(coro, self._loop)
         return fut.result()
 
+    def call(
+        self,
+        func: Callable[..., _T],
+        /,
+        *args: object,
+        **kwargs: object,
+    ) -> _T:
+        async def _run_sync() -> _T:
+            return await asyncio.sleep(0, result=func(*args, **kwargs))
+
+        return self.run(_run_sync())
+
     def close(self) -> None:
         self._loop.call_soon_threadsafe(self._loop.stop)
         self._thread.join(timeout=5.0)
@@ -189,27 +201,7 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
         token = config.api_token
         if token:
             self._apply_api_token(token)
-
-    @classmethod
-    async def create(
-        cls,
-        config: OqtopusConfig,
-        default_headers: Mapping[str, str] | None = None,
-        user_agent: str | None = None,
-    ) -> _AsyncOqtopusClient:
-        """Create an async client and initialize REST API resources.
-
-        Returns:
-            An initialized async client instance.
-
-        """
-        client = cls(
-            config=config,
-            default_headers=default_headers,
-            user_agent=user_agent,
-        )
-        client._initialize_rest_api()
-        return client
+        self._initialize_rest_api()
 
     def _apply_api_token(self, api_token: str) -> None:
         self._headers["q-api-token"] = api_token
@@ -219,8 +211,7 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
     def _initialize_rest_api(self) -> None:  # pragma: no cover - integration path
         if self._rest_client is not None:
             return
-        rest_host = self.base_url or "http://localhost:8080"
-        self._rest_config = RestConfiguration(host=rest_host)
+        self._rest_config = RestConfiguration(host=self.base_url)
         self._rest_config.proxy = self._proxy
         self._rest_config.retries = (
             self._retry_max_attempts if self._retry_max_attempts > 1 else None
@@ -836,10 +827,8 @@ class OqtopusClient:  # noqa: PLR0904
 
         Args:
             config (Optional): Client configuration bundle. If omitted,
-                `OqtopusConfig.from_file()` is used. If the resolved config has an
-                empty `base_url`, the internal REST client falls back to
-                `http://localhost:8080`, which matches the default local
-                OQTOPUS Cloud port.
+                `OqtopusConfig.from_file()` is used. In normal mode, the resolved
+                config must provide a non-empty `base_url`.
             default_headers (Optional): Additional headers merged into every
                 request.
             user_agent (Optional): Custom User-Agent header value.
@@ -855,12 +844,11 @@ class OqtopusClient:  # noqa: PLR0904
             for _ in range(_DEFAULT_RUNTIME_COUNT):
                 runtime = _AsyncRuntime()
                 try:
-                    async_client = runtime.run(
-                        _AsyncOqtopusClient.create(
-                            config=resolved_config,
-                            default_headers=default_headers,
-                            user_agent=user_agent,
-                        )
+                    async_client = runtime.call(
+                        _AsyncOqtopusClient,
+                        resolved_config,
+                        default_headers,
+                        user_agent,
                     )
                 except Exception:
                     with suppress(Exception):
