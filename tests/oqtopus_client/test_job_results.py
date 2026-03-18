@@ -42,11 +42,23 @@ def test_job_result_kind_for_model_sampling() -> None:
     assert result.is_estimation() is False
 
 
-def test_job_result_kind_for_mapping_estimation() -> None:
-    """Test case: test_job_result_kind_for_mapping_estimation."""
+def test_job_result_kind_for_estimation_job_def() -> None:
+    """Test case: test_job_result_kind_for_estimation_job_def."""
     result = OqtopusJobResult.from_raw(
-        {"estimation": {"exp_value": 1.0}},
-        job_id="job-2",
+        models.JobsJobDef(
+            job_id="job-2",
+            name="job-2",
+            job_type=models.JobsJobType.ESTIMATION,
+            status=models.JobsJobStatus.SUCCEEDED,
+            device_id="Kawasaki",
+            shots=1,
+            job_info=models.JobsJobInfo(
+                program=["OPENQASM 3;"],
+                result=models.JobsJobResult(
+                    estimation=models.JobsEstimationResult(exp_value=1.0),
+                ),
+            ),
+        )
     )
     assert result.job_type == models.JobsJobType.ESTIMATION
     assert result.is_sampling() is False
@@ -75,20 +87,7 @@ def test_job_result_from_job_model_like_payload() -> None:
         submitted_at=submitted_at,
     )
 
-    result = OqtopusJobResult(
-        job.job_info.result if job.job_info is not None else None,
-        job_id=job.job_id,
-        job_type=job.job_type,
-        status=job.status,
-        name=job.name,
-        device_id=job.device_id,
-        shots=job.shots,
-        job_info=job.job_info,
-        transpiler_info=job.transpiler_info,
-        simulator_info=job.simulator_info,
-        mitigation_info=job.mitigation_info,
-        submitted_at=job.submitted_at,
-    )
+    result = OqtopusJobResult.from_raw(job)
     assert result.job_id == "job-3"
     assert result.job_type == models.JobsJobType.SAMPLING
     assert result.name == "job"
@@ -99,50 +98,6 @@ def test_job_result_from_job_model_like_payload() -> None:
     assert result.mitigation_info == {"enabled": True}
     assert result.submitted_at == submitted_at
     assert isinstance(result.raw, models.JobsJobResult)
-
-
-def test_job_result_from_raw_without_result_has_unknown_type() -> None:
-    """Test case: test_job_result_from_raw_without_result_has_unknown_type."""
-    result = OqtopusJobResult.from_raw(None, job_id="job-4")
-    assert result.job_id == "job-4"
-    assert result.job_type is None
-    assert result.submitted_at is None
-    assert result.ready_at is None
-    assert result.running_at is None
-    assert result.ended_at is None
-
-
-def test_job_result_accepts_matching_raw_metadata() -> None:
-    """Test case: test_job_result_accepts_matching_raw_metadata."""
-    result = OqtopusJobResult.from_raw(
-        {
-            "job_id": "job-4",
-            "job_type": "sampling",
-            "status": "succeeded",
-            "name": "job-4",
-            "device_id": "Kawasaki",
-            "shots": 10,
-        },
-        job_id="job-4",
-        job_type=models.JobsJobType.SAMPLING,
-        status=models.JobsJobStatus.SUCCEEDED,
-        name="job-4",
-        device_id="Kawasaki",
-        shots=10,
-    )
-
-    assert result.job_id == "job-4"
-    assert result.job_type == models.JobsJobType.SAMPLING
-    assert result.status == models.JobsJobStatus.SUCCEEDED
-
-
-def test_job_result_rejects_conflicting_raw_metadata() -> None:
-    """Test case: test_job_result_rejects_conflicting_raw_metadata."""
-    with pytest.raises(ValueError, match="Conflicting values for 'job_id'"):
-        OqtopusJobResult.from_raw(
-            {"job_id": "job-raw"},
-            job_id="job-arg",
-        )
 
 
 def test_sampling_result_direct_construction() -> None:
@@ -233,10 +188,15 @@ def test_sse_result_log_helpers(tmp_path: Path, capsys: pytest.CaptureFixture[st
             data = base64.b64encode(f"log-{job_id}".encode()).decode("utf-8")
             return models.JobsGetSselogResponse(file=data, file_name=f"{job_id}.zip")
 
-    result = OqtopusSseJobResult.from_raw(
+    result = OqtopusSseJobResult(
         None,
         job_id="job-42",
         job_type=models.JobsJobType.SSE,
+        status=models.JobsJobStatus.SUCCEEDED,
+        name="job-42",
+        device_id="Kawasaki",
+        shots=1,
+        job_info=models.JobsJobInfo(program=["print('x')"]),
         client=_DummyClient(),  # type: ignore[arg-type]
     )
     archive = result.download_log()
@@ -261,10 +221,15 @@ def test_sse_download_log_default_does_not_write_files(tmp_path: Path, monkeypat
     monkeypatch.chdir(tmp_path)
     before = {p.name for p in tmp_path.iterdir()}
 
-    result = OqtopusSseJobResult.from_raw(
+    result = OqtopusSseJobResult(
         None,
         job_id="job-99",
         job_type=models.JobsJobType.SSE,
+        status=models.JobsJobStatus.SUCCEEDED,
+        name="job-99",
+        device_id="Kawasaki",
+        shots=1,
+        job_info=models.JobsJobInfo(program=["print('x')"]),
         client=_DummyClient(),  # type: ignore[arg-type]
     )
     data = result.download_log()
@@ -283,10 +248,15 @@ def test_sse_download_log_rejects_save_options_without_persist(tmp_path: Path) -
             data = base64.b64encode(f"log-{job_id}".encode()).decode("utf-8")
             return models.JobsGetSselogResponse(file=data, file_name=f"{job_id}.zip")
 
-    result = OqtopusSseJobResult.from_raw(
+    result = OqtopusSseJobResult(
         None,
         job_id="job-99",
         job_type=models.JobsJobType.SSE,
+        status=models.JobsJobStatus.SUCCEEDED,
+        name="job-99",
+        device_id="Kawasaki",
+        shots=1,
+        job_info=models.JobsJobInfo(program=["print('x')"]),
         client=_DummyClient(),  # type: ignore[arg-type]
     )
 
@@ -300,10 +270,15 @@ def test_sse_download_log_rejects_save_options_without_persist(tmp_path: Path) -
 
 def test_sse_result_log_helpers_require_client() -> None:
     """Test case: test_sse_result_log_helpers_require_client."""
-    result = OqtopusSseJobResult.from_raw(
+    result = OqtopusSseJobResult(
         None,
         job_id="job-1",
         job_type=models.JobsJobType.SSE,
+        status=models.JobsJobStatus.SUCCEEDED,
+        name="job-1",
+        device_id="Kawasaki",
+        shots=1,
+        job_info=models.JobsJobInfo(program=["print('x')"]),
     )
     with pytest.raises(ValueError):
         result.read_log_text()
@@ -311,25 +286,42 @@ def test_sse_result_log_helpers_require_client() -> None:
 
 def test_job_result_repr_and_flags_for_string_job_type() -> None:
     """Test case: test_job_result_repr_and_flags_for_string_job_type."""
-    result = OqtopusJobResult.from_raw({}, job_id="job-x", job_type="multi_manual")
+    result = OqtopusJobResult(
+        None,
+        job_id="job-x",
+        job_type="multi_manual",
+        status=models.JobsJobStatus.SUCCEEDED,
+        name="job-x",
+        device_id="Kawasaki",
+        shots=1,
+        job_info=models.JobsJobInfo(program=["OPENQASM 3;"]),
+    )
     assert "job-x" in repr(result)
     assert result.is_multi_manual() is True
     assert result.is_sse() is False
 
 
-def test_job_result_handles_unknown_job_type_string() -> None:
-    """Test case: test_job_result_handles_unknown_job_type_string."""
-    result = OqtopusJobResult.from_raw({}, job_id="job-x", job_type="unknown")
-    assert result.job_type is None
-    assert result.sampling is None
-    assert result.estimation is None
-
-
 def test_sampling_and_estimation_result_fallbacks() -> None:
     """Test case: test_sampling_and_estimation_result_fallbacks."""
-    sampling = OqtopusSamplingJobResult.from_raw({"sampling": {"counts": "bad"}})
-    estimation = OqtopusEstimationJobResult.from_raw(
+    sampling = OqtopusSamplingJobResult(
+        {"sampling": {"counts": "bad"}},
+        job_id="job-1",
+        job_type=models.JobsJobType.SAMPLING,
+        status=models.JobsJobStatus.SUCCEEDED,
+        name="job-1",
+        device_id="Kawasaki",
+        shots=1,
+        job_info=models.JobsJobInfo(program=["OPENQASM 3;"]),
+    )
+    estimation = OqtopusEstimationJobResult(
         {"estimation": {"exp_value": "bad", "stds": "bad"}},
+        job_id="job-2",
+        job_type=models.JobsJobType.ESTIMATION,
+        status=models.JobsJobStatus.SUCCEEDED,
+        name="job-2",
+        device_id="Kawasaki",
+        shots=1,
+        job_info=models.JobsJobInfo(program=["OPENQASM 3;"]),
     )
     assert sampling.get_counts() == {}
     assert estimation.get_exp_value() is None
@@ -340,8 +332,15 @@ def test_sampling_and_estimation_result_fallbacks() -> None:
 
 def test_multi_manual_result_ignores_invalid_divided_counts_entries() -> None:
     """Test case: test_multi_manual_result_ignores_invalid_divided_counts_entries."""
-    result = OqtopusMultiManualJobResult.from_raw(
+    result = OqtopusMultiManualJobResult(
         {"sampling": {"divided_counts": {"good": {"01": 1}, "bad": "x"}}},
+        job_id="job-3",
+        job_type=models.JobsJobType.MULTI_MANUAL,
+        status=models.JobsJobStatus.SUCCEEDED,
+        name="job-3",
+        device_id="Kawasaki",
+        shots=1,
+        job_info=models.JobsJobInfo(program=["OPENQASM 3;"]),
     )
     assert result.get_divided_counts() == {"good": {1: 1}}
     assert "OqtopusMultiManualJobResult" in repr(result)
@@ -359,17 +358,15 @@ def test_sse_download_log_error_paths(tmp_path: Path) -> None:
             _ = job_id
             return models.JobsGetSselogResponse(file="*", file_name="x.zip")
 
-    with pytest.raises(ValueError):
-        OqtopusSseJobResult.from_raw(
-            None,
-            job_type=models.JobsJobType.SSE,
-            client=_NoFileClient(),
-        ).download_log()  # type: ignore[arg-type]
-
-    no_file = OqtopusSseJobResult.from_raw(
+    no_file = OqtopusSseJobResult(
         None,
         job_id="job-1",
         job_type=models.JobsJobType.SSE,
+        status=models.JobsJobStatus.SUCCEEDED,
+        name="job-1",
+        device_id="Kawasaki",
+        shots=1,
+        job_info=models.JobsJobInfo(program=["print('x')"]),
         client=_NoFileClient(),
     )  # type: ignore[arg-type]
     with pytest.raises(ValueError):
@@ -388,19 +385,29 @@ def test_sse_download_log_error_paths(tmp_path: Path) -> None:
     out_dir.mkdir()
     existing = out_dir / "x.zip"
     existing.write_bytes(b"already")
-    bad_base64 = OqtopusSseJobResult.from_raw(
+    bad_base64 = OqtopusSseJobResult(
         None,
         job_id="job-1",
         job_type=models.JobsJobType.SSE,
+        status=models.JobsJobStatus.SUCCEEDED,
+        name="job-1",
+        device_id="Kawasaki",
+        shots=1,
+        job_info=models.JobsJobInfo(program=["print('x')"]),
         client=_BadBase64Client(),
     )  # type: ignore[arg-type]
     with pytest.raises(ValueError):
         bad_base64.download_log(save_dir=out_dir)
 
-    persisted = OqtopusSseJobResult.from_raw(
+    persisted = OqtopusSseJobResult(
         None,
         job_id="job-1",
         job_type=models.JobsJobType.SSE,
+        status=models.JobsJobStatus.SUCCEEDED,
+        name="job-1",
+        device_id="Kawasaki",
+        shots=1,
+        job_info=models.JobsJobInfo(program=["print('x')"]),
         client=_BadBase64Client(),
     )  # type: ignore[arg-type]
     with pytest.raises(ValueError):
@@ -424,27 +431,29 @@ def test_sse_read_log_text_zip_variants() -> None:
             _ = job_id
             return models.JobsGetSselogResponse(file=self.payload, file_name="log.zip")
 
-    no_job = OqtopusSseJobResult.from_raw(
-        None,
-        job_type=models.JobsJobType.SSE,
-        client=_ZipClient("x"),
-    )  # type: ignore[arg-type]
-    with pytest.raises(ValueError):
-        no_job.read_log_text()
-
-    no_file = OqtopusSseJobResult.from_raw(
+    no_file = OqtopusSseJobResult(
         None,
         job_id="job-1",
         job_type=models.JobsJobType.SSE,
+        status=models.JobsJobStatus.SUCCEEDED,
+        name="job-1",
+        device_id="Kawasaki",
+        shots=1,
+        job_info=models.JobsJobInfo(program=["print('x')"]),
         client=_ZipClient(None),
     )  # type: ignore[arg-type]
     with pytest.raises(ValueError):
         no_file.read_log_text()
 
-    bad_file = OqtopusSseJobResult.from_raw(
+    bad_file = OqtopusSseJobResult(
         None,
         job_id="job-1",
         job_type=models.JobsJobType.SSE,
+        status=models.JobsJobStatus.SUCCEEDED,
+        name="job-1",
+        device_id="Kawasaki",
+        shots=1,
+        job_info=models.JobsJobInfo(program=["print('x')"]),
         client=_ZipClient("*"),
     )  # type: ignore[arg-type]
     with pytest.raises(ValueError):

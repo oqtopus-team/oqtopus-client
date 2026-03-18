@@ -881,125 +881,15 @@ class OqtopusClient:  # noqa: PLR0904
         return self._runtime.run(_run())
 
     def _to_result(self, job: models.JobsJobDef) -> OqtopusJobResult:
-        raw = job.job_info.result if job.job_info is not None else None
-        transpile_result = (
-            job.job_info.transpile_result if job.job_info is not None else None
-        )
-        message = job.job_info.message if job.job_info is not None else None
         if job.job_type == models.JobsJobType.MULTI_MANUAL:
-            return OqtopusMultiManualJobResult(
-                raw,
-                job_id=job.job_id,
-                job_type=job.job_type,
-                status=job.status,
-                name=job.name,
-                description=job.description,
-                device_id=job.device_id,
-                shots=job.shots,
-                job_info=job.job_info,
-                transpiler_info=job.transpiler_info,
-                simulator_info=job.simulator_info,
-                mitigation_info=job.mitigation_info,
-                transpile_result=transpile_result,
-                message=message,
-                execution_time=job.execution_time,
-                submitted_at=job.submitted_at,
-                ready_at=job.ready_at,
-                running_at=job.running_at,
-                ended_at=job.ended_at,
-                client=self,
-            )
+            return OqtopusMultiManualJobResult.from_raw(job, client=self)
         if job.job_type == models.JobsJobType.SSE:
-            return OqtopusSseJobResult(
-                raw,
-                job_id=job.job_id,
-                job_type=job.job_type,
-                status=job.status,
-                name=job.name,
-                description=job.description,
-                device_id=job.device_id,
-                shots=job.shots,
-                job_info=job.job_info,
-                transpiler_info=job.transpiler_info,
-                simulator_info=job.simulator_info,
-                mitigation_info=job.mitigation_info,
-                transpile_result=transpile_result,
-                message=message,
-                execution_time=job.execution_time,
-                submitted_at=job.submitted_at,
-                ready_at=job.ready_at,
-                running_at=job.running_at,
-                ended_at=job.ended_at,
-                client=self,
-            )
+            return OqtopusSseJobResult.from_raw(job, client=self)
         if job.job_type == models.JobsJobType.SAMPLING:
-            return OqtopusSamplingJobResult(
-                raw,
-                job_id=job.job_id,
-                job_type=job.job_type,
-                status=job.status,
-                name=job.name,
-                description=job.description,
-                device_id=job.device_id,
-                shots=job.shots,
-                job_info=job.job_info,
-                transpiler_info=job.transpiler_info,
-                simulator_info=job.simulator_info,
-                mitigation_info=job.mitigation_info,
-                transpile_result=transpile_result,
-                message=message,
-                execution_time=job.execution_time,
-                submitted_at=job.submitted_at,
-                ready_at=job.ready_at,
-                running_at=job.running_at,
-                ended_at=job.ended_at,
-                client=self,
-            )
+            return OqtopusSamplingJobResult.from_raw(job, client=self)
         if job.job_type == models.JobsJobType.ESTIMATION:
-            return OqtopusEstimationJobResult(
-                raw,
-                job_id=job.job_id,
-                job_type=job.job_type,
-                status=job.status,
-                name=job.name,
-                description=job.description,
-                device_id=job.device_id,
-                shots=job.shots,
-                job_info=job.job_info,
-                transpiler_info=job.transpiler_info,
-                simulator_info=job.simulator_info,
-                mitigation_info=job.mitigation_info,
-                transpile_result=transpile_result,
-                message=message,
-                execution_time=job.execution_time,
-                submitted_at=job.submitted_at,
-                ready_at=job.ready_at,
-                running_at=job.running_at,
-                ended_at=job.ended_at,
-                client=self,
-            )
-        return OqtopusJobResult(
-            raw,
-            job_id=job.job_id,
-            job_type=job.job_type,
-            status=job.status,
-            name=job.name,
-            description=job.description,
-            device_id=job.device_id,
-            shots=job.shots,
-            job_info=job.job_info,
-            transpiler_info=job.transpiler_info,
-            simulator_info=job.simulator_info,
-            mitigation_info=job.mitigation_info,
-            transpile_result=transpile_result,
-            message=message,
-            execution_time=job.execution_time,
-            submitted_at=job.submitted_at,
-            ready_at=job.ready_at,
-            running_at=job.running_at,
-            ended_at=job.ended_at,
-            client=self,
-        )  # pragma: no cover
+            return OqtopusEstimationJobResult.from_raw(job, client=self)
+        return OqtopusJobResult.from_raw(job, client=self)  # pragma: no cover
 
     @staticmethod
     def _to_device(device: models.DevicesDeviceInfo) -> OqtopusDevice:

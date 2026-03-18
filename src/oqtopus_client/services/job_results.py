@@ -78,23 +78,9 @@ class OqtopusJobResult:  # noqa: PLR0904
         """Initialize a job result wrapper from raw API payload and metadata.
 
         Raises:
-            ValueError: If metadata is invalid or conflicts with ``raw``.
+            ValueError: If ``job_type`` or ``status`` is invalid.
 
         """
-        self._validate_raw_metadata_conflicts(
-            raw=raw,
-            job_id=job_id,
-            job_type=job_type,
-            status=status,
-            name=name,
-            description=description,
-            device_id=device_id,
-            shots=shots,
-            submitted_at=submitted_at,
-            ready_at=ready_at,
-            running_at=running_at,
-            ended_at=ended_at,
-        )
         self._raw = raw
         self._job_id = job_id
         self._job_type = self._normalize_job_type(job_type)
@@ -124,234 +110,48 @@ class OqtopusJobResult:  # noqa: PLR0904
             raise ValueError(msg)
 
     @classmethod
-    def from_raw(  # noqa: PLR0913
+    def from_raw(
         cls,
-        raw: models.JobsJobResult | Mapping[str, Any] | None,
+        job: models.JobsJobDef,
         *,
-        job_id: str | None = None,
-        job_type: models.JobsJobType | str | None = None,
-        status: models.JobsJobStatus | str | None = None,
-        name: str | None = None,
-        description: str | None = None,
-        device_id: str | None = None,
-        shots: int | None = None,
-        job_info: models.JobsJobInfo | Mapping[str, Any] | None = None,
-        transpiler_info: Mapping[str, Any] | None = None,
-        simulator_info: Mapping[str, Any] | None = None,
-        mitigation_info: Mapping[str, Any] | None = None,
-        transpile_result: models.JobsTranspileResult | Mapping[str, Any] | None = None,
-        message: str | None = None,
-        execution_time: float | None = None,
-        submitted_at: datetime | None = None,
-        ready_at: datetime | None = None,
-        running_at: datetime | None = None,
-        ended_at: datetime | None = None,
         client: object | None = None,
     ) -> Self:
-        """Build a fallback result object from partial raw payload metadata.
+        """Build a result object from a full ``JobsJobDef`` payload.
 
         Args:
-            raw (Optional): Raw result payload.
-            job_id (Optional): Job identifier override.
-            job_type (Optional): Job type override.
-            status (Optional): Job status override.
-            name (Optional): Job name override.
-            description (Optional): Job description override.
-            device_id (Optional): Device identifier override.
-            shots (Optional): Shot count override.
-            job_info (Optional): Job info payload override.
-            transpiler_info (Optional): Transpiler metadata override.
-            simulator_info (Optional): Simulator metadata override.
-            mitigation_info (Optional): Mitigation metadata override.
-            transpile_result (Optional): Transpile result override.
-            message (Optional): Message override.
-            execution_time (Optional): Execution time override.
-            submitted_at (Optional): Submission timestamp override.
-            ready_at (Optional): Ready timestamp override.
-            running_at (Optional): Running timestamp override.
-            ended_at (Optional): End timestamp override.
+            job (Required): Job definition returned by the API.
             client (Optional): Client object bound to this result.
 
         Returns:
-            A result object that may contain partial metadata.
+            A result object populated from the job definition.
 
         """
-        cls._validate_raw_metadata_conflicts(
-            raw=raw,
-            job_id=job_id,
-            job_type=job_type,
-            status=status,
-            name=name,
-            description=description,
-            device_id=device_id,
-            shots=shots,
-            submitted_at=submitted_at,
-            ready_at=ready_at,
-            running_at=running_at,
-            ended_at=ended_at,
-        )
-        normalized_job_type = cls._normalize_job_type(
-            job_type,
-        ) or cls._infer_job_type(raw)
-        normalized_status = cls._normalize_status(status)
-        result = cls.__new__(cls)
-        result.assign_partial_metadata(
-            raw=raw,
-            job_id=job_id,
-            job_type=normalized_job_type,
-            status=normalized_status,
-            name=name,
-            description=description,
-            device_id=device_id,
-            shots=shots,
-            job_info=job_info,
-            transpiler_info=transpiler_info,
-            simulator_info=simulator_info,
-            mitigation_info=mitigation_info,
+        job_info = job.job_info
+        raw = job_info.result if job_info is not None else None
+        transpile_result = job_info.transpile_result if job_info is not None else None
+        message = job_info.message if job_info is not None else None
+        return cls(
+            raw,
+            job_id=job.job_id,
+            job_type=job.job_type,
+            status=job.status,
+            name=job.name,
+            description=job.description,
+            device_id=job.device_id,
+            shots=job.shots,
+            job_info=job.job_info,
+            transpiler_info=job.transpiler_info,
+            simulator_info=job.simulator_info,
+            mitigation_info=job.mitigation_info,
             transpile_result=transpile_result,
             message=message,
-            execution_time=execution_time,
-            submitted_at=submitted_at,
-            ready_at=ready_at,
-            running_at=running_at,
-            ended_at=ended_at,
+            execution_time=job.execution_time,
+            submitted_at=job.submitted_at,
+            ready_at=job.ready_at,
+            running_at=job.running_at,
+            ended_at=job.ended_at,
             client=client,
         )
-        return result
-
-    def assign_partial_metadata(  # noqa: PLR0913
-        self,
-        *,
-        raw: models.JobsJobResult | Mapping[str, Any] | None,
-        job_id: str | None,
-        job_type: models.JobsJobType | None,
-        status: models.JobsJobStatus | None,
-        name: str | None,
-        description: str | None,
-        device_id: str | None,
-        shots: int | None,
-        job_info: models.JobsJobInfo | Mapping[str, Any] | None,
-        transpiler_info: Mapping[str, Any] | None,
-        simulator_info: Mapping[str, Any] | None,
-        mitigation_info: Mapping[str, Any] | None,
-        transpile_result: models.JobsTranspileResult | Mapping[str, Any] | None,
-        message: str | None,
-        execution_time: float | None,
-        submitted_at: datetime | None,
-        ready_at: datetime | None,
-        running_at: datetime | None,
-        ended_at: datetime | None,
-        client: object | None,
-    ) -> None:
-        """Populate metadata fields for partially constructed result objects.
-
-        Args:
-            raw (Optional): Raw result payload.
-            job_id (Optional): Job identifier.
-            job_type (Optional): Job type.
-            status (Optional): Job status.
-            name (Optional): Job name.
-            description (Optional): Job description.
-            device_id (Optional): Device identifier.
-            shots (Optional): Shot count.
-            job_info (Optional): Job info payload.
-            transpiler_info (Optional): Transpiler metadata.
-            simulator_info (Optional): Simulator metadata.
-            mitigation_info (Optional): Mitigation metadata.
-            transpile_result (Optional): Transpile result payload.
-            message (Optional): Job message.
-            execution_time (Optional): Execution time in seconds.
-            submitted_at (Optional): Submission timestamp.
-            ready_at (Optional): Ready timestamp.
-            running_at (Optional): Running timestamp.
-            ended_at (Optional): End timestamp.
-            client (Optional): Client object bound to this result.
-
-        """
-        self._raw = raw
-        self._job_id = job_id
-        self._job_type = job_type
-        self._status = status
-        self._name = name
-        self._description = description
-        self._device_id = device_id
-        self._shots = shots
-        self._job_info = job_info
-        self._transpiler_info = transpiler_info
-        self._simulator_info = simulator_info
-        self._mitigation_info = mitigation_info
-        self._transpile_result = transpile_result
-        self._message = message
-        self._execution_time = execution_time
-        self._submitted_at = submitted_at
-        self._ready_at = ready_at
-        self._running_at = running_at
-        self._ended_at = ended_at
-        self._client = client
-
-    @classmethod
-    def _validate_raw_metadata_conflicts(  # noqa: PLR0913
-        cls,
-        *,
-        raw: models.JobsJobResult | Mapping[str, Any] | None,
-        job_id: str | None,
-        job_type: models.JobsJobType | str | None,
-        status: models.JobsJobStatus | str | None,
-        name: str | None,
-        description: str | None,
-        device_id: str | None,
-        shots: int | None,
-        submitted_at: datetime | None,
-        ready_at: datetime | None,
-        running_at: datetime | None,
-        ended_at: datetime | None,
-    ) -> None:
-        if not isinstance(raw, Mapping):
-            return
-
-        cls._validate_raw_value("job_id", raw, job_id)
-        cls._validate_raw_value("name", raw, name)
-        cls._validate_raw_value("description", raw, description)
-        cls._validate_raw_value("device_id", raw, device_id)
-        cls._validate_raw_value("shots", raw, shots)
-        cls._validate_raw_value("submitted_at", raw, submitted_at)
-        cls._validate_raw_value("ready_at", raw, ready_at)
-        cls._validate_raw_value("running_at", raw, running_at)
-        cls._validate_raw_value("ended_at", raw, ended_at)
-
-        normalized_job_type = cls._normalize_job_type(job_type)
-        if normalized_job_type is not None:
-            cls._validate_raw_value("job_type", raw, normalized_job_type)
-
-        normalized_status = cls._normalize_status(status)
-        if normalized_status is not None:
-            cls._validate_raw_value("status", raw, normalized_status)
-
-    @staticmethod
-    def _validate_raw_value(
-        key: str,
-        raw: Mapping[str, Any],
-        provided: object,
-    ) -> None:
-        if provided is None or key not in raw:
-            return
-
-        raw_value = raw[key]
-        if not OqtopusJobResult._is_comparable_metadata_value(provided, raw_value):
-            return
-        if raw_value != provided:
-            msg = (
-                f"Conflicting values for '{key}': "
-                f"raw={raw_value!r}, provided={provided!r}"
-            )
-            raise ValueError(msg)
-
-    @staticmethod
-    def _is_comparable_metadata_value(
-        provided: object,
-        raw_value: object,
-    ) -> bool:
-        return isinstance(raw_value, type(provided))
 
     @property
     def raw(self) -> models.JobsJobResult | Mapping[str, Any] | None:
@@ -597,22 +397,6 @@ class OqtopusJobResult:  # noqa: PLR0904
             except ValueError:
                 return None
         return None
-
-    @staticmethod
-    def _infer_job_type(
-        raw: models.JobsJobResult | Mapping[str, Any] | None,
-    ) -> models.JobsJobType | None:
-        if raw is None:
-            return None
-        if isinstance(raw, models.JobsJobResult):
-            if raw.sampling is not None:
-                return models.JobsJobType.SAMPLING
-            return models.JobsJobType.ESTIMATION if raw.estimation is not None else None
-        sampling = raw.get("sampling")
-        estimation = raw.get("estimation")
-        if sampling is not None:
-            return models.JobsJobType.SAMPLING
-        return models.JobsJobType.ESTIMATION if estimation is not None else None
 
     def __repr__(self) -> str:
         """Return a concise debug representation.
