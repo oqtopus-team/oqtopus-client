@@ -23,6 +23,13 @@ This default setup uses `OqtopusConfig.from_file()` internally, which reads
 `$XDG_CONFIG_HOME/oqtopus/config.ini` when `XDG_CONFIG_HOME` is set, or
 `~/.config/oqtopus/config.ini` otherwise.
 
+Helpful API references:
+
+- [`OqtopusClient`](../reference/oqtopus_client/index.md#oqtopus_client.OqtopusClient): main synchronous SDK entry point.
+- [`OqtopusJobSpec`](../reference/oqtopus_client/index.md#oqtopus_client.OqtopusJobSpec): helper for creating typed job requests used by many examples.
+- [`OqtopusSamplingJobResult`](../reference/oqtopus_client/index.md#oqtopus_client.OqtopusSamplingJobResult): sampling result helper used by `run_sampling.py`.
+- [`OqtopusEstimationOperator`](../reference/oqtopus_client/index.md#oqtopus_client.OqtopusEstimationOperator): typed operator helper for estimation examples.
+
 Run an example script with:
 
 ```bash

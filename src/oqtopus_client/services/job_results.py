@@ -355,17 +355,32 @@ class OqtopusJobResult:  # noqa: PLR0904
 
     @property
     def raw(self) -> models.JobsJobResult | Mapping[str, Any] | None:
-        """Return the original result payload as received from API/models."""
+        """Return the original result payload as received from API/models.
+
+        This is useful when you need access to fields that are not yet exposed
+        through dedicated convenience properties.
+
+        """
         return self._raw
 
     @property
     def job_id(self) -> str | None:
-        """Return related job id when known."""
+        """Return the related job id when known.
+
+        This is the same identifier used by client methods such as ``status()``,
+        ``wait()``, and ``cancel_job()``.
+
+        """
         return self._job_id
 
     @property
     def job_type(self) -> models.JobsJobType | None:
-        """Return related job type when known."""
+        """Return the related job type when known.
+
+        Examples include ``sampling``, ``estimation``, ``multi_manual``, and
+        ``sse``.
+
+        """
         return self._job_type
 
     @property
@@ -384,77 +399,141 @@ class OqtopusJobResult:  # noqa: PLR0904
 
     @property
     def name(self) -> str | None:
-        """Return related job name when known."""
+        """Return the related job name when known.
+
+        This corresponds to the optional name supplied when the job was
+        submitted.
+
+        """
         return self._name
 
     @property
     def description(self) -> str | None:
-        """Return related job description when known."""
+        """Return the related job description when known.
+
+        This corresponds to the optional description supplied at submission time.
+
+        """
         return self._description
 
     @property
     def device_id(self) -> str | None:
-        """Return related device id when known."""
+        """Return the related device id when known.
+
+        This identifies the backend where the job was submitted.
+
+        """
         return self._device_id
 
     @property
     def shots(self) -> int | None:
-        """Return related shots when known."""
+        """Return the related shot count when known.
+
+        For job types that do not use sampling-style shots, this may be absent.
+
+        """
         return self._shots
 
     @property
     def job_info(self) -> models.JobsJobInfo | Mapping[str, Any] | None:
-        """Return related job_info payload when known."""
+        """Return the related ``job_info`` payload when known.
+
+        This contains nested execution results and other API-provided metadata.
+
+        """
         return self._job_info
 
     @property
     def transpiler_info(self) -> Mapping[str, Any] | None:
-        """Return related transpiler info when known."""
+        """Return the related transpiler info when known.
+
+        This is the transpiler metadata submitted with the job or echoed back by
+        the API.
+
+        """
         return self._transpiler_info
 
     @property
     def simulator_info(self) -> Mapping[str, Any] | None:
-        """Return related simulator info when known."""
+        """Return the related simulator info when known.
+
+        This is typically present for simulator-backed executions.
+
+        """
         return self._simulator_info
 
     @property
     def mitigation_info(self) -> Mapping[str, Any] | None:
-        """Return related mitigation info when known."""
+        """Return the related mitigation info when known.
+
+        This contains error-mitigation settings associated with the job.
+
+        """
         return self._mitigation_info
 
     @property
     def transpile_result(self) -> models.JobsTranspileResult | Mapping[str, Any] | None:
-        """Return related transpile result when known."""
+        """Return the related transpile result when known.
+
+        This may include transpiled circuits or backend-specific transpilation
+        metadata returned by the API.
+
+        """
         return self._transpile_result
 
     @property
     def message(self) -> str | None:
-        """Return related message when known."""
+        """Return the related message when known.
+
+        Error details and backend-provided status messages are often surfaced
+        here.
+
+        """
         return self._message
 
     @property
     def execution_time(self) -> float | int | None:
-        """Return related execution time in seconds when known."""
+        """Return the related execution time in seconds when known.
+
+        This value is reported by the API and may be absent for unfinished jobs.
+
+        """
         return self._execution_time
 
     @property
     def submitted_at(self) -> datetime | None:
-        """Return related submission time when known."""
+        """Return the related submission time when known.
+
+        This timestamp is set when the API accepts the job.
+
+        """
         return self._submitted_at
 
     @property
     def ready_at(self) -> datetime | None:
-        """Return related ready time when known."""
+        """Return the related ready time when known.
+
+        This timestamp is set when the job has been prepared and is ready to run.
+
+        """
         return self._ready_at
 
     @property
     def running_at(self) -> datetime | None:
-        """Return related running time when known."""
+        """Return the related running time when known.
+
+        This timestamp is set when execution actually starts.
+
+        """
         return self._running_at
 
     @property
     def ended_at(self) -> datetime | None:
-        """Return related end time when known."""
+        """Return the related end time when known.
+
+        This timestamp is set when the job reaches a terminal state.
+
+        """
         return self._ended_at
 
     def is_sampling(self) -> bool:

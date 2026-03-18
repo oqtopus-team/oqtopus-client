@@ -69,6 +69,13 @@ c = measure q;
 """
 ```
 
+Helpful API references for this section:
+
+- [`OqtopusJobSpec`](../reference/oqtopus_client/index.md#oqtopus_client.OqtopusJobSpec): helper for building typed job requests.
+- [`OqtopusJobResult`](../reference/oqtopus_client/index.md#oqtopus_client.OqtopusJobResult): common result wrapper returned by `run_job()` and `wait()`.
+- [`OqtopusSamplingJobResult`](../reference/oqtopus_client/index.md#oqtopus_client.OqtopusSamplingJobResult): sampling-specific result helper with `get_counts()`.
+- [`OqtopusEstimationJobResult`](../reference/oqtopus_client/index.md#oqtopus_client.OqtopusEstimationJobResult): estimation-specific result helper.
+
 ## Job Execution Styles
 
 You can write job execution in two styles:
@@ -262,6 +269,9 @@ Optional variables and settings include:
 
 - `default_headers`: add common headers
 - `user_agent`: override User-Agent
+
+For more detail on config and client APIs, see the
+[Package Reference](../reference/API_reference.md).
 
 ## Further Reading
 
