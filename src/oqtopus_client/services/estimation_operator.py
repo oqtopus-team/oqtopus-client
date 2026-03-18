@@ -27,6 +27,9 @@ class OqtopusEstimationOperator:
     def from_model(cls, operator: models.JobsOperatorItem) -> OqtopusEstimationOperator:
         """Build a wrapper from a REST ``JobsOperatorItem`` model.
 
+        Args:
+            operator (Required): REST model to convert.
+
         Returns:
             The converted operator wrapper.
 

@@ -976,6 +976,9 @@ class OqtopusClient:  # noqa: PLR0904
     def get_device(self, device_id: str) -> OqtopusDevice:
         """Get one device by id.
 
+        Args:
+            device_id (Required): Target device ID to fetch.
+
         Returns:
             The requested device wrapped as an SDK device object.
 
@@ -1300,6 +1303,9 @@ class OqtopusClient:  # noqa: PLR0904
     def result(self, job_id: str) -> OqtopusJobResult:
         """Alias of :meth:`get_job_result`.
 
+        Args:
+            job_id (Required): Target job ID to fetch.
+
         Returns:
             The fetched job as an SDK result wrapper.
 
@@ -1308,6 +1314,9 @@ class OqtopusClient:  # noqa: PLR0904
 
     def refresh(self, job_id: str) -> OqtopusJobResult:
         """Alias of :meth:`get_job_result`.
+
+        Args:
+            job_id (Required): Target job ID to fetch.
 
         Returns:
             The fetched job as an SDK result wrapper.
@@ -1344,6 +1353,12 @@ class OqtopusClient:  # noqa: PLR0904
         **kwargs: Unpack[WaitForJobKwargs],
     ) -> OqtopusJobResult:
         """Alias of :meth:`wait_for_job`.
+
+        Args:
+            job_id (Required): Target job ID to wait for.
+            kwargs (Optional): ``interval``, ``interval_backoff``,
+                ``max_interval``, ``timeout``, ``terminal_statuses``,
+                ``failure_statuses``.
 
         Returns:
             The finished job as an SDK result wrapper.
@@ -1474,6 +1489,9 @@ class OqtopusClient:  # noqa: PLR0904
     def status(self, job_id: str) -> models.JobsJobStatus:
         """Get current job status enum for one job.
 
+        Args:
+            job_id (Required): Target job ID to get status for.
+
         Returns:
             The current job status.
 
@@ -1487,6 +1505,11 @@ class OqtopusClient:  # noqa: PLR0904
         terminal_statuses: set[models.JobsJobStatus] | None = None,
     ) -> bool:
         """Return whether the job is in terminal status.
+
+        Args:
+            job_id (Required): Target job ID to inspect.
+            terminal_statuses (Optional): Statuses treated as terminal. Defaults
+                to ``succeeded``, ``failed``, and ``cancelled``.
 
         Returns:
             ``True`` when the job has reached a terminal status.
@@ -1516,6 +1539,9 @@ class OqtopusClient:  # noqa: PLR0904
 
     def get_sselog(self, job_id: str) -> models.JobsGetSselogResponse:
         """Get encoded SSE log archive for one job.
+
+        Args:
+            job_id (Required): Target SSE job ID.
 
         Returns:
             Encoded SSE log archive response from the API.
@@ -1572,6 +1598,9 @@ class OqtopusClient:  # noqa: PLR0904
         self, announcement_id: int
     ) -> models.AnnouncementsGetAnnouncementResponse:
         """Get one announcement by id.
+
+        Args:
+            announcement_id (Required): Target announcement ID.
 
         Returns:
             The requested announcement payload.

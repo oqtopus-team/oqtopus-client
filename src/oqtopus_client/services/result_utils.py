@@ -13,6 +13,9 @@ if TYPE_CHECKING:
 def bitstring_to_int(bitstring: str) -> int:
     """Convert a bitstring key such as `0101` or `0b0101` to an integer.
 
+    Args:
+        bitstring (Required): Bitstring text to normalize and convert.
+
     Returns:
         The integer value of the normalized bitstring.
 
@@ -33,6 +36,9 @@ def bitstring_dict_to_int_keys(
 ) -> dict[int, object]:
     """Convert bitstring-keyed mappings to int-keyed mappings.
 
+    Args:
+        values (Optional): Mapping whose keys are bitstrings.
+
     Returns:
         A mapping with integer keys.
 
@@ -46,6 +52,10 @@ def normalize_sampling_result(
     sampling_result: models.JobsSamplingResult | Mapping[str, object] | None,
 ) -> dict[str, dict[int, object]]:
     """Normalize sampling result counts by converting bitstring keys to integers.
+
+    Args:
+        sampling_result (Optional): Sampling result model or mapping containing
+            ``counts`` and ``divided_counts``.
 
     Returns:
         Normalized ``counts`` and ``divided_counts`` dictionaries.

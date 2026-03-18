@@ -150,6 +150,28 @@ class OqtopusJobResult:  # noqa: PLR0904
     ) -> Self:
         """Build a fallback result object from partial raw payload metadata.
 
+        Args:
+            raw (Optional): Raw result payload.
+            job_id (Optional): Job identifier override.
+            job_type (Optional): Job type override.
+            status (Optional): Job status override.
+            name (Optional): Job name override.
+            description (Optional): Job description override.
+            device_id (Optional): Device identifier override.
+            shots (Optional): Shot count override.
+            job_info (Optional): Job info payload override.
+            transpiler_info (Optional): Transpiler metadata override.
+            simulator_info (Optional): Simulator metadata override.
+            mitigation_info (Optional): Mitigation metadata override.
+            transpile_result (Optional): Transpile result override.
+            message (Optional): Message override.
+            execution_time (Optional): Execution time override.
+            submitted_at (Optional): Submission timestamp override.
+            ready_at (Optional): Ready timestamp override.
+            running_at (Optional): Running timestamp override.
+            ended_at (Optional): End timestamp override.
+            client (Optional): Client object bound to this result.
+
         Returns:
             A result object that may contain partial metadata.
 
@@ -221,7 +243,31 @@ class OqtopusJobResult:  # noqa: PLR0904
         ended_at: datetime | None,
         client: object | None,
     ) -> None:
-        """Populate metadata fields for partially constructed result objects."""
+        """Populate metadata fields for partially constructed result objects.
+
+        Args:
+            raw (Optional): Raw result payload.
+            job_id (Optional): Job identifier.
+            job_type (Optional): Job type.
+            status (Optional): Job status.
+            name (Optional): Job name.
+            description (Optional): Job description.
+            device_id (Optional): Device identifier.
+            shots (Optional): Shot count.
+            job_info (Optional): Job info payload.
+            transpiler_info (Optional): Transpiler metadata.
+            simulator_info (Optional): Simulator metadata.
+            mitigation_info (Optional): Mitigation metadata.
+            transpile_result (Optional): Transpile result payload.
+            message (Optional): Job message.
+            execution_time (Optional): Execution time in seconds.
+            submitted_at (Optional): Submission timestamp.
+            ready_at (Optional): Ready timestamp.
+            running_at (Optional): Running timestamp.
+            ended_at (Optional): End timestamp.
+            client (Optional): Client object bound to this result.
+
+        """
         self._raw = raw
         self._job_id = job_id
         self._job_type = job_type
@@ -766,6 +812,14 @@ class OqtopusSseJobResult(OqtopusSamplingJobResult):
         Default behavior keeps processing in-memory and returns archive bytes.
         Set `persist=True` to write the archive file to disk and return its path.
 
+        Args:
+            save_dir (Optional): Destination directory used when ``persist=True``.
+            file_name (Optional): Saved archive file name when ``persist=True``.
+            overwrite (Optional): Whether to overwrite an existing file when
+                ``persist=True``.
+            persist (Optional): Whether to save the archive to disk instead of
+                returning bytes.
+
         Returns:
             Archive bytes in memory, or a saved file path when ``persist=True``.
 
@@ -794,6 +848,10 @@ class OqtopusSseJobResult(OqtopusSamplingJobResult):
     ) -> str:
         """Decode SSE log response and return readable text.
 
+        Args:
+            encoding (Optional): Text encoding used to decode log contents.
+            errors (Optional): Error handling mode passed to ``decode()``.
+
         Returns:
             Decoded SSE log text.
 
@@ -821,6 +879,11 @@ class OqtopusSseJobResult(OqtopusSamplingJobResult):
         print_fn: Callable[[str], Any] = print,
     ) -> str:
         """Read SSE log text and print it.
+
+        Args:
+            encoding (Optional): Text encoding used to decode log contents.
+            errors (Optional): Error handling mode passed to ``decode()``.
+            print_fn (Optional): Printer function used to display the decoded log.
 
         Returns:
             The printed SSE log text.

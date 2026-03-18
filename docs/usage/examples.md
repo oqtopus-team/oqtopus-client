@@ -19,6 +19,10 @@ from oqtopus_client import OqtopusClient
 client = OqtopusClient()
 ```
 
+This default setup uses `OqtopusConfig.from_file()` internally, which reads
+`$XDG_CONFIG_HOME/oqtopus/config.ini` when `XDG_CONFIG_HOME` is set, or
+`~/.config/oqtopus/config.ini` otherwise.
+
 Run an example script with:
 
 ```bash

@@ -19,13 +19,17 @@ pip install -e .
 The recommended setup is to define the `default` profile and construct
 `OqtopusClient()` without arguments.
 
-`OqtopusConfig.from_file()` resolves the config file path as follows:
+`OqtopusConfig.from_file(section="default", path=...)` resolves the config file
+as follows:
 
-1. If you do not specify `path`, it reads the default config location.
-2. If you specify `path`, it reads that location.
-3. When `path` is not specified and `XDG_CONFIG_HOME` is set, the default
-   location is `$XDG_CONFIG_HOME/oqtopus/config.ini`; otherwise it is
+1. If you omit `path`, it reads `$XDG_CONFIG_HOME/oqtopus/config.ini` when
+   `XDG_CONFIG_HOME` is set.
+2. If you omit `path` and `XDG_CONFIG_HOME` is not set, it reads
    `~/.config/oqtopus/config.ini`.
+3. If you specify `path`, it reads that location instead.
+
+The `section` argument defaults to `default`, so `OqtopusClient()` and
+`OqtopusConfig.from_file()` without arguments both load the `[default]` profile.
 
 Create the config file in that location:
 
@@ -206,6 +210,19 @@ from oqtopus_client import OqtopusClient, OqtopusConfig
 client = OqtopusClient(OqtopusConfig.from_file("oqtopus-dev"))
 ```
 
+You can also point to a different file explicitly:
+
+```python
+from oqtopus_client import OqtopusClient, OqtopusConfig
+
+client = OqtopusClient(
+    OqtopusConfig.from_file(
+        section="oqtopus-dev",
+        path="~/custom-config/oqtopus/config.ini",
+    )
+)
+```
+
 ### Load configuration from environment variables
 
 ```bash
@@ -218,6 +235,9 @@ from oqtopus_client import OqtopusClient, OqtopusConfig
 
 client = OqtopusClient(OqtopusConfig.from_env())
 ```
+
+`from_env()` reads `OQTOPUS_BASE_URL` for the base URL, `OQTOPUS_API_TOKEN` for
+the API token, and `OQTOPUS_PROXY` for the optional proxy by default.
 
 ### Override configuration explicitly in code
 

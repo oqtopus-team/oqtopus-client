@@ -51,6 +51,12 @@ class OqtopusConfig:
     ) -> OqtopusConfig:
         """Load configuration from an INI-style profile file.
 
+        Args:
+            section (Optional): INI section name to load. Defaults to ``default``.
+            path (Optional): Config file path. When omitted, this method reads
+                ``$XDG_CONFIG_HOME/oqtopus/config.ini`` if ``XDG_CONFIG_HOME`` is
+                set; otherwise it reads ``~/.config/oqtopus/config.ini``.
+
         Example:
             OqtopusClient(OqtopusConfig.from_file("oqtopus-dev"))
 
@@ -116,6 +122,14 @@ class OqtopusConfig:
         api_token_env: str = DEFAULT_API_TOKEN_ENV,
     ) -> OqtopusConfig:
         """Load configuration from environment variables.
+
+        Args:
+            base_url_env (Optional): Environment variable name used for the API
+                base URL. Defaults to ``OQTOPUS_BASE_URL``.
+            proxy_env (Optional): Environment variable name used for the proxy
+                URL. Defaults to ``OQTOPUS_PROXY``.
+            api_token_env (Optional): Environment variable name used for the API
+                token. Defaults to ``OQTOPUS_API_TOKEN``.
 
         Returns:
             Configuration loaded from environment variables.
