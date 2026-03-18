@@ -71,10 +71,7 @@ c = measure q;
 
 Helpful API references for this section:
 
-- [`OqtopusJobSpec`](../reference/oqtopus_client/index.md#oqtopus_client.OqtopusJobSpec): helper for building typed job requests.
-- [`OqtopusJobResult`](../reference/oqtopus_client/index.md#oqtopus_client.OqtopusJobResult): common result wrapper returned by `run_job()` and `wait()`.
-- [`OqtopusSamplingJobResult`](../reference/oqtopus_client/index.md#oqtopus_client.OqtopusSamplingJobResult): sampling-specific result helper with `get_counts()`.
-- [`OqtopusEstimationJobResult`](../reference/oqtopus_client/index.md#oqtopus_client.OqtopusEstimationJobResult): estimation-specific result helper.
+- [Package Reference](../reference/API_reference.md): generated API reference for `OqtopusJobSpec`, `OqtopusJobResult`, `OqtopusSamplingJobResult`, and `OqtopusEstimationJobResult`.
 
 ## Job Execution Styles
 

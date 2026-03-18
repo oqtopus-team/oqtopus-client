@@ -25,10 +25,7 @@ This default setup uses `OqtopusConfig.from_file()` internally, which reads
 
 Helpful API references:
 
-- [`OqtopusClient`](../reference/oqtopus_client/index.md#oqtopus_client.OqtopusClient): main synchronous SDK entry point.
-- [`OqtopusJobSpec`](../reference/oqtopus_client/index.md#oqtopus_client.OqtopusJobSpec): helper for creating typed job requests used by many examples.
-- [`OqtopusSamplingJobResult`](../reference/oqtopus_client/index.md#oqtopus_client.OqtopusSamplingJobResult): sampling result helper used by `run_sampling.py`.
-- [`OqtopusEstimationOperator`](../reference/oqtopus_client/index.md#oqtopus_client.OqtopusEstimationOperator): typed operator helper for estimation examples.
+- [Package Reference](../reference/API_reference.md): generated API reference for `OqtopusClient`, `OqtopusJobSpec`, `OqtopusSamplingJobResult`, and `OqtopusEstimationOperator`.
 
 Run an example script with:
 
