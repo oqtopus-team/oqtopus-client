@@ -10,7 +10,7 @@ import types
 from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from unittest.mock import Mock
 
 import pytest
@@ -409,6 +409,8 @@ def test_sync_clients_use_isolated_runtimes() -> None:
     client2 = OqtopusClient(OqtopusConfig(base_url="http://test.local"))
     try:
         assert client1._runtime is not client2._runtime
+        assert len(client1._runtimes) == 4
+        assert len(client2._runtimes) == 4
     finally:
         client1.close()
         client2.close()
@@ -486,3 +488,64 @@ def test_get_job_requires_valid_job_def_shape() -> None:
 
     with pytest.raises(AttributeError):
         client.get_job("job-1")
+
+
+def test_dispatcher_round_robins_and_preserves_job_affinity() -> None:
+    """Test case: test_dispatcher_round_robins_and_preserves_job_affinity."""
+    client = object.__new__(OqtopusClient)
+    client._closed = False
+    client._dispatch_lock = threading.Lock()
+    client._next_runtime_index = 0
+    client._job_runtime_indices = {}
+    client._runtimes = [Mock() for _ in range(4)]
+    client._async_clients = [Mock() for _ in range(4)]
+    client._runtime = client._runtimes[0]
+    client._async = client._async_clients[0]
+
+    observed: list[tuple[int, str]] = []
+
+    def fake_call_on_runtime(
+        runtime_index: int,
+        method_name: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
+        observed.append((runtime_index, method_name))
+        if method_name == "submit_job":
+            return models.JobsSubmitJobResponse(job_id="job-42")
+        if method_name == "get_job_status":
+            return models.JobsGetJobStatusResponse(
+                job_id="job-42",
+                status=models.JobsJobStatus.RUNNING,
+            )
+        if method_name == "cancel_job":
+            return models.SuccessSuccessResponse(message="ok")
+        return []
+
+    client._call_on_runtime = fake_call_on_runtime  # type: ignore[assignment,method-assign]
+
+    client._call("list_devices")
+    client._call("get_api_token")
+    submit_response = cast(
+        "models.JobsSubmitJobResponse",
+        client._call("submit_job", OqtopusJobSpec.sampling(device_id="K", program="x")),
+    )
+    status_response = cast(
+        "models.JobsGetJobStatusResponse",
+        client._call("get_job_status", "job-42"),
+    )
+    cancel_response = cast(
+        "models.SuccessSuccessResponse",
+        client._call("cancel_job", "job-42"),
+    )
+
+    assert submit_response.job_id == "job-42"
+    assert status_response.job_id == "job-42"
+    assert cancel_response.message == "ok"
+    assert observed == [
+        (0, "list_devices"),
+        (1, "get_api_token"),
+        (2, "submit_job"),
+        (2, "get_job_status"),
+        (2, "cancel_job"),
+    ]
