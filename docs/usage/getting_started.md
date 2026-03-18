@@ -14,7 +14,7 @@ For local development:
 pip install -e .
 ```
 
-## Recommended Configuration Flow
+## Configuration
 
 The recommended setup is to define the `default` profile and construct
 `OqtopusClient()` without arguments.
@@ -45,65 +45,7 @@ client = OqtopusClient()
 
 `OqtopusClient()` uses `OqtopusConfig.from_file()` internally, and
 `OqtopusConfig.from_file()` uses the `default` section when no profile is specified.
-
-## Other Configuration Patterns
-
-### Use a named profile from `config.ini`
-
-Add additional sections when you need multiple environments:
-
-```ini
-[default]
-base_url = <url>
-api_token = <token>
-
-[oqtopus-dev]
-base_url = <url>
-api_token = <token>
-```
-
-```python
-from oqtopus_client import OqtopusClient, OqtopusConfig
-
-client = OqtopusClient(OqtopusConfig.from_file("oqtopus-dev"))
-```
-
-### Load configuration from environment variables
-
-```bash
-export OQTOPUS_BASE_URL=<url>
-export OQTOPUS_API_TOKEN=<token>
-```
-
-```python
-from oqtopus_client import OqtopusClient, OqtopusConfig
-
-client = OqtopusClient(OqtopusConfig.from_env())
-```
-
-### Override configuration explicitly in code
-
-Use explicit `OqtopusConfig(...)` when you need a one-off override:
-
-```python
-from oqtopus_client import OqtopusClient, OqtopusConfig
-
-client = OqtopusClient(
-    OqtopusConfig(
-        base_url="<url>",
-        api_token="<token>",
-        retry_max_attempts=3,
-        retry_backoff_seconds=0.2,
-    )
-)
-```
-
-The token is sent using the `q-api-token` request header.
-
-Optional variables and settings include:
-
-- `default_headers`: add common headers
-- `user_agent`: override User-Agent
+If you need a different setup, see [Other Configuration Patterns](#other-configuration-patterns).
 
 ## First Job
 
@@ -241,6 +183,65 @@ Example output:
 
 When you use `run_*()` or `wait()`, the returned job is already finished, so its
 status is typically `succeeded`, `failed`, or `cancelled`.
+
+## Other Configuration Patterns
+
+### Use a named profile from `config.ini`
+
+Add additional sections when you need multiple environments:
+
+```ini
+[default]
+base_url = <url>
+api_token = <token>
+
+[oqtopus-dev]
+base_url = <url>
+api_token = <token>
+```
+
+```python
+from oqtopus_client import OqtopusClient, OqtopusConfig
+
+client = OqtopusClient(OqtopusConfig.from_file("oqtopus-dev"))
+```
+
+### Load configuration from environment variables
+
+```bash
+export OQTOPUS_BASE_URL=<url>
+export OQTOPUS_API_TOKEN=<token>
+```
+
+```python
+from oqtopus_client import OqtopusClient, OqtopusConfig
+
+client = OqtopusClient(OqtopusConfig.from_env())
+```
+
+### Override configuration explicitly in code
+
+Use explicit `OqtopusConfig(...)` when you need a one-off override:
+
+```python
+from oqtopus_client import OqtopusClient, OqtopusConfig
+
+client = OqtopusClient(
+    OqtopusConfig(
+        base_url="<url>",
+        api_token="<token>",
+        retry_max_attempts=3,
+        retry_backoff_seconds=0.2,
+    )
+)
+```
+
+The token is sent using the `q-api-token` request header.
+
+Optional variables and settings include:
+
+- `default_headers`: add common headers
+- `user_agent`: override User-Agent
 
 ## Further Reading
 
