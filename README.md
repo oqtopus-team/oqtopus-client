@@ -1,4 +1,5 @@
 ![OQTOPUS logo](./docs/asset/oqtopus-logo.png)
+
 # oqtopus-client
 
 Python client library for the OQTOPUS Cloud User API.
@@ -12,14 +13,6 @@ Python client library for the OQTOPUS Cloud User API.
 - Authenticate with config profiles, environment variables, or explicit `OqtopusConfig`.
 - Use helper APIs such as `OqtopusJobSpec` and `run_*` to reduce boilerplate.
 - Rely on built-in retry and typed job result wrappers for stable operation.
-
-## Installation
-
-```bash
-pip install oqtopus-client
-```
-
-For local development, see [Setup Development Environment](./docs/developer_guidelines/setup.md).
 
 ## Documentation
 
