@@ -17,6 +17,4 @@ Thank you for your interest in OQTOPUS Client.
 
 - [Setup Development Environment](./developer_guidelines/setup.md)
 - [Development Flow](./developer_guidelines/development_flow.md)
-- [Development Flow](./developer_guidelines/development_flow.md)
-- [Setup Development Environment](./developer_guidelines/setup.md)
 - [Repository CONTRIBUTING guide](https://github.com/oqtopus-team/oqtopus-client/blob/main/CONTRIBUTING.md)
