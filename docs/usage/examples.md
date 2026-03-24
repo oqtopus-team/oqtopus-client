@@ -25,7 +25,11 @@ This default setup uses `OqtopusConfig.from_file()` internally, which reads
 
 Helpful API references:
 
-- [Package Reference](../reference/API_reference.md): generated API reference for `OqtopusClient`, `OqtopusJobSpec`, `OqtopusSamplingJobResult`, and `OqtopusEstimationOperator`.
+- [API Reference](../reference/index.md): entry point for both the SDK and
+  generated OpenAPI references.
+- [Package Reference](../reference/sdk/oqtopus_client/index.md): API reference
+  for `OqtopusClient`, `OqtopusJobSpec`, `OqtopusSamplingJobResult`, and
+  `OqtopusEstimationOperator`.
 
 Run an example script with:
 

@@ -9,6 +9,7 @@ nav:
       - Getting Started: usage/getting_started.md
       - Examples: usage/examples.md
   - API reference:
+      - Overview: reference/index.md
       - Package Reference: reference/
   - Developer Guidelines:
       - Development Flow: developer_guidelines/development_flow.md

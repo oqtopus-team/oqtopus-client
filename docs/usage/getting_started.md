@@ -71,7 +71,11 @@ c = measure q;
 
 Helpful API references for this section:
 
-- [Package Reference](../reference/API_reference.md): generated API reference for `OqtopusJobSpec`, `OqtopusJobResult`, `OqtopusSamplingJobResult`, and `OqtopusEstimationJobResult`.
+- [SDK Reference](../reference/index.md): entry point for the hand-written SDK
+  reference and the generated OpenAPI reference.
+- [Package Reference](../reference/sdk/oqtopus_client/index.md): API reference
+  for `OqtopusJobSpec`, `OqtopusJobResult`, `OqtopusSamplingJobResult`, and
+  `OqtopusEstimationJobResult`.
 
 ## Job Execution Styles
 
@@ -270,11 +274,11 @@ Optional variables and settings include:
 - `default_headers`: add common headers
 - `user_agent`: override User-Agent
 
-For more detail on config and client APIs, see the
-[Package Reference](../reference/API_reference.md).
+For more detail on config, client APIs, and generated bindings, see the
+[API Reference](../reference/index.md).
 
 ## Further Reading
 
 - [Examples](examples.md)
 - [`examples/` directory on GitHub](https://github.com/oqtopus-team/oqtopus-client/tree/main/examples)
-- [API Reference](../reference/API_reference.md)
+- [API Reference](../reference/index.md)
