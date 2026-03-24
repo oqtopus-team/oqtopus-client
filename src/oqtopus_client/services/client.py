@@ -176,9 +176,7 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
             raise ValueError(msg)
         self._retry_max_attempts = config.retry_max_attempts
         self._retry_backoff_seconds = config.retry_backoff_seconds
-        self._retry_status_codes = set(
-            config.retry_status_codes or {429, 500, 502, 503, 504}
-        )
+        self._retry_status_codes = set(config.retry_status_codes or {429})
         self._retry_methods = {
             m.upper() for m in (config.retry_methods or {"GET", "DELETE"})
         }
@@ -844,9 +842,7 @@ class OqtopusClient:  # noqa: PLR0904
         self.timeout = resolved_config.timeout
         self.retry_max_attempts = resolved_config.retry_max_attempts
         self.retry_backoff_seconds = resolved_config.retry_backoff_seconds
-        self.retry_status_codes = frozenset(
-            resolved_config.retry_status_codes or {429, 500, 502, 503, 504}
-        )
+        self.retry_status_codes = frozenset(resolved_config.retry_status_codes or {429})
         self.retry_methods = frozenset(
             m.upper() for m in (resolved_config.retry_methods or {"GET", "DELETE"})
         )

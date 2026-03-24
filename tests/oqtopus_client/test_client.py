@@ -10,6 +10,7 @@ import pytest
 
 from oqtopus_client import (
     OqtopusClient,
+    OqtopusConfig,
     OqtopusEstimationJobResult,
     OqtopusJobResult,
     OqtopusJobSpec,
@@ -217,3 +218,12 @@ def test_api_error_propagates() -> None:
     client = _build_client_with_fake_call(lambda name, *args, **kwargs: (_ for _ in ()).throw(UserApiError(404, "not found", {})))
     with pytest.raises(UserApiError):
         client.get_job("missing")
+
+
+def test_client_default_retry_status_codes_excludes_5xx() -> None:
+    """Test case: test_client_default_retry_status_codes_excludes_5xx."""
+    client = OqtopusClient(OqtopusConfig(base_url="http://test"))
+    try:
+        assert client.retry_status_codes == frozenset({429})
+    finally:
+        client.close()

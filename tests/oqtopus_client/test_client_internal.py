@@ -132,6 +132,7 @@ def test_async_client_sets_headers_and_rest_config() -> None:
         assert client._rest_config is not None
         assert client._rest_config.host == "http://test"
         assert client._rest_config.proxy == "http://proxy.local:8080"
+        assert client._retry_status_codes == {429}
     finally:
         _close_async_client(runtime, client)
 
