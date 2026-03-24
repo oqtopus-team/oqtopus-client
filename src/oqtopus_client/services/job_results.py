@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any
 from oqtopus_client import rest as models
 from oqtopus_client.services.result_utils import (
     bitstring_dict_to_int_keys,
-    normalize_sampling_result,
+    convert_sampling_counts_to_int_keys,
 )
 
 if TYPE_CHECKING:
@@ -83,8 +83,8 @@ class OqtopusJobResult:  # noqa: PLR0904
         """
         self._raw = raw
         self._job_id = job_id
-        self._job_type = self._normalize_job_type(job_type)
-        self._status = self._normalize_status(status)
+        self._job_type = self._coerce_job_type(job_type)
+        self._status = self._coerce_status(status)
         self._name = name
         self._description = description
         self._device_id = device_id
@@ -373,7 +373,7 @@ class OqtopusJobResult:  # noqa: PLR0904
         return self.job_type == models.JobsJobType.SSE
 
     @staticmethod
-    def _normalize_job_type(
+    def _coerce_job_type(
         job_type: models.JobsJobType | str | None,
     ) -> models.JobsJobType | None:
         if isinstance(job_type, models.JobsJobType):
@@ -386,7 +386,7 @@ class OqtopusJobResult:  # noqa: PLR0904
         return None
 
     @staticmethod
-    def _normalize_status(
+    def _coerce_status(
         status: models.JobsJobStatus | str | None,
     ) -> models.JobsJobStatus | None:
         if isinstance(status, models.JobsJobStatus):
@@ -465,14 +465,14 @@ class OqtopusSamplingJobResult(OqtopusJobResult):
                 return sampling
         return None
 
-    def normalized_counts(self) -> dict[str, dict[int, Any]]:
-        """Normalize bitstring keys into integer keys for sampling payload.
+    def counts_with_integer_keys(self) -> dict[str, dict[int, Any]]:
+        """Convert bitstring keys to integer keys for sampling payload.
 
         Returns:
             Sampling counts with integer keys.
 
         """
-        return normalize_sampling_result(self.sampling)
+        return convert_sampling_counts_to_int_keys(self.sampling)
 
     def get_counts(self) -> dict[str, Any]:
         """Return raw counts with original bitstring keys.
@@ -584,10 +584,10 @@ class OqtopusMultiManualJobResult(OqtopusSamplingJobResult):
     """Specialized SDK result object for multi_manual jobs."""
 
     def get_divided_counts(self) -> dict[str, dict[int, Any]]:
-        """Return normalized counts per sub-result from `divided_counts`.
+        """Return integer-keyed counts per sub-result from `divided_counts`.
 
         Returns:
-            Normalized counts keyed by sub-result id.
+            Integer-keyed counts keyed by sub-result id.
 
         """
         sampling = self.sampling
@@ -601,14 +601,14 @@ class OqtopusMultiManualJobResult(OqtopusSamplingJobResult):
         if not isinstance(divided_counts, Mapping):
             return {}
 
-        normalized: dict[str, dict[int, Any]] = {}
+        integer_key_counts: dict[str, dict[int, Any]] = {}
         for result_key, counts in divided_counts.items():
             if not isinstance(counts, Mapping):
                 continue
-            normalized[str(result_key)] = bitstring_dict_to_int_keys(
+            integer_key_counts[str(result_key)] = bitstring_dict_to_int_keys(
                 {str(k): v for k, v in counts.items()},
             )
-        return normalized
+        return integer_key_counts
 
     def __repr__(self) -> str:
         """Return a concise debug representation.

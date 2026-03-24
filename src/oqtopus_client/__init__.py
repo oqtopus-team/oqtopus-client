@@ -17,7 +17,7 @@ from .services.job_spec import OqtopusJobSpec
 from .services.result_utils import (
     bitstring_dict_to_int_keys,
     bitstring_to_int,
-    normalize_sampling_result,
+    convert_sampling_counts_to_int_keys,
 )
 
 __all__ = [
@@ -35,6 +35,6 @@ __all__ = [
     "UserApiError",
     "bitstring_dict_to_int_keys",
     "bitstring_to_int",
-    "normalize_sampling_result",
+    "convert_sampling_counts_to_int_keys",
     "rest",
 ]

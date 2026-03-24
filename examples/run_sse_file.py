@@ -21,7 +21,7 @@ result = client.run_sse_file(
 )
 print(result)
 print(result.job_id, result.job_type)
-print(result.normalized_counts())
+print(result.counts_with_integer_keys())
 
 archive = result.download_log()
 print(f"SSE log archive size (memory only): {len(archive)} bytes")

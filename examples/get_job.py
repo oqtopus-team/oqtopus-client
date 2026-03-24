@@ -42,5 +42,5 @@ print(fetched_job.job_id)
 print("job_status:", fetched_job.status)
 print("transpile_result:", fetched_job.transpile_result)
 if isinstance(current_result, OqtopusSamplingJobResult):
-    print(current_result.normalized_counts())
+    print(current_result.counts_with_integer_keys())
 print("status:", status)

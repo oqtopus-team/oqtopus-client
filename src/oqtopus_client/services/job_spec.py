@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
 
-def _normalize_programs(program: str | Sequence[str]) -> list[str]:
+def _as_program_list(program: str | Sequence[str]) -> list[str]:
     if isinstance(program, str):
         return [program]
     return list(program)
@@ -22,11 +22,11 @@ def _normalize_programs(program: str | Sequence[str]) -> list[str]:
 def _encode_programs_base64(program: str | Sequence[str]) -> list[str]:
     return [
         base64.b64encode(text.encode("utf-8")).decode("utf-8")
-        for text in _normalize_programs(program)
+        for text in _as_program_list(program)
     ]
 
 
-def _normalize_operators(
+def _coerce_operators(
     operator: Sequence[
         OqtopusEstimationOperator | models.JobsOperatorItem | Mapping[str, Any]
     ]
@@ -34,15 +34,15 @@ def _normalize_operators(
 ) -> list[models.JobsOperatorItem] | None:
     if operator is None:
         return None
-    normalized: list[models.JobsOperatorItem] = []
+    coerced: list[models.JobsOperatorItem] = []
     for item in operator:
         if isinstance(item, OqtopusEstimationOperator):
-            normalized.append(item.to_model())
+            coerced.append(item.to_model())
         elif isinstance(item, models.JobsOperatorItem):
-            normalized.append(item)
+            coerced.append(item)
         else:
-            normalized.append(models.JobsOperatorItem.model_validate(dict(item)))
-    return normalized
+            coerced.append(models.JobsOperatorItem.model_validate(dict(item)))
+    return coerced
 
 
 @dataclass(slots=True)
@@ -285,8 +285,8 @@ class OqtopusJobSpec:
             job_type=job_type,
             shots=self.shots,
             job_info=models.JobsSubmitJobInfo(
-                program=_normalize_programs(self.program),
-                operator=_normalize_operators(self.operator),
+                program=_as_program_list(self.program),
+                operator=_coerce_operators(self.operator),
             ),
             transpiler_info=dict(self.transpiler_info or {}),
             simulator_info=dict(self.simulator_info or {}),

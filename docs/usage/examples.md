@@ -100,11 +100,13 @@ The `QURI Parts` example requires extra dependencies as well:
 pip install quri-parts-circuit quri-parts-openqasm
 ```
 
-Result normalization helper:
+Bitstring-to-integer conversion helper:
 
 ```python
-from oqtopus_client import normalize_sampling_result
+from oqtopus_client import convert_sampling_counts_to_int_keys
 
-normalized = normalize_sampling_result(finished_job.job_info.result.sampling)
-print(normalized["counts"])
+integer_key_counts = convert_sampling_counts_to_int_keys(
+    finished_job.job_info.result.sampling
+)
+print(integer_key_counts["counts"])
 ```

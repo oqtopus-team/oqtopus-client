@@ -46,4 +46,4 @@ result = client.run_multi_manual(req, timeout=300.0)
 
 print(result)
 print(result.job_id, result.job_type)
-print(result.normalized_counts())
+print(result.counts_with_integer_keys())

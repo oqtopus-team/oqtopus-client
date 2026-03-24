@@ -115,7 +115,10 @@ def test_sampling_result_direct_construction() -> None:
     assert isinstance(result, OqtopusSamplingJobResult)
     assert result.job_type == models.JobsJobType.SAMPLING
     assert result.get_counts() == {"11": 2}
-    assert result.normalized_counts() == {"counts": {3: 2}, "divided_counts": {}}
+    assert result.counts_with_integer_keys() == {
+        "counts": {3: 2},
+        "divided_counts": {},
+    }
 
 
 def test_estimation_result_direct_construction() -> None:
@@ -160,7 +163,10 @@ def test_multi_manual_result_direct_construction() -> None:
     )
     assert isinstance(result, OqtopusMultiManualJobResult)
     assert result.job_type == models.JobsJobType.MULTI_MANUAL
-    assert result.normalized_counts() == {"counts": {3: 2}, "divided_counts": {0: {"11": 1}, 1: {"00": 1}}}
+    assert result.counts_with_integer_keys() == {
+        "counts": {3: 2},
+        "divided_counts": {0: {"11": 1}, 1: {"00": 1}},
+    }
     assert result.get_divided_counts() == {"0": {3: 1}, "1": {0: 1}}
 
 
@@ -178,7 +184,10 @@ def test_sse_result_direct_construction() -> None:
     )
     assert isinstance(result, OqtopusSseJobResult)
     assert result.job_type == models.JobsJobType.SSE
-    assert result.normalized_counts() == {"counts": {0: 4}, "divided_counts": {}}
+    assert result.counts_with_integer_keys() == {
+        "counts": {0: 4},
+        "divided_counts": {},
+    }
 
 
 def test_sse_result_log_helpers(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

@@ -14,21 +14,21 @@ def bitstring_to_int(bitstring: str) -> int:
     """Convert a bitstring key such as `0101` or `0b0101` to an integer.
 
     Args:
-        bitstring (Required): Bitstring text to normalize and convert.
+        bitstring (Required): Bitstring text to clean and convert.
 
     Returns:
-        The integer value of the normalized bitstring.
+        The integer value of the cleaned bitstring.
 
     Raises:
         ValueError: If ``bitstring`` is not a valid binary string.
 
     """
-    normalized = bitstring.strip().replace("_", "").replace(" ", "")
-    normalized = normalized.removeprefix("0b")
-    if not normalized or any(char not in {"0", "1"} for char in normalized):
+    cleaned = bitstring.strip().replace("_", "").replace(" ", "")
+    cleaned = cleaned.removeprefix("0b")
+    if not cleaned or any(char not in {"0", "1"} for char in cleaned):
         msg = f"Invalid bitstring: {bitstring!r}"
         raise ValueError(msg)
-    return int(normalized, 2)
+    return int(cleaned, 2)
 
 
 def bitstring_dict_to_int_keys(
@@ -48,17 +48,17 @@ def bitstring_dict_to_int_keys(
     return {bitstring_to_int(key): value for key, value in values.items()}
 
 
-def normalize_sampling_result(
+def convert_sampling_counts_to_int_keys(
     sampling_result: models.JobsSamplingResult | Mapping[str, object] | None,
 ) -> dict[str, dict[int, object]]:
-    """Normalize sampling result counts by converting bitstring keys to integers.
+    """Convert sampling result bitstring keys to integers.
 
     Args:
         sampling_result (Optional): Sampling result model or mapping containing
             ``counts`` and ``divided_counts``.
 
     Returns:
-        Normalized ``counts`` and ``divided_counts`` dictionaries.
+        ``counts`` and ``divided_counts`` dictionaries with integer keys.
 
     """
     if sampling_result is None:

@@ -46,4 +46,4 @@ if result.is_sampling():
     if not isinstance(sampling_result, OqtopusSamplingJobResult):
         msg = "expected a sampling result"
         raise TypeError(msg)
-    print(sampling_result.normalized_counts())
+    print(sampling_result.counts_with_integer_keys())
