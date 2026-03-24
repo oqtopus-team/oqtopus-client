@@ -25,16 +25,18 @@ from oqtopus_client import (
 def test_job_result_kind_for_model_sampling() -> None:
     """Test case: test_job_result_kind_for_model_sampling."""
     result = OqtopusJobResult(
-        models.JobsJobResult(
-            sampling=models.JobsSamplingResult(counts={"00": 1}),
-        ),
         job_id="job-1",
         job_type=models.JobsJobType.SAMPLING,
         status=models.JobsJobStatus.SUCCEEDED,
         name="job-1",
         device_id="Kawasaki",
         shots=1,
-        job_info=models.JobsJobInfo(program=["OPENQASM 3;"]),
+        job_info=models.JobsJobInfo(
+            program=["OPENQASM 3;"],
+            result=models.JobsJobResult(
+                sampling=models.JobsSamplingResult(counts={"00": 1}),
+            ),
+        ),
     )
     assert result.job_id == "job-1"
     assert result.job_type == models.JobsJobType.SAMPLING
@@ -97,20 +99,25 @@ def test_job_result_from_job_model_like_payload() -> None:
     assert result.simulator_info == {"seed": 7}
     assert result.mitigation_info == {"enabled": True}
     assert result.submitted_at == submitted_at
-    assert isinstance(result.raw, models.JobsJobResult)
+    assert isinstance(result.job_info, models.JobsJobInfo)
+    assert isinstance(result.job_info.result, models.JobsJobResult)
 
 
 def test_sampling_result_direct_construction() -> None:
     """Test case: test_sampling_result_direct_construction."""
     result = OqtopusSamplingJobResult(
-        {"sampling": {"counts": {"11": 2}}},
         job_id="job-5",
         job_type=models.JobsJobType.SAMPLING,
         status=models.JobsJobStatus.SUCCEEDED,
         name="job-5",
         device_id="Kawasaki",
         shots=2,
-        job_info=models.JobsJobInfo(program=["OPENQASM 3;"]),
+        job_info=models.JobsJobInfo(
+            program=["OPENQASM 3;"],
+            result=models.JobsJobResult(
+                sampling=models.JobsSamplingResult(counts={"11": 2}),
+            ),
+        ),
     )
     assert isinstance(result, OqtopusSamplingJobResult)
     assert result.job_type == models.JobsJobType.SAMPLING
@@ -124,14 +131,18 @@ def test_sampling_result_direct_construction() -> None:
 def test_estimation_result_direct_construction() -> None:
     """Test case: test_estimation_result_direct_construction."""
     result = OqtopusEstimationJobResult(
-        {"estimation": {"exp_value": 0.75, "stds": 0.1}},
         job_id="job-6",
         job_type=models.JobsJobType.ESTIMATION,
         status=models.JobsJobStatus.SUCCEEDED,
         name="job-6",
         device_id="Kawasaki",
         shots=2,
-        job_info=models.JobsJobInfo(program=["OPENQASM 3;"]),
+        job_info=models.JobsJobInfo(
+            program=["OPENQASM 3;"],
+            result=models.JobsJobResult(
+                estimation=models.JobsEstimationResult(exp_value=0.75, stds=0.1),
+            ),
+        ),
     )
     assert isinstance(result, OqtopusEstimationJobResult)
     assert result.job_type == models.JobsJobType.ESTIMATION
@@ -144,22 +155,24 @@ def test_estimation_result_direct_construction() -> None:
 def test_multi_manual_result_direct_construction() -> None:
     """Test case: test_multi_manual_result_direct_construction."""
     result = OqtopusMultiManualJobResult(
-        {
-            "sampling": {
-                "counts": {"11": 2},
-                "divided_counts": {
-                    "0": {"11": 1},
-                    "1": {"00": 1},
-                },
-            },
-        },
         job_id="job-7",
         job_type=models.JobsJobType.MULTI_MANUAL,
         status=models.JobsJobStatus.SUCCEEDED,
         name="job-7",
         device_id="Kawasaki",
         shots=2,
-        job_info=models.JobsJobInfo(program=["OPENQASM 3;"]),
+        job_info=models.JobsJobInfo(
+            program=["OPENQASM 3;"],
+            result=models.JobsJobResult(
+                sampling=models.JobsSamplingResult(
+                    counts={"11": 2},
+                    divided_counts={
+                        "0": {"11": 1},
+                        "1": {"00": 1},
+                    },
+                ),
+            ),
+        ),
     )
     assert isinstance(result, OqtopusMultiManualJobResult)
     assert result.job_type == models.JobsJobType.MULTI_MANUAL
@@ -173,14 +186,18 @@ def test_multi_manual_result_direct_construction() -> None:
 def test_sse_result_direct_construction() -> None:
     """Test case: test_sse_result_direct_construction."""
     result = OqtopusSseJobResult(
-        {"sampling": {"counts": {"00": 4}}},
         job_id="job-8",
         job_type=models.JobsJobType.SSE,
         status=models.JobsJobStatus.SUCCEEDED,
         name="job-8",
         device_id="Kawasaki",
         shots=4,
-        job_info=models.JobsJobInfo(program=["print('x')"]),
+        job_info=models.JobsJobInfo(
+            program=["print('x')"],
+            result=models.JobsJobResult(
+                sampling=models.JobsSamplingResult(counts={"00": 4}),
+            ),
+        ),
     )
     assert isinstance(result, OqtopusSseJobResult)
     assert result.job_type == models.JobsJobType.SSE
@@ -198,7 +215,6 @@ def test_sse_result_log_helpers(tmp_path: Path, capsys: pytest.CaptureFixture[st
             return models.JobsGetSselogResponse(file=data, file_name=f"{job_id}.zip")
 
     result = OqtopusSseJobResult(
-        None,
         job_id="job-42",
         job_type=models.JobsJobType.SSE,
         status=models.JobsJobStatus.SUCCEEDED,
@@ -231,7 +247,6 @@ def test_sse_download_log_default_does_not_write_files(tmp_path: Path, monkeypat
     before = {p.name for p in tmp_path.iterdir()}
 
     result = OqtopusSseJobResult(
-        None,
         job_id="job-99",
         job_type=models.JobsJobType.SSE,
         status=models.JobsJobStatus.SUCCEEDED,
@@ -258,7 +273,6 @@ def test_sse_download_log_rejects_save_options_without_persist(tmp_path: Path) -
             return models.JobsGetSselogResponse(file=data, file_name=f"{job_id}.zip")
 
     result = OqtopusSseJobResult(
-        None,
         job_id="job-99",
         job_type=models.JobsJobType.SSE,
         status=models.JobsJobStatus.SUCCEEDED,
@@ -280,7 +294,6 @@ def test_sse_download_log_rejects_save_options_without_persist(tmp_path: Path) -
 def test_sse_result_log_helpers_require_client() -> None:
     """Test case: test_sse_result_log_helpers_require_client."""
     result = OqtopusSseJobResult(
-        None,
         job_id="job-1",
         job_type=models.JobsJobType.SSE,
         status=models.JobsJobStatus.SUCCEEDED,
@@ -296,7 +309,6 @@ def test_sse_result_log_helpers_require_client() -> None:
 def test_job_result_repr_and_flags_for_string_job_type() -> None:
     """Test case: test_job_result_repr_and_flags_for_string_job_type."""
     result = OqtopusJobResult(
-        None,
         job_id="job-x",
         job_type="multi_manual",
         status=models.JobsJobStatus.SUCCEEDED,
@@ -313,24 +325,25 @@ def test_job_result_repr_and_flags_for_string_job_type() -> None:
 def test_sampling_and_estimation_result_fallbacks() -> None:
     """Test case: test_sampling_and_estimation_result_fallbacks."""
     sampling = OqtopusSamplingJobResult(
-        {"sampling": {"counts": "bad"}},
         job_id="job-1",
         job_type=models.JobsJobType.SAMPLING,
         status=models.JobsJobStatus.SUCCEEDED,
         name="job-1",
         device_id="Kawasaki",
         shots=1,
-        job_info=models.JobsJobInfo(program=["OPENQASM 3;"]),
+        job_info={"program": ["OPENQASM 3;"], "result": {"sampling": {"counts": "bad"}}},
     )
     estimation = OqtopusEstimationJobResult(
-        {"estimation": {"exp_value": "bad", "stds": "bad"}},
         job_id="job-2",
         job_type=models.JobsJobType.ESTIMATION,
         status=models.JobsJobStatus.SUCCEEDED,
         name="job-2",
         device_id="Kawasaki",
         shots=1,
-        job_info=models.JobsJobInfo(program=["OPENQASM 3;"]),
+        job_info={
+            "program": ["OPENQASM 3;"],
+            "result": {"estimation": {"exp_value": "bad", "stds": "bad"}},
+        },
     )
     assert sampling.get_counts() == {}
     assert estimation.get_exp_value() is None
@@ -342,14 +355,18 @@ def test_sampling_and_estimation_result_fallbacks() -> None:
 def test_multi_manual_result_ignores_invalid_divided_counts_entries() -> None:
     """Test case: test_multi_manual_result_ignores_invalid_divided_counts_entries."""
     result = OqtopusMultiManualJobResult(
-        {"sampling": {"divided_counts": {"good": {"01": 1}, "bad": "x"}}},
         job_id="job-3",
         job_type=models.JobsJobType.MULTI_MANUAL,
         status=models.JobsJobStatus.SUCCEEDED,
         name="job-3",
         device_id="Kawasaki",
         shots=1,
-        job_info=models.JobsJobInfo(program=["OPENQASM 3;"]),
+        job_info={
+            "program": ["OPENQASM 3;"],
+            "result": {
+                "sampling": {"divided_counts": {"good": {"01": 1}, "bad": "x"}},
+            },
+        },
     )
     assert result.get_divided_counts() == {"good": {1: 1}}
     assert "OqtopusMultiManualJobResult" in repr(result)
@@ -368,7 +385,6 @@ def test_sse_download_log_error_paths(tmp_path: Path) -> None:
             return models.JobsGetSselogResponse(file="*", file_name="x.zip")
 
     no_file = OqtopusSseJobResult(
-        None,
         job_id="job-1",
         job_type=models.JobsJobType.SSE,
         status=models.JobsJobStatus.SUCCEEDED,
@@ -395,7 +411,6 @@ def test_sse_download_log_error_paths(tmp_path: Path) -> None:
     existing = out_dir / "x.zip"
     existing.write_bytes(b"already")
     bad_base64 = OqtopusSseJobResult(
-        None,
         job_id="job-1",
         job_type=models.JobsJobType.SSE,
         status=models.JobsJobStatus.SUCCEEDED,
@@ -409,7 +424,6 @@ def test_sse_download_log_error_paths(tmp_path: Path) -> None:
         bad_base64.download_log(save_dir=out_dir)
 
     persisted = OqtopusSseJobResult(
-        None,
         job_id="job-1",
         job_type=models.JobsJobType.SSE,
         status=models.JobsJobStatus.SUCCEEDED,
@@ -441,7 +455,6 @@ def test_sse_read_log_text_zip_variants() -> None:
             return models.JobsGetSselogResponse(file=self.payload, file_name="log.zip")
 
     no_file = OqtopusSseJobResult(
-        None,
         job_id="job-1",
         job_type=models.JobsJobType.SSE,
         status=models.JobsJobStatus.SUCCEEDED,
@@ -455,7 +468,6 @@ def test_sse_read_log_text_zip_variants() -> None:
         no_file.read_log_text()
 
     bad_file = OqtopusSseJobResult(
-        None,
         job_id="job-1",
         job_type=models.JobsJobType.SSE,
         status=models.JobsJobStatus.SUCCEEDED,
@@ -469,7 +481,6 @@ def test_sse_read_log_text_zip_variants() -> None:
         bad_file.read_log_text()
 
     zipped_empty_name = OqtopusSseJobResult(
-        None,
         job_id="job-1",
         job_type=models.JobsJobType.SSE,
         status=models.JobsJobStatus.SUCCEEDED,
@@ -482,7 +493,6 @@ def test_sse_read_log_text_zip_variants() -> None:
     assert zipped_empty_name.read_log_text() == ""
 
     zipped_multi = OqtopusSseJobResult(
-        None,
         job_id="job-1",
         job_type=models.JobsJobType.SSE,
         status=models.JobsJobStatus.SUCCEEDED,

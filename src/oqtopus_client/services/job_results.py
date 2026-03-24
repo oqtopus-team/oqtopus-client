@@ -30,7 +30,6 @@ EstimationPayload = models.JobsEstimationResult | Mapping[str, Any] | None
 class OqtopusJobResult:  # noqa: PLR0904
     """SDK result object for a job's state and execution output payloads."""
 
-    _raw: models.JobsJobResult | Mapping[str, Any] | None
     _job_id: str | None
     _job_type: models.JobsJobType | None
     _status: models.JobsJobStatus | None
@@ -53,7 +52,6 @@ class OqtopusJobResult:  # noqa: PLR0904
 
     def __init__(  # noqa: PLR0913
         self,
-        raw: models.JobsJobResult | Mapping[str, Any] | None,
         *,
         job_id: str,
         job_type: models.JobsJobType | str,
@@ -75,13 +73,12 @@ class OqtopusJobResult:  # noqa: PLR0904
         ended_at: datetime | None = None,
         client: object | None = None,
     ) -> None:
-        """Initialize a job result wrapper from raw API payload and metadata.
+        """Initialize a job result wrapper from job metadata and execution payload.
 
         Raises:
             ValueError: If ``job_type`` or ``status`` is invalid.
 
         """
-        self._raw = raw
         self._job_id = job_id
         self._job_type = self._coerce_job_type(job_type)
         self._status = self._coerce_status(status)
@@ -127,11 +124,9 @@ class OqtopusJobResult:  # noqa: PLR0904
 
         """
         job_info = job.job_info
-        raw = job_info.result if job_info is not None else None
         transpile_result = job_info.transpile_result if job_info is not None else None
         message = job_info.message if job_info is not None else None
         return cls(
-            raw,
             job_id=job.job_id,
             job_type=job.job_type,
             status=job.status,
@@ -152,16 +147,6 @@ class OqtopusJobResult:  # noqa: PLR0904
             ended_at=job.ended_at,
             client=client,
         )
-
-    @property
-    def raw(self) -> models.JobsJobResult | Mapping[str, Any] | None:
-        """Return the original result payload as received from API/models.
-
-        This is useful when you need access to fields that are not yet exposed
-        through dedicated convenience properties.
-
-        """
-        return self._raw
 
     @property
     def job_id(self) -> str | None:
@@ -420,12 +405,17 @@ class OqtopusJobResult:  # noqa: PLR0904
             Sampling payload when available.
 
         """
-        raw = self._raw
-        if isinstance(raw, models.JobsJobResult):
-            return raw.sampling
-        if isinstance(raw, Mapping):
-            sampling = raw.get("sampling")
-            return sampling if isinstance(sampling, Mapping) else None
+        job_info = self.job_info
+        if isinstance(job_info, models.JobsJobInfo):
+            result = job_info.result
+            return result.sampling if result is not None else None
+        if isinstance(job_info, Mapping):
+            result = job_info.get("result")
+            if isinstance(result, models.JobsJobResult):
+                return result.sampling
+            if isinstance(result, Mapping):
+                sampling = result.get("sampling")
+                return sampling if isinstance(sampling, Mapping) else None
         return None
 
     @property
@@ -436,12 +426,17 @@ class OqtopusJobResult:  # noqa: PLR0904
             Estimation payload when available.
 
         """
-        raw = self._raw
-        if isinstance(raw, models.JobsJobResult):
-            return raw.estimation
-        if isinstance(raw, Mapping):
-            estimation = raw.get("estimation")
-            return estimation if isinstance(estimation, Mapping) else None
+        job_info = self.job_info
+        if isinstance(job_info, models.JobsJobInfo):
+            result = job_info.result
+            return result.estimation if result is not None else None
+        if isinstance(job_info, Mapping):
+            result = job_info.get("result")
+            if isinstance(result, models.JobsJobResult):
+                return result.estimation
+            if isinstance(result, Mapping):
+                estimation = result.get("estimation")
+                return estimation if isinstance(estimation, Mapping) else None
         return None
 
 
@@ -456,14 +451,7 @@ class OqtopusSamplingJobResult(OqtopusJobResult):
             Sampling payload when available.
 
         """
-        raw = self.raw
-        if isinstance(raw, models.JobsJobResult):
-            return raw.sampling
-        if isinstance(raw, Mapping):
-            sampling = raw.get("sampling")
-            if isinstance(sampling, Mapping):
-                return sampling
-        return None
+        return super().sampling
 
     def counts_with_integer_keys(self) -> dict[str, dict[int, Any]]:
         """Convert bitstring keys to integer keys for sampling payload.
@@ -511,14 +499,7 @@ class OqtopusEstimationJobResult(OqtopusJobResult):
             Estimation payload when available.
 
         """
-        raw = self.raw
-        if isinstance(raw, models.JobsJobResult):
-            return raw.estimation
-        if isinstance(raw, Mapping):
-            estimation = raw.get("estimation")
-            if isinstance(estimation, Mapping):
-                return estimation
-        return None
+        return super().estimation
 
     @property
     def exp_value(self) -> float | None:
