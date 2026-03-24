@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -94,14 +95,25 @@ class OqtopusDevice:
         return list(self.raw.supported_instructions)
 
     @property
-    def device_info(self) -> str | None:
-        """Additional free-form device information.
+    def device_info(self) -> dict[str, object] | None:
+        """Additional device information as a parsed dictionary.
 
-        The API may use this field for backend-specific notes that do not map
-        to a dedicated structured field.
+        The API returns this field as JSON text. This property parses that
+        payload into a dictionary for easier consumption.
 
         """
-        return self.raw.device_info
+        raw_device_info = self.raw.device_info
+        if raw_device_info is None:
+            return None
+
+        try:
+            parsed = json.loads(raw_device_info)
+        except json.JSONDecodeError:
+            return {"raw": raw_device_info}
+
+        if isinstance(parsed, dict):
+            return cast("dict[str, object]", parsed)
+        return {"value": cast("Any", parsed)}
 
     @property
     def calibrated_at(self) -> datetime | None:

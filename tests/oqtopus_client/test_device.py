@@ -31,6 +31,6 @@ def test_device_wrapper_exposes_properties_and_raw_attributes() -> None:
     assert device.n_qubits == 2
     assert device.basis_gates == ["x", "h"]
     assert device.supported_instructions == ["measure"]
-    assert device.device_info == '{"backend":"sim"}'
+    assert device.device_info == {"backend": "sim"}
     assert device.calibrated_at is None
     assert device.description == "sim"
