@@ -32,17 +32,6 @@ wrappers for a more concise workflow.
 ## Documentation
 
 - [Documentation Home](./docs/index.md)
-- [Getting Started](./docs/usage/getting_started.md)
-- [Examples](./docs/usage/examples.md)
-- [GitHub Examples Directory](https://github.com/oqtopus-team/oqtopus-client/tree/main/examples)
-
-## Developer Guidelines
-
-- [Development Flow](./docs/developer_guidelines/development_flow.md)
-- [Setup Development Environment](./docs/developer_guidelines/setup.md)
-- [How to Contribute](./docs/CONTRIBUTING.md)
-- [Code of Conduct](https://github.com/oqtopus-team/.github/blob/main/CODE_OF_CONDUCT.md)
-- [Security](https://github.com/oqtopus-team/.github/blob/main/SECURITY.md)
 
 ## Citation
 
