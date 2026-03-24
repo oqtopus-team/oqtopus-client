@@ -282,9 +282,9 @@ def test_sync_wrappers_delegate_to_call() -> None:
     client = object.__new__(OqtopusClient)
     called: list[tuple[str, tuple[Any, ...], dict[str, Any]]] = []
 
-    def fake_call(name: str, *args: Any, **kwargs: Any) -> Any:
-        called.append((name, args, kwargs))
-        if name == "list_devices":
+    def fake_call(method_name: str, *args: Any, **kwargs: Any) -> Any:
+        called.append((method_name, args, kwargs))
+        if method_name == "list_devices":
             return [
                 models.DevicesDeviceInfo(
                     device_id="K",
@@ -296,7 +296,7 @@ def test_sync_wrappers_delegate_to_call() -> None:
                     description="sim",
                 ),
             ]
-        if name == "get_device":
+        if method_name == "get_device":
             return models.DevicesDeviceInfo(
                 device_id="K",
                 device_type="simulator",
@@ -306,7 +306,7 @@ def test_sync_wrappers_delegate_to_call() -> None:
                 supported_instructions=[],
                 description="sim",
             )
-        if name == "list_jobs":
+        if method_name == "list_jobs":
             return [
                 models.JobsGetJobsResponse(
                     job_id="job-1",
@@ -318,39 +318,39 @@ def test_sync_wrappers_delegate_to_call() -> None:
                     job_info=models.JobsJobInfo(program=["x"]),
                 ),
             ]
-        if name == "delete_api_token":
+        if method_name == "delete_api_token":
             return None
-        if name == "submit_job":
+        if method_name == "submit_job":
             return models.JobsSubmitJobResponse(job_id="ok")
-        if name == "run_job":
+        if method_name == "run_job":
             return _job(models.JobsJobType.SAMPLING)
-        if name == "run_sampling":
+        if method_name == "run_sampling":
             return _job(models.JobsJobType.SAMPLING)
-        if name == "run_estimation":
+        if method_name == "run_estimation":
             return _job(models.JobsJobType.ESTIMATION)
-        if name == "run_multi_manual":
+        if method_name == "run_multi_manual":
             return _job(models.JobsJobType.MULTI_MANUAL)
-        if name == "run_sse":
+        if method_name == "run_sse":
             return _job(models.JobsJobType.SSE)
-        if name == "run_sse_file":
+        if method_name == "run_sse_file":
             return _job(models.JobsJobType.SSE)
-        if name == "get_job":
+        if method_name == "get_job":
             return _job(models.JobsJobType.SAMPLING)
-        if name == "wait_for_job":
+        if method_name == "wait_for_job":
             return _job(models.JobsJobType.SAMPLING)
-        if name == "delete_job":
+        if method_name == "delete_job":
             return models.SuccessSuccessResponse(message="ok")
-        if name == "get_job_status":
+        if method_name == "get_job_status":
             return models.JobsGetJobStatusResponse(job_id="job-1", status=models.JobsJobStatus.SUCCEEDED)
-        if name == "cancel_job":
+        if method_name == "cancel_job":
             return models.SuccessSuccessResponse(message="ok")
-        if name == "get_sselog":
+        if method_name == "get_sselog":
             return models.JobsGetSselogResponse(file="Zm9v", file_name="x.zip")
-        if name == "create_api_token":
+        if method_name == "create_api_token":
             return models.ApiTokenApiToken(api_token_secret="secret", api_token_expiration=None)
-        if name == "get_api_token":
+        if method_name == "get_api_token":
             return models.ApiTokenApiToken(api_token_expiration=None)
-        if name == "get_announcements_list":
+        if method_name == "get_announcements_list":
             return models.AnnouncementsGetAnnouncementsListResponse(
                 announcements=[
                     models.AnnouncementsGetAnnouncementResponse(
@@ -363,7 +363,7 @@ def test_sync_wrappers_delegate_to_call() -> None:
                     ),
                 ],
             )
-        if name == "get_announcement":
+        if method_name == "get_announcement":
             return models.AnnouncementsGetAnnouncementResponse(
                 id=1,
                 title="t",
@@ -372,7 +372,7 @@ def test_sync_wrappers_delegate_to_call() -> None:
                 end_time=datetime(2025, 12, 31, tzinfo=timezone.utc),
                 publishable=True,
             )
-        raise AssertionError(name)
+        raise AssertionError(method_name)
 
     client._call = fake_call  # type: ignore[assignment,method-assign]
     client._async = Mock()

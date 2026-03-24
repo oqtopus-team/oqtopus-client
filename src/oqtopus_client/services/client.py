@@ -18,7 +18,7 @@ from time import monotonic
 from typing import TYPE_CHECKING, TypeVar, cast
 
 from pydantic import TypeAdapter, ValidationError
-from typing_extensions import Self, TypedDict, Unpack
+from typing_extensions import Self
 
 from oqtopus_client import rest as models
 from oqtopus_client.rest.api.announcements_api import AnnouncementsApi
@@ -74,42 +74,6 @@ _JOB_CREATING_METHODS = frozenset(
         "run_sse_file",
     }
 )
-
-
-class ListJobsKwargs(TypedDict, total=False):
-    """Optional filters accepted by `list_jobs`."""
-
-    fields: str | None
-    start_time: datetime | None
-    end_time: datetime | None
-    q: str | None
-    page: int | None
-    size: int | None
-    order: str | None
-
-
-class WaitForJobKwargs(TypedDict, total=False):
-    """Polling options accepted by job wait helpers."""
-
-    interval: float
-    interval_backoff: float
-    max_interval: float | None
-    timeout: float | None
-    terminal_statuses: set[models.JobsJobStatus] | None
-    failure_statuses: set[models.JobsJobStatus] | None
-    on_status: Callable[[models.JobsGetJobStatusResponse], None] | None
-
-
-class RunSseFileKwargs(WaitForJobKwargs, total=False):
-    """Keyword arguments accepted by `run_sse_file`."""
-
-    name: str | None
-    description: str | None
-    transpiler_info: dict[str, object] | None
-    simulator_info: dict[str, object] | None
-    mitigation_info: dict[str, object] | None
-    shots: int
-    max_encoded_file_size: int
 
 
 def _resolve_user_agent() -> str:
@@ -430,10 +394,17 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
             ),
         )
 
-    async def run_job(
+    async def run_job(  # noqa: PLR0913
         self,
         job: _SubmitJobInput,
-        **kwargs: Unpack[WaitForJobKwargs],
+        *,
+        interval: float = 1.0,
+        interval_backoff: float = 1.0,
+        max_interval: float | None = None,
+        timeout: float | None = 300.0,
+        terminal_statuses: set[models.JobsJobStatus] | None = None,
+        failure_statuses: set[models.JobsJobStatus] | None = None,
+        on_status: Callable[[models.JobsGetJobStatusResponse], None] | None = None,
     ) -> models.JobsJobDef:
         request = self._to_submit_job_request(job)
         if self._is_sse_container():
@@ -453,41 +424,116 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
             )
 
         response = await self.submit_job(request)
-        return await self.wait_for_job(response.job_id, **kwargs)
+        return await self.wait_for_job(
+            response.job_id,
+            interval=interval,
+            interval_backoff=interval_backoff,
+            max_interval=max_interval,
+            timeout=timeout,
+            terminal_statuses=terminal_statuses,
+            failure_statuses=failure_statuses,
+            on_status=on_status,
+        )
 
-    async def run_sampling(
+    async def run_sampling(  # noqa: PLR0913
         self,
         job: _RunInput,
-        **kwargs: Unpack[WaitForJobKwargs],
+        *,
+        interval: float = 1.0,
+        interval_backoff: float = 1.0,
+        max_interval: float | None = None,
+        timeout: float | None = 300.0,
+        terminal_statuses: set[models.JobsJobStatus] | None = None,
+        failure_statuses: set[models.JobsJobStatus] | None = None,
+        on_status: Callable[[models.JobsGetJobStatusResponse], None] | None = None,
     ) -> models.JobsJobDef:
         request = self._to_submit_job_request(job)
         self._validate_run_job_type(request, models.JobsJobType.SAMPLING)
-        return await self.run_job(request, **kwargs)
+        return await self.run_job(
+            request,
+            interval=interval,
+            interval_backoff=interval_backoff,
+            max_interval=max_interval,
+            timeout=timeout,
+            terminal_statuses=terminal_statuses,
+            failure_statuses=failure_statuses,
+            on_status=on_status,
+        )
 
-    async def run_estimation(
+    async def run_estimation(  # noqa: PLR0913
         self,
         job: _RunInput,
-        **kwargs: Unpack[WaitForJobKwargs],
+        *,
+        interval: float = 1.0,
+        interval_backoff: float = 1.0,
+        max_interval: float | None = None,
+        timeout: float | None = 300.0,
+        terminal_statuses: set[models.JobsJobStatus] | None = None,
+        failure_statuses: set[models.JobsJobStatus] | None = None,
+        on_status: Callable[[models.JobsGetJobStatusResponse], None] | None = None,
     ) -> models.JobsJobDef:
         request = self._to_submit_job_request(job)
         self._validate_run_job_type(request, models.JobsJobType.ESTIMATION)
-        return await self.run_job(request, **kwargs)
+        return await self.run_job(
+            request,
+            interval=interval,
+            interval_backoff=interval_backoff,
+            max_interval=max_interval,
+            timeout=timeout,
+            terminal_statuses=terminal_statuses,
+            failure_statuses=failure_statuses,
+            on_status=on_status,
+        )
 
-    async def run_multi_manual(
-        self, job: _RunInput, **kwargs: Unpack[WaitForJobKwargs]
+    async def run_multi_manual(  # noqa: PLR0913
+        self,
+        job: _RunInput,
+        *,
+        interval: float = 1.0,
+        interval_backoff: float = 1.0,
+        max_interval: float | None = None,
+        timeout: float | None = 300.0,
+        terminal_statuses: set[models.JobsJobStatus] | None = None,
+        failure_statuses: set[models.JobsJobStatus] | None = None,
+        on_status: Callable[[models.JobsGetJobStatusResponse], None] | None = None,
     ) -> models.JobsJobDef:
         request = self._to_submit_job_request(job)
         self._validate_run_job_type(request, models.JobsJobType.MULTI_MANUAL)
-        return await self.run_job(request, **kwargs)
+        return await self.run_job(
+            request,
+            interval=interval,
+            interval_backoff=interval_backoff,
+            max_interval=max_interval,
+            timeout=timeout,
+            terminal_statuses=terminal_statuses,
+            failure_statuses=failure_statuses,
+            on_status=on_status,
+        )
 
-    async def run_sse(
+    async def run_sse(  # noqa: PLR0913
         self,
         job: _RunInput,
-        **kwargs: Unpack[WaitForJobKwargs],
+        *,
+        interval: float = 1.0,
+        interval_backoff: float = 1.0,
+        max_interval: float | None = None,
+        timeout: float | None = 300.0,
+        terminal_statuses: set[models.JobsJobStatus] | None = None,
+        failure_statuses: set[models.JobsJobStatus] | None = None,
+        on_status: Callable[[models.JobsGetJobStatusResponse], None] | None = None,
     ) -> models.JobsJobDef:
         request = self._to_submit_job_request(job)
         self._validate_run_job_type(request, models.JobsJobType.SSE)
-        return await self.run_job(request, **kwargs)
+        return await self.run_job(
+            request,
+            interval=interval,
+            interval_backoff=interval_backoff,
+            max_interval=max_interval,
+            timeout=timeout,
+            terminal_statuses=terminal_statuses,
+            failure_statuses=failure_statuses,
+            on_status=on_status,
+        )
 
     @staticmethod
     def build_sse_job_request(  # noqa: PLR0913
@@ -533,26 +579,47 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
             shots=shots,
         )
 
-    async def run_sse_file(
+    async def run_sse_file(  # noqa: PLR0913
         self,
         *,
         file_path: str | Path,
         device_id: str,
-        **kwargs: Unpack[RunSseFileKwargs],
+        name: str | None = None,
+        description: str | None = None,
+        transpiler_info: dict[str, object] | None = None,
+        simulator_info: dict[str, object] | None = None,
+        mitigation_info: dict[str, object] | None = None,
+        shots: int = 1,
+        max_encoded_file_size: int = 10 * 1024 * 1024,
+        interval: float = 1.0,
+        interval_backoff: float = 1.0,
+        max_interval: float | None = None,
+        timeout: float | None = 300.0,
+        terminal_statuses: set[models.JobsJobStatus] | None = None,
+        failure_statuses: set[models.JobsJobStatus] | None = None,
+        on_status: Callable[[models.JobsGetJobStatusResponse], None] | None = None,
     ) -> models.JobsJobDef:
         request = self.build_sse_job_request(
             file_path=file_path,
             device_id=device_id,
-            name=kwargs.pop("name", None),
-            description=kwargs.pop("description", None),
-            transpiler_info=kwargs.pop("transpiler_info", None),
-            simulator_info=kwargs.pop("simulator_info", None),
-            mitigation_info=kwargs.pop("mitigation_info", None),
-            shots=kwargs.pop("shots", 1),
-            max_encoded_file_size=kwargs.pop("max_encoded_file_size", 10 * 1024 * 1024),
+            name=name,
+            description=description,
+            transpiler_info=transpiler_info,
+            simulator_info=simulator_info,
+            mitigation_info=mitigation_info,
+            shots=shots,
+            max_encoded_file_size=max_encoded_file_size,
         )
-        wait_kwargs = cast("WaitForJobKwargs", kwargs)
-        return await self.run_sse(request, **wait_kwargs)
+        return await self.run_sse(
+            request,
+            interval=interval,
+            interval_backoff=interval_backoff,
+            max_interval=max_interval,
+            timeout=timeout,
+            terminal_statuses=terminal_statuses,
+            failure_statuses=failure_statuses,
+            on_status=on_status,
+        )
 
     async def get_job(self, job_id: str) -> models.JobsJobDef:
         job_api = self._job_api
@@ -1026,9 +1093,16 @@ class OqtopusClient:  # noqa: PLR0904
         )
         return self._to_device(device)
 
-    def list_jobs(
+    def list_jobs(  # noqa: PLR0913
         self,
-        **kwargs: Unpack[ListJobsKwargs],
+        *,
+        fields: str | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        q: str | None = None,
+        page: int | None = None,
+        size: int | None = None,
+        order: str | None = None,
     ) -> list[models.JobsGetJobsResponse]:
         """List jobs with optional filters.
 
@@ -1038,7 +1112,16 @@ class OqtopusClient:  # noqa: PLR0904
         """
         return cast(
             "list[models.JobsGetJobsResponse]",
-            self._call("list_jobs", **kwargs),
+            self._call(
+                "list_jobs",
+                fields=fields,
+                start_time=start_time,
+                end_time=end_time,
+                q=q,
+                page=page,
+                size=size,
+                order=order,
+            ),
         )
 
     def submit_job(self, body: OqtopusJobSpec) -> models.JobsSubmitJobResponse:
@@ -1109,18 +1192,29 @@ class OqtopusClient:  # noqa: PLR0904
             raise ValueError(msg)
         return job
 
-    def run_job(
+    def run_job(  # noqa: PLR0913
         self,
         job: OqtopusJobSpec,
-        **kwargs: Unpack[WaitForJobKwargs],
+        *,
+        interval: float = 1.0,
+        interval_backoff: float = 1.0,
+        max_interval: float | None = None,
+        timeout: float | None = 300.0,
+        terminal_statuses: set[models.JobsJobStatus] | None = None,
+        failure_statuses: set[models.JobsJobStatus] | None = None,
+        on_status: Callable[[models.JobsGetJobStatusResponse], None] | None = None,
     ) -> OqtopusJobResult:
         """Submit one job spec, wait until completion, and return typed result.
 
         Args:
             job (Required): `OqtopusJobSpec`.
-            kwargs (Optional): ``interval``, ``interval_backoff``,
-                ``max_interval``, ``timeout``, ``terminal_statuses``,
-                ``failure_statuses``.
+            interval (Optional): Polling interval in seconds.
+            interval_backoff (Optional): Backoff multiplier for polling interval.
+            max_interval (Optional): Upper bound of polling interval in seconds.
+            timeout (Optional): Timeout in seconds.
+            terminal_statuses (Optional): Statuses treated as terminal.
+            failure_statuses (Optional): Statuses treated as failures.
+            on_status (Optional): Callback invoked on each polled status.
 
         Returns:
             The finished job as an SDK result wrapper.
@@ -1129,20 +1223,43 @@ class OqtopusClient:  # noqa: PLR0904
         spec = self._validate_job_spec(job, method="run_job")
         finished_job = cast(
             "models.JobsJobDef",
-            self._call("run_job", spec.to_model(), **kwargs),
+            self._call(
+                "run_job",
+                spec.to_model(),
+                interval=interval,
+                interval_backoff=interval_backoff,
+                max_interval=max_interval,
+                timeout=timeout,
+                terminal_statuses=terminal_statuses,
+                failure_statuses=failure_statuses,
+                on_status=on_status,
+            ),
         )
         return self._to_result(finished_job)
 
-    def run_sampling(
-        self, job: OqtopusJobSpec, **kwargs: Unpack[WaitForJobKwargs]
+    def run_sampling(  # noqa: PLR0913
+        self,
+        job: OqtopusJobSpec,
+        *,
+        interval: float = 1.0,
+        interval_backoff: float = 1.0,
+        max_interval: float | None = None,
+        timeout: float | None = 300.0,
+        terminal_statuses: set[models.JobsJobStatus] | None = None,
+        failure_statuses: set[models.JobsJobStatus] | None = None,
+        on_status: Callable[[models.JobsGetJobStatusResponse], None] | None = None,
     ) -> OqtopusSamplingJobResult:
         """Run a sampling job and return sampling-typed SDK result.
 
         Args:
             job (Required): `OqtopusJobSpec` with ``job_type='sampling'``.
-            kwargs (Optional): ``interval``, ``interval_backoff``,
-                ``max_interval``, ``timeout``, ``terminal_statuses``,
-                ``failure_statuses``.
+            interval (Optional): Polling interval in seconds.
+            interval_backoff (Optional): Backoff multiplier for polling interval.
+            max_interval (Optional): Upper bound of polling interval in seconds.
+            timeout (Optional): Timeout in seconds.
+            terminal_statuses (Optional): Statuses treated as terminal.
+            failure_statuses (Optional): Statuses treated as failures.
+            on_status (Optional): Callback invoked on each polled status.
 
         Returns:
             The finished job as a sampling result wrapper.
@@ -1156,7 +1273,17 @@ class OqtopusClient:  # noqa: PLR0904
         )
         finished_job = cast(
             "models.JobsJobDef",
-            self._call("run_sampling", spec.to_model(), **kwargs),
+            self._call(
+                "run_sampling",
+                spec.to_model(),
+                interval=interval,
+                interval_backoff=interval_backoff,
+                max_interval=max_interval,
+                timeout=timeout,
+                terminal_statuses=terminal_statuses,
+                failure_statuses=failure_statuses,
+                on_status=on_status,
+            ),
         )
         result = self._to_result(finished_job)
         if not isinstance(result, OqtopusSamplingJobResult):
@@ -1167,16 +1294,29 @@ class OqtopusClient:  # noqa: PLR0904
             )  # pragma: no cover
         return cast("OqtopusSamplingJobResult", result)
 
-    def run_estimation(
-        self, job: OqtopusJobSpec, **kwargs: Unpack[WaitForJobKwargs]
+    def run_estimation(  # noqa: PLR0913
+        self,
+        job: OqtopusJobSpec,
+        *,
+        interval: float = 1.0,
+        interval_backoff: float = 1.0,
+        max_interval: float | None = None,
+        timeout: float | None = 300.0,
+        terminal_statuses: set[models.JobsJobStatus] | None = None,
+        failure_statuses: set[models.JobsJobStatus] | None = None,
+        on_status: Callable[[models.JobsGetJobStatusResponse], None] | None = None,
     ) -> OqtopusEstimationJobResult:
         """Run an estimation job and return estimation-typed SDK result.
 
         Args:
             job (Required): `OqtopusJobSpec` with ``job_type='estimation'``.
-            kwargs (Optional): ``interval``, ``interval_backoff``,
-                ``max_interval``, ``timeout``, ``terminal_statuses``,
-                ``failure_statuses``.
+            interval (Optional): Polling interval in seconds.
+            interval_backoff (Optional): Backoff multiplier for polling interval.
+            max_interval (Optional): Upper bound of polling interval in seconds.
+            timeout (Optional): Timeout in seconds.
+            terminal_statuses (Optional): Statuses treated as terminal.
+            failure_statuses (Optional): Statuses treated as failures.
+            on_status (Optional): Callback invoked on each polled status.
 
         Returns:
             The finished job as an estimation result wrapper.
@@ -1190,7 +1330,17 @@ class OqtopusClient:  # noqa: PLR0904
         )
         finished_job = cast(
             "models.JobsJobDef",
-            self._call("run_estimation", spec.to_model(), **kwargs),
+            self._call(
+                "run_estimation",
+                spec.to_model(),
+                interval=interval,
+                interval_backoff=interval_backoff,
+                max_interval=max_interval,
+                timeout=timeout,
+                terminal_statuses=terminal_statuses,
+                failure_statuses=failure_statuses,
+                on_status=on_status,
+            ),
         )
         result = self._to_result(finished_job)
         if not isinstance(result, OqtopusEstimationJobResult):
@@ -1201,16 +1351,29 @@ class OqtopusClient:  # noqa: PLR0904
             )  # pragma: no cover
         return cast("OqtopusEstimationJobResult", result)
 
-    def run_multi_manual(
-        self, job: OqtopusJobSpec, **kwargs: Unpack[WaitForJobKwargs]
+    def run_multi_manual(  # noqa: PLR0913
+        self,
+        job: OqtopusJobSpec,
+        *,
+        interval: float = 1.0,
+        interval_backoff: float = 1.0,
+        max_interval: float | None = None,
+        timeout: float | None = 300.0,
+        terminal_statuses: set[models.JobsJobStatus] | None = None,
+        failure_statuses: set[models.JobsJobStatus] | None = None,
+        on_status: Callable[[models.JobsGetJobStatusResponse], None] | None = None,
     ) -> OqtopusMultiManualJobResult:
         """Run a multi-manual job and return multi-manual-typed SDK result.
 
         Args:
             job (Required): `OqtopusJobSpec` with ``job_type='multi_manual'``.
-            kwargs (Optional): ``interval``, ``interval_backoff``,
-                ``max_interval``, ``timeout``, ``terminal_statuses``,
-                ``failure_statuses``.
+            interval (Optional): Polling interval in seconds.
+            interval_backoff (Optional): Backoff multiplier for polling interval.
+            max_interval (Optional): Upper bound of polling interval in seconds.
+            timeout (Optional): Timeout in seconds.
+            terminal_statuses (Optional): Statuses treated as terminal.
+            failure_statuses (Optional): Statuses treated as failures.
+            on_status (Optional): Callback invoked on each polled status.
 
         Returns:
             The finished job as a multi-manual result wrapper.
@@ -1224,7 +1387,17 @@ class OqtopusClient:  # noqa: PLR0904
         )
         finished_job = cast(
             "models.JobsJobDef",
-            self._call("run_multi_manual", spec.to_model(), **kwargs),
+            self._call(
+                "run_multi_manual",
+                spec.to_model(),
+                interval=interval,
+                interval_backoff=interval_backoff,
+                max_interval=max_interval,
+                timeout=timeout,
+                terminal_statuses=terminal_statuses,
+                failure_statuses=failure_statuses,
+                on_status=on_status,
+            ),
         )
         result = self._to_result(finished_job)
         if not isinstance(result, OqtopusMultiManualJobResult):
@@ -1235,18 +1408,29 @@ class OqtopusClient:  # noqa: PLR0904
             )  # pragma: no cover
         return cast("OqtopusMultiManualJobResult", result)
 
-    def run_sse(
+    def run_sse(  # noqa: PLR0913
         self,
         job: OqtopusJobSpec,
-        **kwargs: Unpack[WaitForJobKwargs],
+        *,
+        interval: float = 1.0,
+        interval_backoff: float = 1.0,
+        max_interval: float | None = None,
+        timeout: float | None = 300.0,
+        terminal_statuses: set[models.JobsJobStatus] | None = None,
+        failure_statuses: set[models.JobsJobStatus] | None = None,
+        on_status: Callable[[models.JobsGetJobStatusResponse], None] | None = None,
     ) -> OqtopusSseJobResult:
         """Run an SSE job and return SSE-typed SDK result.
 
         Args:
             job (Required): `OqtopusJobSpec` with ``job_type='sse'``.
-            kwargs (Optional): ``interval``, ``interval_backoff``,
-                ``max_interval``, ``timeout``, ``terminal_statuses``,
-                ``failure_statuses``.
+            interval (Optional): Polling interval in seconds.
+            interval_backoff (Optional): Backoff multiplier for polling interval.
+            max_interval (Optional): Upper bound of polling interval in seconds.
+            timeout (Optional): Timeout in seconds.
+            terminal_statuses (Optional): Statuses treated as terminal.
+            failure_statuses (Optional): Statuses treated as failures.
+            on_status (Optional): Callback invoked on each polled status.
 
         Returns:
             The finished job as an SSE result wrapper.
@@ -1260,7 +1444,17 @@ class OqtopusClient:  # noqa: PLR0904
         )
         finished_job = cast(
             "models.JobsJobDef",
-            self._call("run_sse", spec.to_model(), **kwargs),
+            self._call(
+                "run_sse",
+                spec.to_model(),
+                interval=interval,
+                interval_backoff=interval_backoff,
+                max_interval=max_interval,
+                timeout=timeout,
+                terminal_statuses=terminal_statuses,
+                failure_statuses=failure_statuses,
+                on_status=on_status,
+            ),
         )
         result = self._to_result(finished_job)
         if not isinstance(result, OqtopusSseJobResult):
@@ -1271,21 +1465,45 @@ class OqtopusClient:  # noqa: PLR0904
             )  # pragma: no cover
         return cast("OqtopusSseJobResult", result)
 
-    def run_sse_file(
+    def run_sse_file(  # noqa: PLR0913
         self,
         *,
         file_path: str | Path,
         device_id: str,
-        **kwargs: Unpack[RunSseFileKwargs],
+        name: str | None = None,
+        description: str | None = None,
+        transpiler_info: dict[str, object] | None = None,
+        simulator_info: dict[str, object] | None = None,
+        mitigation_info: dict[str, object] | None = None,
+        shots: int = 1,
+        max_encoded_file_size: int = 10 * 1024 * 1024,
+        interval: float = 1.0,
+        interval_backoff: float = 1.0,
+        max_interval: float | None = None,
+        timeout: float | None = 300.0,
+        terminal_statuses: set[models.JobsJobStatus] | None = None,
+        failure_statuses: set[models.JobsJobStatus] | None = None,
+        on_status: Callable[[models.JobsGetJobStatusResponse], None] | None = None,
     ) -> OqtopusSseJobResult:
         """Build and run an SSE job directly from a script file and return SSE result.
 
         Args:
             file_path (Required): Path to the Python script.
             device_id (Required): Target device ID.
-            kwargs (Optional): ``name``, ``description``, ``shots``, ``interval``,
-                ``interval_backoff``, ``max_interval``, ``timeout``,
-                ``terminal_statuses``, ``failure_statuses``.
+            name (Optional): Job name.
+            description (Optional): Job description.
+            transpiler_info (Optional): Transpiler settings.
+            simulator_info (Optional): Simulator settings.
+            mitigation_info (Optional): Error mitigation settings.
+            shots (Optional): Number of shots.
+            max_encoded_file_size (Optional): Max encoded script size in bytes.
+            interval (Optional): Polling interval in seconds.
+            interval_backoff (Optional): Backoff multiplier for polling interval.
+            max_interval (Optional): Upper bound of polling interval in seconds.
+            timeout (Optional): Timeout in seconds.
+            terminal_statuses (Optional): Statuses treated as terminal.
+            failure_statuses (Optional): Statuses treated as failures.
+            on_status (Optional): Callback invoked on each polled status.
 
         Returns:
             The finished job as an SSE result wrapper.
@@ -1300,7 +1518,20 @@ class OqtopusClient:  # noqa: PLR0904
                 "run_sse_file",
                 file_path=file_path,
                 device_id=device_id,
-                **kwargs,
+                name=name,
+                description=description,
+                transpiler_info=transpiler_info,
+                simulator_info=simulator_info,
+                mitigation_info=mitigation_info,
+                shots=shots,
+                max_encoded_file_size=max_encoded_file_size,
+                interval=interval,
+                interval_backoff=interval_backoff,
+                max_interval=max_interval,
+                timeout=timeout,
+                terminal_statuses=terminal_statuses,
+                failure_statuses=failure_statuses,
+                on_status=on_status,
             ),
         )
         result = self._to_result(finished_job)
@@ -1361,18 +1592,29 @@ class OqtopusClient:  # noqa: PLR0904
         """
         return self.get_job_result(job_id)
 
-    def wait_for_job(
+    def wait_for_job(  # noqa: PLR0913
         self,
         job_id: str,
-        **kwargs: Unpack[WaitForJobKwargs],
+        *,
+        interval: float = 1.0,
+        interval_backoff: float = 1.0,
+        max_interval: float | None = None,
+        timeout: float | None = 300.0,
+        terminal_statuses: set[models.JobsJobStatus] | None = None,
+        failure_statuses: set[models.JobsJobStatus] | None = None,
+        on_status: Callable[[models.JobsGetJobStatusResponse], None] | None = None,
     ) -> OqtopusJobResult:
         """Poll one job until terminal status/timeout and return typed result.
 
         Args:
             job_id (Required): Target job ID to wait for.
-            kwargs (Optional): ``interval``, ``interval_backoff``,
-                ``max_interval``, ``timeout``, ``terminal_statuses``,
-                ``failure_statuses``.
+            interval (Optional): Polling interval in seconds.
+            interval_backoff (Optional): Backoff multiplier for polling interval.
+            max_interval (Optional): Upper bound of polling interval in seconds.
+            timeout (Optional): Timeout in seconds.
+            terminal_statuses (Optional): Statuses treated as terminal.
+            failure_statuses (Optional): Statuses treated as failures.
+            on_status (Optional): Callback invoked on each polled status.
 
         Returns:
             The finished job as an SDK result wrapper.
@@ -1380,28 +1622,58 @@ class OqtopusClient:  # noqa: PLR0904
         """
         job = cast(
             "models.JobsJobDef",
-            self._call("wait_for_job", job_id, **kwargs),
+            self._call(
+                "wait_for_job",
+                job_id,
+                interval=interval,
+                interval_backoff=interval_backoff,
+                max_interval=max_interval,
+                timeout=timeout,
+                terminal_statuses=terminal_statuses,
+                failure_statuses=failure_statuses,
+                on_status=on_status,
+            ),
         )
         return self._to_result(job)
 
-    def wait(
+    def wait(  # noqa: PLR0913
         self,
         job_id: str,
-        **kwargs: Unpack[WaitForJobKwargs],
+        *,
+        interval: float = 1.0,
+        interval_backoff: float = 1.0,
+        max_interval: float | None = None,
+        timeout: float | None = 300.0,
+        terminal_statuses: set[models.JobsJobStatus] | None = None,
+        failure_statuses: set[models.JobsJobStatus] | None = None,
+        on_status: Callable[[models.JobsGetJobStatusResponse], None] | None = None,
     ) -> OqtopusJobResult:
         """Alias of :meth:`wait_for_job`.
 
         Args:
             job_id (Required): Target job ID to wait for.
-            kwargs (Optional): ``interval``, ``interval_backoff``,
-                ``max_interval``, ``timeout``, ``terminal_statuses``,
-                ``failure_statuses``.
+            interval (Optional): Polling interval in seconds.
+            interval_backoff (Optional): Backoff multiplier for polling interval.
+            max_interval (Optional): Upper bound of polling interval in seconds.
+            timeout (Optional): Timeout in seconds.
+            terminal_statuses (Optional): Statuses treated as terminal.
+            failure_statuses (Optional): Statuses treated as failures.
+            on_status (Optional): Callback invoked on each polled status.
 
         Returns:
             The finished job as an SDK result wrapper.
 
         """
-        return self.wait_for_job(job_id, **kwargs)
+        return self.wait_for_job(
+            job_id,
+            interval=interval,
+            interval_backoff=interval_backoff,
+            max_interval=max_interval,
+            timeout=timeout,
+            terminal_statuses=terminal_statuses,
+            failure_statuses=failure_statuses,
+            on_status=on_status,
+        )
 
     def wait_for_jobs(  # noqa: PLR0913
         self,

@@ -76,8 +76,8 @@ def test_submit_job_accepts_job_spec() -> None:
     """Test case: test_submit_job_accepts_job_spec."""
     called: list[tuple[str, tuple[Any, ...], dict[str, Any]]] = []
 
-    def fake_call(name: str, *args: Any, **kwargs: Any) -> Any:
-        called.append((name, args, kwargs))
+    def fake_call(method_name: str, *args: Any, **kwargs: Any) -> Any:
+        called.append((method_name, args, kwargs))
         return models.JobsSubmitJobResponse(job_id="job-1")
 
     client = _build_client_with_fake_call(fake_call)
@@ -89,7 +89,7 @@ def test_submit_job_accepts_job_spec() -> None:
 
 def test_get_job_returns_extended_job_result() -> None:
     """Test case: test_get_job_returns_extended_job_result."""
-    client = _build_client_with_fake_call(lambda name, *args, **kwargs: _job(models.JobsJobType.SAMPLING))
+    client = _build_client_with_fake_call(lambda method_name, *args, **kwargs: _job(models.JobsJobType.SAMPLING))
 
     result = client.get_job("job-1")
 
@@ -114,7 +114,7 @@ def test_get_job_returns_extended_job_result() -> None:
 
 def test_result_aliases_return_job_result() -> None:
     """Test case: test_result_aliases_return_job_result."""
-    client = _build_client_with_fake_call(lambda name, *args, **kwargs: _job(models.JobsJobType.SAMPLING))
+    client = _build_client_with_fake_call(lambda method_name, *args, **kwargs: _job(models.JobsJobType.SAMPLING))
 
     assert isinstance(client.get_job_result("job-1"), OqtopusJobResult)
     assert isinstance(client.result("job-1"), OqtopusJobResult)
@@ -123,7 +123,7 @@ def test_result_aliases_return_job_result() -> None:
 
 def test_run_helpers_return_typed_results() -> None:
     """Test case: test_run_helpers_return_typed_results."""
-    def fake_call(name: str, *args: Any, **kwargs: Any) -> Any:
+    def fake_call(method_name: str, *args: Any, **kwargs: Any) -> Any:
         mapping = {
             "run_job": models.JobsJobType.SAMPLING,
             "run_sampling": models.JobsJobType.SAMPLING,
@@ -132,7 +132,7 @@ def test_run_helpers_return_typed_results() -> None:
             "run_sse": models.JobsJobType.SSE,
             "run_sse_file": models.JobsJobType.SSE,
         }
-        return _job(mapping[name])
+        return _job(mapping[method_name])
 
     client = _build_client_with_fake_call(fake_call)
 
@@ -161,8 +161,8 @@ def test_run_helpers_return_typed_results() -> None:
 def test_wait_for_job_returns_failed_result() -> None:
     """Test case: test_wait_for_job_returns_failed_result."""
 
-    def fake_call(name: str, *args: Any, **kwargs: Any) -> Any:
-        assert name == "wait_for_job"
+    def fake_call(method_name: str, *args: Any, **kwargs: Any) -> Any:
+        assert method_name == "wait_for_job"
         return _job(models.JobsJobType.SAMPLING, status=models.JobsJobStatus.FAILED)
 
     client = _build_client_with_fake_call(fake_call)
@@ -177,8 +177,8 @@ def test_list_jobs_and_filters_passthrough() -> None:
     """Test case: test_list_jobs_and_filters_passthrough."""
     now = datetime.now(timezone.utc)
 
-    def fake_call(name: str, *args: Any, **kwargs: Any) -> Any:
-        assert name == "list_jobs"
+    def fake_call(method_name: str, *args: Any, **kwargs: Any) -> Any:
+        assert method_name == "list_jobs"
         assert kwargs["end_time"] == now
         return [
             models.JobsGetJobsResponse(
@@ -199,12 +199,12 @@ def test_list_jobs_and_filters_passthrough() -> None:
 
 def test_status_and_cancel_helpers() -> None:
     """Test case: test_status_and_cancel_helpers."""
-    def fake_call(name: str, *args: Any, **kwargs: Any) -> Any:
-        if name == "get_job_status":
+    def fake_call(method_name: str, *args: Any, **kwargs: Any) -> Any:
+        if method_name == "get_job_status":
             return models.JobsGetJobStatusResponse(job_id=args[0], status=models.JobsJobStatus.SUCCEEDED)
-        if name == "cancel_job":
+        if method_name == "cancel_job":
             return models.SuccessSuccessResponse(message="ok")
-        raise AssertionError(name)
+        raise AssertionError(method_name)
 
     client = _build_client_with_fake_call(fake_call)
 
@@ -215,7 +215,7 @@ def test_status_and_cancel_helpers() -> None:
 
 def test_api_error_propagates() -> None:
     """Test case: test_api_error_propagates."""
-    client = _build_client_with_fake_call(lambda name, *args, **kwargs: (_ for _ in ()).throw(UserApiError(404, "not found", {})))
+    client = _build_client_with_fake_call(lambda method_name, *args, **kwargs: (_ for _ in ()).throw(UserApiError(404, "not found", {})))
     with pytest.raises(UserApiError):
         client.get_job("missing")
 
