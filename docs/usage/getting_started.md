@@ -215,8 +215,10 @@ asyncio.run(main())
 Example output:
 
 ```text
-[checking devices while submitting]
-[checking status while waiting]
+submitting in background...
+prepared a local summary while submit was running
+waiting in background...
+updated a progress message while waiting
 [<JobsJobStatus.SUCCEEDED: 'succeeded'>, <JobsJobStatus.SUCCEEDED: 'succeeded'>]
 ```
 
