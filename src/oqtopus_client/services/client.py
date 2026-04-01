@@ -873,6 +873,21 @@ class OqtopusClient:  # noqa: PLR0904
 
         return asyncio.run(_main())
 
+    async def _run_async_with_client(
+        self,
+        coro_factory: Callable[[_AsyncOqtopusClient], Coroutine[object, object, _T]],
+    ) -> _T:
+        async_client = _AsyncOqtopusClient(
+            self._config,
+            self._default_headers,
+            self._user_agent,
+        )
+        try:
+            return await coro_factory(async_client)
+        finally:
+            with suppress(Exception):
+                await async_client.close()
+
     def _run_async_method(
         self,
         method: Callable[..., Coroutine[object, object, _T]],
@@ -1073,6 +1088,43 @@ class OqtopusClient:  # noqa: PLR0904
             raise TypeError(msg)  # pragma: no cover
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             return list(executor.map(self.submit_job, jobs))
+
+    async def submit_jobs_async(
+        self,
+        jobs: Sequence[OqtopusJobSpec],
+        *,
+        max_workers: int = 4,
+    ) -> list[models.JobsSubmitJobResponse]:
+        """Submit multiple jobs concurrently in an async context.
+
+        Args:
+            jobs (Required): List of `OqtopusJobSpec`.
+            max_workers (Optional): Submission concurrency. Default is ``4``.
+
+        Returns:
+            Submission responses for all jobs.
+
+        Raises:
+            TypeError: If any item in ``jobs`` is not an ``OqtopusJobSpec``.
+            ValueError: If ``max_workers`` is less than ``1``.
+
+        """
+        if max_workers < 1:
+            msg = "max_workers must be >= 1."
+            raise ValueError(msg)
+        if any(not isinstance(job, OqtopusJobSpec) for job in jobs):
+            msg = "submit_jobs_async expects a list of OqtopusJobSpec."
+            raise TypeError(msg)
+
+        semaphore = asyncio.Semaphore(max_workers)
+
+        async def _submit(job: OqtopusJobSpec) -> models.JobsSubmitJobResponse:
+            async with semaphore:
+                return await self._run_async_with_client(
+                    lambda async_client: async_client.submit_job(job)
+                )
+
+        return await asyncio.gather(*(_submit(job) for job in jobs))
 
     @staticmethod
     def _validate_job_spec(
@@ -1560,6 +1612,54 @@ class OqtopusClient:  # noqa: PLR0904
                     job_ids,
                 ),
             )
+
+    async def wait_for_jobs_async(  # noqa: PLR0913
+        self,
+        job_ids: list[str],
+        *,
+        interval: float = 1.0,
+        interval_backoff: float = 1.0,
+        max_interval: float | None = None,
+        timeout: float | None = 300.0,
+        max_workers: int = 4,
+    ) -> list[OqtopusJobResult]:
+        """Wait multiple jobs concurrently in an async context.
+
+        Args:
+            job_ids (Required): List of job IDs to wait for.
+            interval (Optional): Polling interval in seconds.
+            interval_backoff (Optional): Backoff multiplier for polling interval.
+            max_interval (Optional): Upper bound of polling interval in seconds.
+            timeout (Optional): Timeout in seconds.
+            max_workers (Optional): Waiting concurrency. Default is ``4``.
+
+        Returns:
+            Finished jobs as SDK result wrappers.
+
+        Raises:
+            ValueError: If ``max_workers`` is less than ``1``.
+
+        """
+        if max_workers < 1:
+            msg = "max_workers must be >= 1."
+            raise ValueError(msg)
+
+        semaphore = asyncio.Semaphore(max_workers)
+
+        async def _wait(job_id: str) -> OqtopusJobResult:
+            async with semaphore:
+                job = await self._run_async_with_client(
+                    lambda async_client: async_client.wait_for_job(
+                        job_id,
+                        interval=interval,
+                        interval_backoff=interval_backoff,
+                        max_interval=max_interval,
+                        timeout=timeout,
+                    )
+                )
+                return self._to_result(job)
+
+        return await asyncio.gather(*(_wait(job_id) for job_id in job_ids))
 
     def run_jobs_batch(  # noqa: PLR0913
         self,

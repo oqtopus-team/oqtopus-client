@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 import pytest
@@ -44,7 +45,18 @@ def _build_client() -> OqtopusClient:
             return _job(args[0])
         raise AssertionError(name)
 
+    async def fake_run_async_with_client(callback: Any) -> Any:
+        class StubAsyncClient:
+            async def submit_job(self, body: OqtopusJobSpec) -> models.JobsSubmitJobResponse:
+                return fake_run_async_method(self.submit_job, body)
+
+            async def wait_for_job(self, job_id: str, **kwargs: Any) -> models.JobsJobDef:
+                return fake_run_async_method(self.wait_for_job, job_id, **kwargs)
+
+        return await callback(StubAsyncClient())
+
     client._run_async_method = fake_run_async_method  # type: ignore[assignment,method-assign]
+    client._run_async_with_client = fake_run_async_with_client  # type: ignore[assignment,method-assign]
     client.base_url = OqtopusConfig(base_url="https://api.example.com").base_url
     return client
 
@@ -83,6 +95,31 @@ def test_run_jobs_batch_preserves_order() -> None:
     assert [result.job_id for result in results] == ["job-2", "job-1"]
 
 
+def test_async_submit_and_wait_preserve_order() -> None:
+    """Test case: test_async_submit_and_wait_preserve_order."""
+    client = _build_client()
+
+    async def _scenario() -> None:
+        responses = await client.submit_jobs_async(
+            [
+                OqtopusJobSpec.sampling(name="job-1", device_id="Kawasaki", program="OPENQASM 3; qubit[1] q;"),
+                OqtopusJobSpec.sampling(name="job-2", device_id="Kawasaki", program="OPENQASM 3; qubit[1] q;"),
+            ],
+            max_workers=2,
+        )
+        assert [r.job_id for r in responses] == ["job-1", "job-2"]
+
+        jobs = await client.wait_for_jobs_async(
+            ["job-2", "job-1"],
+            timeout=1.0,
+            max_workers=2,
+        )
+        assert [job.job_id for job in jobs] == ["job-2", "job-1"]
+        assert isinstance(jobs[0], OqtopusSamplingJobResult)
+
+    asyncio.run(_scenario())
+
+
 def test_parallel_helpers_validate_worker_count() -> None:
     """Test case: test_parallel_helpers_validate_worker_count."""
     client = _build_client()
@@ -91,6 +128,10 @@ def test_parallel_helpers_validate_worker_count() -> None:
         client.submit_jobs([], max_workers=0)
     with pytest.raises(ValueError):
         client.wait_for_jobs([], max_workers=0)
+    with pytest.raises(ValueError):
+        asyncio.run(client.submit_jobs_async([], max_workers=0))
+    with pytest.raises(ValueError):
+        asyncio.run(client.wait_for_jobs_async([], max_workers=0))
     with pytest.raises(ValueError):
         client.run_jobs_batch([], submit_workers=0)
 
