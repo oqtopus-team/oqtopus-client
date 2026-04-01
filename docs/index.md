@@ -1,12 +1,12 @@
 ![OQTOPUS logo](./asset/oqtopus-logo.png)
 
-# oqtopus-client
+# OQTOPUS Client
 
 Python client library for the OQTOPUS Cloud User API.
 
 ## Overview
 
-**`oqtopus-client`** is a Python SDK for the OQTOPUS Cloud User API.
+OQTOPUS Client is a Python SDK for the OQTOPUS Cloud User API.
 
 It is designed for users who want to submit, monitor, and retrieve quantum jobs
 from Python without handling raw HTTP requests directly. The public API is
@@ -77,5 +77,5 @@ You can contact us by creating an issue in this repository or by email:
 
 ## License
 
-`oqtopus-client` is released under the
+OQTOPUS Client is released under the
 [Apache License 2.0](https://github.com/oqtopus-team/oqtopus-client/blob/main/LICENSE).

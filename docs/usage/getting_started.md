@@ -8,12 +8,6 @@ pip install oqtopus-client
 
 The core client works without depending on other quantum software SDKs.
 
-For local development:
-
-```bash
-pip install -e .
-```
-
 ## Configuration
 
 The recommended setup is to define the `default` profile and construct
