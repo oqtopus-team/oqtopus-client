@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import Mock
 
 import pytest
 
@@ -45,8 +44,6 @@ def _build_client() -> OqtopusClient:
         raise AssertionError(name)
 
     client._call = fake_call  # type: ignore[assignment,method-assign]
-    client._async = Mock()
-    client._runtime = Mock()
     client._closed = False
     client.base_url = OqtopusConfig(base_url="https://api.example.com").base_url
     return client

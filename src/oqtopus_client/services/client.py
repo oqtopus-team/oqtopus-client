@@ -6,10 +6,8 @@ import asyncio
 import base64
 import json
 import os
-import threading
-import weakref
 from collections.abc import Awaitable, Callable, Coroutine, Mapping, Sequence
-from concurrent.futures import Future, ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
 from importlib import import_module
 from importlib.metadata import PackageNotFoundError, version
@@ -60,37 +58,6 @@ def _resolve_user_agent() -> str:
     except PackageNotFoundError:
         package_version = "unknown"
     return f"{PACKAGE_NAME}/{package_version}"
-
-
-class _AsyncRuntime:
-    def __init__(self) -> None:
-        self._loop = asyncio.new_event_loop()
-        self._thread = threading.Thread(target=self._run_loop, daemon=True)
-        self._thread.start()
-
-    def _run_loop(self) -> None:
-        asyncio.set_event_loop(self._loop)
-        self._loop.run_forever()
-
-    def run(self, coro: Coroutine[object, object, _T]) -> _T:
-        fut: Future[_T] = asyncio.run_coroutine_threadsafe(coro, self._loop)
-        return fut.result()
-
-    def call(
-        self,
-        func: Callable[..., _T],
-        /,
-        *args: object,
-        **kwargs: object,
-    ) -> _T:
-        async def _run_sync() -> _T:
-            return await asyncio.sleep(0, result=func(*args, **kwargs))
-
-        return self.run(_run_sync())
-
-    def close(self) -> None:
-        self._loop.call_soon_threadsafe(self._loop.stop)
-        self._thread.join(timeout=5.0)
 
 
 class _AsyncOqtopusClient:  # noqa: PLR0904
@@ -849,26 +816,13 @@ class OqtopusClient:  # noqa: PLR0904
 
         """
         resolved_config = config or OqtopusConfig.from_file()
-        self._runtime = _AsyncRuntime()
-        try:
-            self._async = self._runtime.call(
-                _AsyncOqtopusClient,
-                resolved_config,
-                default_headers,
-                user_agent,
-            )
-        except Exception:
-            with suppress(Exception):
-                self._finalize_resources(self._runtime, self._async)
-            raise
+        self._config = resolved_config
+        self._default_headers = dict(default_headers) if default_headers else None
+        self._user_agent = user_agent
         self._closed = False
-        self._finalizer = weakref.finalize(
-            self,
-            self._finalize_resources,
-            self._runtime,
-            self._async,
+        self.base_url = (
+            resolved_config.base_url.rstrip("/") if resolved_config.base_url else ""
         )
-        self.base_url = self._async.base_url
         self.timeout = resolved_config.timeout
         self.retry_max_attempts = resolved_config.retry_max_attempts
         self.retry_backoff_seconds = resolved_config.retry_backoff_seconds
@@ -877,15 +831,34 @@ class OqtopusClient:  # noqa: PLR0904
             m.upper() for m in (resolved_config.retry_methods or {"GET", "DELETE"})
         )
 
-    @staticmethod
-    def _finalize_resources(
-        runtime: _AsyncRuntime,
-        async_client: _AsyncOqtopusClient,
-    ) -> None:
-        with suppress(Exception):
-            runtime.run(async_client.close())
-        with suppress(Exception):
-            runtime.close()
+    def _run(
+        self,
+        coro_factory: Callable[[_AsyncOqtopusClient], Coroutine[object, object, _T]],
+    ) -> _T:
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            pass
+        else:
+            msg = (
+                "OqtopusClient cannot be used while an event loop is running. "
+                "Use _AsyncOqtopusClient directly."
+            )
+            raise RuntimeError(msg)
+
+        async def _main() -> _T:
+            async_client = _AsyncOqtopusClient(
+                self._config,
+                self._default_headers,
+                self._user_agent,
+            )
+            try:
+                return await coro_factory(async_client)
+            finally:
+                with suppress(Exception):
+                    await async_client.close()
+
+        return asyncio.run(_main())
 
     def _call_async(
         self,
@@ -893,14 +866,14 @@ class OqtopusClient:  # noqa: PLR0904
         *args: object,
         **kwargs: object,
     ) -> object:
-        async def _run() -> object:
+        async def _invoke(async_client: _AsyncOqtopusClient) -> object:
             method = cast(
                 "Callable[..., Coroutine[object, object, object]]",
-                getattr(self._async, method_name),
+                getattr(async_client, method_name),
             )
             return await method(*args, **kwargs)
 
-        return self._runtime.run(_run())
+        return self._run(_invoke)
 
     def _call(
         self,
@@ -942,11 +915,9 @@ class OqtopusClient:  # noqa: PLR0904
         self.close()
 
     def close(self) -> None:
-        """Close underlying async HTTP client."""
+        """Mark the client as closed and reject subsequent calls."""
         if self._closed:
             return
-        if self._finalizer.alive:
-            self._finalizer()
         self._closed = True
 
     def list_devices(self) -> list[OqtopusDevice]:

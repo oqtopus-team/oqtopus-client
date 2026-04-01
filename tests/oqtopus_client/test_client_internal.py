@@ -7,15 +7,14 @@ import importlib
 import sys
 import threading
 import types
+from collections.abc import Callable, Coroutine
 from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError
 from pathlib import Path
-from typing import Any, cast
-from unittest.mock import Mock
+from typing import Any, TypeVar, cast
 
 import pytest
 
-import oqtopus_client.services.client as client_module
 from oqtopus_client import (
     OqtopusClient,
     OqtopusConfig,
@@ -36,32 +35,27 @@ from oqtopus_client.services.client import (
     _resolve_user_agent,
 )
 
+_T = TypeVar("_T")
 
-def _build_async_client(
+
+def _run_with_async_client(
     config: OqtopusConfig,
+    callback: Callable[[_AsyncOqtopusClient], Coroutine[object, object, _T]],
     *,
     default_headers: dict[str, str] | None = None,
-) -> tuple[client_module._AsyncRuntime, _AsyncOqtopusClient]:
-    runtime = client_module._AsyncRuntime()
-    try:
-        client = runtime.call(
-            _AsyncOqtopusClient,
+) -> _T:
+    async def _scenario() -> _T:
+        client = _AsyncOqtopusClient(
             config,
             default_headers,
             None,
         )
-    except Exception:
-        runtime.close()
-        raise
-    return runtime, client
+        try:
+            return await callback(client)
+        finally:
+            await client.close()
 
-
-def _close_async_client(
-    runtime: client_module._AsyncRuntime,
-    client: _AsyncOqtopusClient,
-) -> None:
-    runtime.run(client.close())
-    runtime.close()
+    return asyncio.run(_scenario())
 
 
 def test_removed_compatibility_module_import_fails() -> None:
@@ -109,32 +103,32 @@ def test_async_client_constructor_validation_errors() -> None:
 def test_async_client_allows_empty_base_url_in_sse_container(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test case: test_async_client_allows_empty_base_url_in_sse_container."""
     monkeypatch.setenv("OQTOPUS_ENV", "sse_container")
-    runtime, client = _build_async_client(OqtopusConfig(base_url=""))
-    try:
+
+    async def _assert(client: _AsyncOqtopusClient) -> None:
         assert client.base_url == ""
-    finally:
-        _close_async_client(runtime, client)
+
+    _run_with_async_client(OqtopusConfig(base_url=""), _assert)
 
 
 def test_async_client_sets_headers_and_rest_config() -> None:
     """Test case: test_async_client_sets_headers_and_rest_config."""
-    runtime, client = _build_async_client(
-        OqtopusConfig(
-            base_url="http://test",
-            api_token="from-config",
-            proxy="http://proxy.local:8080",
-        ),
-        default_headers={"X-Test": "1"},
-    )
-    try:
+    async def _assert(client: _AsyncOqtopusClient) -> None:
         assert client._headers["q-api-token"] == "from-config"
         assert client._headers["X-Test"] == "1"
         assert client._rest_config is not None
         assert client._rest_config.host == "http://test"
         assert client._rest_config.proxy == "http://proxy.local:8080"
         assert client._retry_status_codes == {429}
-    finally:
-        _close_async_client(runtime, client)
+
+    _run_with_async_client(
+        OqtopusConfig(
+            base_url="http://test",
+            api_token="from-config",
+            proxy="http://proxy.local:8080",
+        ),
+        _assert,
+        default_headers={"X-Test": "1"},
+    )
 
 
 def test_extract_error_message_variants() -> None:
@@ -160,8 +154,7 @@ def test_coerce_and_validate_job_type() -> None:
 
 def test_wait_for_job_failure_and_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test case: test_wait_for_job_failure_and_timeout."""
-    runtime, client = _build_async_client(OqtopusConfig(base_url="http://test"))
-    try:
+    async def _assert(client: _AsyncOqtopusClient) -> None:
         async def status_failed(_: str) -> models.JobsGetJobStatusResponse:
             return models.JobsGetJobStatusResponse(job_id="job-1", status=models.JobsJobStatus.FAILED)
 
@@ -173,14 +166,14 @@ def test_wait_for_job_failure_and_timeout(monkeypatch: pytest.MonkeyPatch) -> No
 
         monkeypatch.setattr(client, "get_job_status", status_failed)
         monkeypatch.setattr(client, "get_job", get_job)
-        result = asyncio.run(client.wait_for_job("job-1", interval=0.001, timeout=0.01))
+        result = await client.wait_for_job("job-1", interval=0.001, timeout=0.01)
         assert result.status == models.JobsJobStatus.FAILED
 
         monkeypatch.setattr(client, "get_job_status", status_running)
         with pytest.raises(TimeoutError):
-            asyncio.run(client.wait_for_job("job-1", interval=0.001, timeout=0.01))
-    finally:
-        _close_async_client(runtime, client)
+            await client.wait_for_job("job-1", interval=0.001, timeout=0.01)
+
+    _run_with_async_client(OqtopusConfig(base_url="http://test"), _assert)
 
 
 def test_run_sse_file_forwards_kwargs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -205,24 +198,20 @@ def test_run_sse_file_forwards_kwargs(tmp_path: Path, monkeypatch: pytest.Monkey
     monkeypatch.setattr(_AsyncOqtopusClient, "build_sse_job_request", staticmethod(build_stub))
     monkeypatch.setattr(_AsyncOqtopusClient, "run_sse", run_sse_stub)
 
-    runtime, client = _build_async_client(OqtopusConfig(base_url="http://test"))
-    try:
-        result = asyncio.run(
-            client.run_sse_file(
-                file_path=script,
-                device_id="K",
-                name="n",
-                description="d",
-                timeout=5.0,
-                shots=3,
-            ),
+    async def _assert(client: _AsyncOqtopusClient) -> None:
+        result = await client.run_sse_file(
+            file_path=script,
+            device_id="K",
+            name="n",
+            description="d",
+            timeout=5.0,
+            shots=3,
         )
-    finally:
-        _close_async_client(runtime, client)
+        assert result.job_type == models.JobsJobType.SSE
+        assert observed["build"]["device_id"] == "K"
+        assert observed["run"]["kwargs"]["timeout"] == 5.0
 
-    assert result.job_type == models.JobsJobType.SSE
-    assert observed["build"]["device_id"] == "K"
-    assert observed["run"]["kwargs"]["timeout"] == 5.0
+    _run_with_async_client(OqtopusConfig(base_url="http://test"), _assert)
 
 
 def test_run_job_uses_sse_sampler_in_sse_container(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -250,17 +239,13 @@ def test_run_job_uses_sse_sampler_in_sse_container(monkeypatch: pytest.MonkeyPat
     )
     monkeypatch.setitem(sys.modules, "sse_sampler", fake_module)
 
-    runtime, client = _build_async_client(OqtopusConfig(base_url=""))
-    try:
-        result = asyncio.run(
-            client.run_job(
-                OqtopusJobSpec.sampling(device_id="sse", program="OPENQASM 3; qubit[1] q;"),
-            ),
+    async def _assert(client: _AsyncOqtopusClient) -> None:
+        result = await client.run_job(
+            OqtopusJobSpec.sampling(device_id="sse", program="OPENQASM 3; qubit[1] q;"),
         )
-    finally:
-        _close_async_client(runtime, client)
+        assert result.job_id == "job-sse-container"
 
-    assert result.job_id == "job-sse-container"
+    _run_with_async_client(OqtopusConfig(base_url=""), _assert)
     assert observed["thread_id"] != loop_thread_id
 
 
@@ -269,12 +254,13 @@ def test_run_job_raises_when_sse_sampler_missing(monkeypatch: pytest.MonkeyPatch
     monkeypatch.setenv("OQTOPUS_ENV", "sse_container")
     monkeypatch.delitem(sys.modules, "sse_sampler", raising=False)
 
-    runtime, client = _build_async_client(OqtopusConfig(base_url=""))
-    try:
+    async def _assert(client: _AsyncOqtopusClient) -> None:
         with pytest.raises(UserApiError):
-            asyncio.run(client.run_job(OqtopusJobSpec.sampling(device_id="sse", program="OPENQASM 3;")))
-    finally:
-        _close_async_client(runtime, client)
+            await client.run_job(
+                OqtopusJobSpec.sampling(device_id="sse", program="OPENQASM 3;")
+            )
+
+    _run_with_async_client(OqtopusConfig(base_url=""), _assert)
 
 
 def test_sync_wrappers_delegate_to_call() -> None:
@@ -375,8 +361,6 @@ def test_sync_wrappers_delegate_to_call() -> None:
         raise AssertionError(method_name)
 
     client._call = fake_call  # type: ignore[assignment,method-assign]
-    client._async = Mock()
-    client._runtime = Mock()
     client._closed = False
 
     assert len(client.list_devices()) == 1
@@ -419,9 +403,6 @@ def test_sync_client_close_is_idempotent_and_blocks_calls() -> None:
     """Test case: test_sync_client_close_is_idempotent_and_blocks_calls."""
     client = object.__new__(OqtopusClient)
     client._closed = False
-    client._runtime = Mock()
-    client._async = Mock()
-    client._finalizer = Mock(alive=True)
 
     client.close()
     client.close()
@@ -429,13 +410,13 @@ def test_sync_client_close_is_idempotent_and_blocks_calls() -> None:
         client.list_devices()
 
 
-def test_sync_clients_use_isolated_runtimes() -> None:
-    """Test case: test_sync_clients_use_isolated_runtimes."""
+def test_sync_clients_keep_isolated_configuration() -> None:
+    """Test case: test_sync_clients_keep_isolated_configuration."""
     client1 = OqtopusClient(OqtopusConfig(base_url="http://test.local"))
     client2 = OqtopusClient(OqtopusConfig(base_url="http://test.local"))
     try:
-        assert client1._runtime is not client2._runtime
-        assert client1._async is not client2._async
+        assert client1 is not client2
+        assert client1._config is not client2._config
     finally:
         client1.close()
         client2.close()
@@ -446,14 +427,9 @@ def test_sync_client_close_does_not_affect_other_clients() -> None:
     client1 = OqtopusClient(OqtopusConfig(base_url="http://test.local"))
     client2 = OqtopusClient(OqtopusConfig(base_url="http://test.local"))
 
-    async def _list_devices() -> list[models.DevicesDeviceInfo]:
-        return []
-
-    client2._async.list_devices = _list_devices  # type: ignore[method-assign]
-
     try:
         client1.close()
-        assert client2.list_devices() == []
+        assert client2.base_url == "http://test.local"
     finally:
         client2.close()
 
@@ -471,7 +447,7 @@ def test_sync_client_uses_config_from_file_when_omitted(monkeypatch: pytest.Monk
         return OqtopusConfig(base_url="http://test.local")
 
     monkeypatch.setattr(
-        client_module.OqtopusConfig,
+        OqtopusConfig,
         "from_file",
         classmethod(lambda cls, section="default", path="~/.config/oqtopus/config.ini": _from_file_stub(section, path)),
     )
@@ -484,19 +460,17 @@ def test_sync_client_uses_config_from_file_when_omitted(monkeypatch: pytest.Monk
         client.close()
 
 
-def test_sync_client_can_run_with_active_event_loop() -> None:
-    """Test case: test_sync_client_can_run_with_active_event_loop."""
+def test_sync_client_fails_with_active_event_loop() -> None:
+    """Test case: test_sync_client_fails_with_active_event_loop."""
 
     async def _scenario() -> None:
         client = OqtopusClient(OqtopusConfig(base_url="http://test.local"))
-
-        async def _list_devices() -> list[models.DevicesDeviceInfo]:
-            return []
-
-        client._async.list_devices = _list_devices  # type: ignore[method-assign]
-
         try:
-            assert client.list_devices() == []
+            with pytest.raises(
+                RuntimeError,
+                match="event loop is running",
+            ):
+                client.list_devices()
         finally:
             client.close()
 
@@ -506,8 +480,6 @@ def test_sync_client_can_run_with_active_event_loop() -> None:
 def test_get_job_requires_valid_job_def_shape() -> None:
     """Test case: test_get_job_requires_valid_job_def_shape."""
     client = object.__new__(OqtopusClient)
-    client._async = Mock()
-    client._runtime = Mock()
     client._closed = False
     client._call = lambda name, *args, **kwargs: {"invalid": "shape"}  # type: ignore[assignment,method-assign]
 
@@ -519,9 +491,6 @@ def test_call_uses_single_runtime() -> None:
     """Test case: test_call_uses_single_runtime."""
     client = object.__new__(OqtopusClient)
     client._closed = False
-    client._runtime = Mock()
-    client._async = Mock()
-
     observed: list[str] = []
 
     def fake_call_async(method_name: str, *args: Any, **kwargs: Any) -> Any:

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any
-from unittest.mock import Mock
 
 import pytest
 
@@ -66,8 +65,6 @@ def _job(job_type: models.JobsJobType, *, status: models.JobsJobStatus = models.
 def _build_client_with_fake_call(fake_call: Any) -> OqtopusClient:
     client = object.__new__(OqtopusClient)
     client._call = fake_call  # type: ignore[assignment,method-assign]
-    client._async = Mock()
-    client._runtime = Mock()
     client._closed = False
     return client
 
