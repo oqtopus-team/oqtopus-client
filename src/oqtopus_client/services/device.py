@@ -102,18 +102,24 @@ class OqtopusDevice:
         payload into a dictionary for easier consumption.
 
         """
-        raw_device_info = self.raw.device_info
-        if raw_device_info is None:
+        if self.device_info_str is None:
             return None
 
-        try:
-            parsed = json.loads(raw_device_info)
-        except json.JSONDecodeError:
-            return {"raw": raw_device_info}
+        parsed = json.loads(self.device_info_str)
 
         if isinstance(parsed, dict):
             return cast("dict[str, object]", parsed)
         return {"value": cast("Any", parsed)}
+
+    @property
+    def device_info_str(self) -> str | None:
+        """Additional device information as raw JSON text.
+
+        Use this property when you need the original API payload without JSON
+        parsing or when inspecting malformed values returned by the backend.
+
+        """
+        return self.raw.device_info
 
     @property
     def calibrated_at(self) -> datetime | None:
