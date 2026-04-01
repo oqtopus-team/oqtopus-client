@@ -99,10 +99,6 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
         self._device_api: DeviceApi
         self._token_api: ApiTokenApi
         self._announcements_api: AnnouncementsApi
-        self._blocking_executor = ThreadPoolExecutor(
-            max_workers=_DEFAULT_BLOCKING_MAX_WORKERS,
-            thread_name_prefix="oqtopus-client",
-        )
 
         token = config.api_token
         if token:
@@ -131,7 +127,6 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
 
     async def close(self) -> None:
         await self._rest_client.close()  # pragma: no cover - integration path
-        self._blocking_executor.shutdown(wait=True)
 
     async def _call_rest(
         self, call: Awaitable[_T]
@@ -215,8 +210,8 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
     def _is_sse_container() -> bool:
         return os.getenv("OQTOPUS_ENV") == "sse_container"
 
+    @staticmethod
     async def _run_sse_container_job(
-        self,
         request: models.JobsSubmitJobRequest,
     ) -> models.JobsJobDef:
         try:
@@ -229,9 +224,7 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
             ) from exc
 
         try:
-            loop = asyncio.get_running_loop()
-            response = await loop.run_in_executor(
-                self._blocking_executor,
+            response = await asyncio.to_thread(
                 sse_sampler.req_transpile_and_exec,  # type: ignore[attr-defined]
                 request.job_info.program,
                 request.shots,
