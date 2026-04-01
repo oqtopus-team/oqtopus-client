@@ -51,29 +51,7 @@ _SubmitJobInput = (
 )
 _RunInput = _SubmitJobInput
 _DEFAULT_BLOCKING_MAX_WORKERS = 4
-_DEFAULT_RUNTIME_COUNT = 4
 _T = TypeVar("_T")
-_JOB_AFFINITY_METHODS = frozenset(
-    {
-        "get_job",
-        "wait_for_job",
-        "delete_job",
-        "get_job_status",
-        "cancel_job",
-        "get_sselog",
-    }
-)
-_JOB_CREATING_METHODS = frozenset(
-    {
-        "submit_job",
-        "run_job",
-        "run_sampling",
-        "run_estimation",
-        "run_multi_manual",
-        "run_sse",
-        "run_sse_file",
-    }
-)
 
 
 def _resolve_user_agent() -> str:
@@ -871,39 +849,24 @@ class OqtopusClient:  # noqa: PLR0904
 
         """
         resolved_config = config or OqtopusConfig.from_file()
-        self._dispatch_lock = threading.Lock()
-        self._next_runtime_index = 0
-        self._job_runtime_indices: dict[str, int] = {}
-        self._runtimes: list[_AsyncRuntime] = []
-        self._async_clients: list[_AsyncOqtopusClient] = []
+        self._runtime = _AsyncRuntime()
         try:
-            for _ in range(_DEFAULT_RUNTIME_COUNT):
-                runtime = _AsyncRuntime()
-                try:
-                    async_client = runtime.call(
-                        _AsyncOqtopusClient,
-                        resolved_config,
-                        default_headers,
-                        user_agent,
-                    )
-                except Exception:
-                    with suppress(Exception):
-                        runtime.close()
-                    raise
-                self._runtimes.append(runtime)
-                self._async_clients.append(async_client)
-            self._runtime = self._runtimes[0]
-            self._async = self._async_clients[0]
+            self._async = self._runtime.call(
+                _AsyncOqtopusClient,
+                resolved_config,
+                default_headers,
+                user_agent,
+            )
         except Exception:
             with suppress(Exception):
-                self._finalize_resources(self._runtimes, self._async_clients)
+                self._finalize_resources(self._runtime, self._async)
             raise
         self._closed = False
         self._finalizer = weakref.finalize(
             self,
             self._finalize_resources,
-            self._runtimes,
-            self._async_clients,
+            self._runtime,
+            self._async,
         )
         self.base_url = self._async.base_url
         self.timeout = resolved_config.timeout
@@ -916,98 +879,28 @@ class OqtopusClient:  # noqa: PLR0904
 
     @staticmethod
     def _finalize_resources(
-        runtimes: Sequence[_AsyncRuntime],
-        async_clients: Sequence[_AsyncOqtopusClient],
+        runtime: _AsyncRuntime,
+        async_client: _AsyncOqtopusClient,
     ) -> None:
-        for runtime, async_client in zip(runtimes, async_clients, strict=False):
-            with suppress(Exception):
-                runtime.run(async_client.close())
-        for runtime in runtimes:
-            with suppress(Exception):
-                runtime.close()
+        with suppress(Exception):
+            runtime.run(async_client.close())
+        with suppress(Exception):
+            runtime.close()
 
-    def _next_dispatch_index(self) -> int:
-        with self._dispatch_lock:
-            index = self._next_runtime_index
-            self._next_runtime_index = (
-                self._next_runtime_index + 1
-            ) % len(self._runtimes)
-        return index
-
-    @staticmethod
-    def _extract_job_id(
-        method_name: str,
-        args: tuple[object, ...],
-        kwargs: Mapping[str, object],
-    ) -> str | None:
-        if method_name not in _JOB_AFFINITY_METHODS:
-            return None
-        if args and isinstance(args[0], str):
-            return args[0]
-        job_id = kwargs.get("job_id")
-        return job_id if isinstance(job_id, str) else None
-
-    def _runtime_index_for_job(self, job_id: str) -> int:
-        with self._dispatch_lock:
-            existing = self._job_runtime_indices.get(job_id)
-            if existing is not None:
-                return existing
-            index = self._next_runtime_index
-            self._next_runtime_index = (
-                self._next_runtime_index + 1
-            ) % len(self._runtimes)
-            self._job_runtime_indices[job_id] = index
-        return index
-
-    def _bind_job_to_runtime(self, job_id: str, index: int) -> None:
-        with self._dispatch_lock:
-            self._job_runtime_indices[job_id] = index
-
-    def _dispatch_index(
+    def _call_async(
         self,
-        method_name: str,
-        args: tuple[object, ...],
-        kwargs: Mapping[str, object],
-    ) -> int:
-        job_id = self._extract_job_id(method_name, args, kwargs)
-        if job_id is not None:
-            return self._runtime_index_for_job(job_id)
-        return self._next_dispatch_index()
-
-    def _bind_job_from_result(
-        self,
-        method_name: str,
-        result: object,
-        runtime_index: int,
-    ) -> None:
-        if method_name == "submit_job" and isinstance(
-            result, models.JobsSubmitJobResponse
-        ):
-            self._bind_job_to_runtime(result.job_id, runtime_index)
-            return
-        if method_name in _JOB_CREATING_METHODS and isinstance(
-            result, models.JobsJobDef
-        ):
-            self._bind_job_to_runtime(result.job_id, runtime_index)
-
-    def _call_on_runtime(
-        self,
-        runtime_index: int,
         method_name: str,
         *args: object,
         **kwargs: object,
     ) -> object:
-        runtime = self._runtimes[runtime_index]
-        async_client = self._async_clients[runtime_index]
-
         async def _run() -> object:
             method = cast(
                 "Callable[..., Coroutine[object, object, object]]",
-                getattr(async_client, method_name),
+                getattr(self._async, method_name),
             )
             return await method(*args, **kwargs)
 
-        return runtime.run(_run())
+        return self._runtime.run(_run())
 
     def _call(
         self,
@@ -1018,15 +911,7 @@ class OqtopusClient:  # noqa: PLR0904
         if self._closed:
             msg = "Client is closed."
             raise RuntimeError(msg)
-        runtime_index = self._dispatch_index(method_name, args, kwargs)
-        result = self._call_on_runtime(
-            runtime_index,
-            method_name,
-            *args,
-            **kwargs,
-        )
-        self._bind_job_from_result(method_name, result, runtime_index)
-        return result
+        return self._call_async(method_name, *args, **kwargs)
 
     def _to_result(self, job: models.JobsJobDef) -> OqtopusJobResult:
         if job.job_type == models.JobsJobType.MULTI_MANUAL:
