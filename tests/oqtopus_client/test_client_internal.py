@@ -268,7 +268,8 @@ def test_sync_wrappers_delegate_to_call() -> None:
     client = object.__new__(OqtopusClient)
     called: list[tuple[str, tuple[Any, ...], dict[str, Any]]] = []
 
-    def fake_call(method_name: str, *args: Any, **kwargs: Any) -> Any:
+    def fake_run_async_method(method: Any, *args: Any, **kwargs: Any) -> Any:
+        method_name = method.__name__
         called.append((method_name, args, kwargs))
         if method_name == "list_devices":
             return [
@@ -360,8 +361,7 @@ def test_sync_wrappers_delegate_to_call() -> None:
             )
         raise AssertionError(method_name)
 
-    client._call = fake_call  # type: ignore[assignment,method-assign]
-    client._closed = False
+    client._run_async_method = fake_run_async_method  # type: ignore[assignment,method-assign]
 
     assert len(client.list_devices()) == 1
     assert isinstance(client.get_device("d"), OqtopusDevice)
@@ -399,39 +399,19 @@ def test_sync_wrappers_delegate_to_call() -> None:
     assert "get_api_token" in methods
 
 
-def test_sync_client_close_is_idempotent_and_blocks_calls() -> None:
-    """Test case: test_sync_client_close_is_idempotent_and_blocks_calls."""
-    client = object.__new__(OqtopusClient)
-    client._closed = False
-
-    client.close()
-    client.close()
-    with pytest.raises(RuntimeError):
-        client.list_devices()
-
-
 def test_sync_clients_keep_isolated_configuration() -> None:
     """Test case: test_sync_clients_keep_isolated_configuration."""
     client1 = OqtopusClient(OqtopusConfig(base_url="http://test.local"))
     client2 = OqtopusClient(OqtopusConfig(base_url="http://test.local"))
-    try:
-        assert client1 is not client2
-        assert client1._config is not client2._config
-    finally:
-        client1.close()
-        client2.close()
+    assert client1 is not client2
+    assert client1._config is not client2._config
 
 
 def test_sync_client_close_does_not_affect_other_clients() -> None:
-    """Test case: test_sync_client_close_does_not_affect_other_clients."""
+    """Test case: test_sync_clients_can_coexist_without_shared_state."""
     client1 = OqtopusClient(OqtopusConfig(base_url="http://test.local"))
     client2 = OqtopusClient(OqtopusConfig(base_url="http://test.local"))
-
-    try:
-        client1.close()
-        assert client2.base_url == "http://test.local"
-    finally:
-        client2.close()
+    assert client1.base_url == client2.base_url == "http://test.local"
 
 
 def test_sync_client_uses_config_from_file_when_omitted(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -452,12 +432,9 @@ def test_sync_client_uses_config_from_file_when_omitted(monkeypatch: pytest.Monk
         classmethod(lambda cls, section="default", path="~/.config/oqtopus/config.ini": _from_file_stub(section, path)),
     )
     client = OqtopusClient()
-    try:
-        assert client.base_url == "http://test.local"
-        assert observed["section"] == "default"
-        assert observed["path"] == "~/.config/oqtopus/config.ini"
-    finally:
-        client.close()
+    assert client.base_url == "http://test.local"
+    assert observed["section"] == "default"
+    assert observed["path"] == "~/.config/oqtopus/config.ini"
 
 
 def test_sync_client_fails_with_active_event_loop() -> None:
@@ -465,14 +442,11 @@ def test_sync_client_fails_with_active_event_loop() -> None:
 
     async def _scenario() -> None:
         client = OqtopusClient(OqtopusConfig(base_url="http://test.local"))
-        try:
-            with pytest.raises(
-                RuntimeError,
-                match="event loop is running",
-            ):
-                client.list_devices()
-        finally:
-            client.close()
+        with pytest.raises(
+            RuntimeError,
+            match="event loop is running",
+        ):
+            client.list_devices()
 
     asyncio.run(_scenario())
 
@@ -480,20 +454,19 @@ def test_sync_client_fails_with_active_event_loop() -> None:
 def test_get_job_requires_valid_job_def_shape() -> None:
     """Test case: test_get_job_requires_valid_job_def_shape."""
     client = object.__new__(OqtopusClient)
-    client._closed = False
-    client._call = lambda name, *args, **kwargs: {"invalid": "shape"}  # type: ignore[assignment,method-assign]
+    client._run_async_method = lambda method, *args, **kwargs: {"invalid": "shape"}  # type: ignore[assignment,method-assign]
 
     with pytest.raises(AttributeError):
         client.get_job("job-1")
 
 
-def test_call_uses_single_runtime() -> None:
-    """Test case: test_call_uses_single_runtime."""
+def test_run_async_method_delegates_selected_async_method() -> None:
+    """Test case: test_run_async_method_delegates_selected_async_method."""
     client = object.__new__(OqtopusClient)
-    client._closed = False
     observed: list[str] = []
 
-    def fake_call_async(method_name: str, *args: Any, **kwargs: Any) -> Any:
+    def fake_run_async_method(method: Any, *args: Any, **kwargs: Any) -> Any:
+        method_name = method.__name__
         observed.append(method_name)
         if method_name == "submit_job":
             return models.JobsSubmitJobResponse(job_id="job-42")
@@ -506,21 +479,21 @@ def test_call_uses_single_runtime() -> None:
             return models.SuccessSuccessResponse(message="ok")
         return []
 
-    client._call_async = fake_call_async  # type: ignore[assignment,method-assign]
+    client._run_async_method = fake_run_async_method  # type: ignore[assignment,method-assign]
 
-    client._call("list_devices")
-    client._call("get_api_token")
+    client.list_devices()
+    client.get_api_token()
     submit_response = cast(
         "models.JobsSubmitJobResponse",
-        client._call("submit_job", OqtopusJobSpec.sampling(device_id="K", program="x")),
+        client.submit_job(OqtopusJobSpec.sampling(device_id="K", program="x")),
     )
     status_response = cast(
         "models.JobsGetJobStatusResponse",
-        client._call("get_job_status", "job-42"),
+        client.get_job_status("job-42"),
     )
     cancel_response = cast(
         "models.SuccessSuccessResponse",
-        client._call("cancel_job", "job-42"),
+        client.cancel_job("job-42"),
     )
 
     assert submit_response.job_id == "job-42"

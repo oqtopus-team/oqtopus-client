@@ -33,7 +33,8 @@ def _job(job_id: str) -> models.JobsJobDef:
 def _build_client() -> OqtopusClient:
     client = object.__new__(OqtopusClient)
 
-    def fake_call(name: str, *args: Any, **kwargs: Any) -> Any:
+    def fake_run_async_method(method: Any, *args: Any, **kwargs: Any) -> Any:
+        name = method.__name__
         if name == "submit_job":
             spec = args[0]
             if isinstance(spec, OqtopusJobSpec) and spec.name:
@@ -43,8 +44,7 @@ def _build_client() -> OqtopusClient:
             return _job(args[0])
         raise AssertionError(name)
 
-    client._call = fake_call  # type: ignore[assignment,method-assign]
-    client._closed = False
+    client._run_async_method = fake_run_async_method  # type: ignore[assignment,method-assign]
     client.base_url = OqtopusConfig(base_url="https://api.example.com").base_url
     return client
 

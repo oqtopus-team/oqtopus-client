@@ -64,8 +64,11 @@ def _job(job_type: models.JobsJobType, *, status: models.JobsJobStatus = models.
 
 def _build_client_with_fake_call(fake_call: Any) -> OqtopusClient:
     client = object.__new__(OqtopusClient)
-    client._call = fake_call  # type: ignore[assignment,method-assign]
-    client._closed = False
+
+    def fake_run_async_method(method: Any, *args: Any, **kwargs: Any) -> Any:
+        return fake_call(method.__name__, *args, **kwargs)
+
+    client._run_async_method = fake_run_async_method  # type: ignore[assignment,method-assign]
     return client
 
 
@@ -220,7 +223,4 @@ def test_api_error_propagates() -> None:
 def test_client_default_retry_status_codes_excludes_5xx() -> None:
     """Test case: test_client_default_retry_status_codes_excludes_5xx."""
     client = OqtopusClient(OqtopusConfig(base_url="http://test"))
-    try:
-        assert client.retry_status_codes == frozenset({429})
-    finally:
-        client.close()
+    assert client.retry_status_codes == frozenset({429})
