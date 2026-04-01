@@ -151,6 +151,75 @@ submitted
 succeeded
 ```
 
+### Style 3: async batch submit/wait
+
+In an async context, you can submit and wait for multiple jobs with
+`submit_jobs_async()` and `wait_for_jobs_async()`:
+
+Because synchronous `OqtopusClient` methods use `asyncio.run()` internally,
+they cannot be called from inside an async function where an event loop is
+already running. In async contexts, use async APIs such as
+`submit_jobs_async()` and `wait_for_jobs_async()`.
+
+```python
+import asyncio
+
+from oqtopus_client import OqtopusClient, OqtopusJobSpec
+
+async def main() -> None:
+    client = OqtopusClient()
+    jobs = [
+        OqtopusJobSpec.sampling(
+            device_id="Kawasaki",
+            shots=1000,
+            program=program,
+            name="async-job-1",
+        ),
+        OqtopusJobSpec.sampling(
+            device_id="Kawasaki",
+            shots=1000,
+            program=program,
+            name="async-job-2",
+        ),
+    ]
+
+    submit_task = asyncio.create_task(client.submit_jobs_async(jobs, max_workers=2))
+
+    print("submitting in background...")
+    await asyncio.sleep(0.2)
+    print("prepared a local summary while submit was running")
+
+    responses = await submit_task
+
+    wait_task = asyncio.create_task(
+        client.wait_for_jobs_async(
+            [response.job_id for response in responses],
+            interval=1.0,
+            interval_backoff=1.2,
+            max_interval=5.0,
+            timeout=300.0,
+            max_workers=2,
+        )
+    )
+
+    print("waiting in background...")
+    await asyncio.sleep(0.2)
+    print("updated a progress message while waiting")
+
+    finished_jobs = await wait_task
+    print([job.status for job in finished_jobs])
+
+asyncio.run(main())
+```
+
+Example output:
+
+```text
+[checking devices while submitting]
+[checking status while waiting]
+[<JobsJobStatus.SUCCEEDED: 'succeeded'>, <JobsJobStatus.SUCCEEDED: 'succeeded'>]
+```
+
 ## Check Job Results
 
 After a sampling job succeeds, you can inspect the measured counts from the returned

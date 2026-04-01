@@ -61,6 +61,7 @@ python examples/get_devices.py
 ### Parallel and batch helpers
 
 - `submit_jobs_parallel.py`: submit multiple jobs with `submit_jobs` and wait with `wait_for_jobs`.
+- `submit_and_wait_jobs_async.py`: submit and wait for multiple jobs concurrently from an async context with `submit_jobs_async` and `wait_for_jobs_async`.
 - `run_jobs_batch.py`: combine batch submission and waiting with `run_jobs_batch`.
 
 Parallel submit/wait is useful when you want explicit control over submission and waiting workers:
@@ -74,6 +75,40 @@ finished_jobs = client.wait_for_jobs([response.job_id for response in responses]
 
 ```python
 results = client.run_jobs_batch([req1, req2], submit_workers=2, wait_workers=2)
+```
+
+Async contexts can use the async batch helpers with `await`:
+
+When you are already inside an async function, use the async helpers rather
+than synchronous methods such as `submit_jobs()` or `wait_for_jobs()`.
+The synchronous methods run through `asyncio.run()`, so they are intended for
+non-async entry points.
+
+```python
+import asyncio
+
+async def main() -> None:
+    submit_task = asyncio.create_task(client.submit_jobs_async([req1, req2], max_workers=2))
+
+    await asyncio.sleep(0.2)
+    print("doing other async work while submit is in flight")
+
+    responses = await submit_task
+
+    wait_task = asyncio.create_task(
+        client.wait_for_jobs_async(
+            [response.job_id for response in responses],
+            max_workers=2,
+        )
+    )
+
+    await asyncio.sleep(0.2)
+    print("doing other async work while waiting")
+
+    results = await wait_task
+    print([result.status for result in results])
+
+asyncio.run(main())
 ```
 
 ### Integration-specific examples
