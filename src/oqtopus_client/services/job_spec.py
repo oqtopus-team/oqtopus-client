@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import base64
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -17,13 +16,6 @@ def _as_program_list(program: str | Sequence[str]) -> list[str]:
     if isinstance(program, str):
         return [program]
     return list(program)
-
-
-def _encode_programs_base64(program: str | Sequence[str]) -> list[str]:
-    return [
-        base64.b64encode(text.encode("utf-8")).decode("utf-8")
-        for text in _as_program_list(program)
-    ]
 
 
 def _coerce_operators(
@@ -240,7 +232,6 @@ class OqtopusJobSpec:
         Args:
             device_id (Required): Target device ID.
             program (Required): A Python script string or a sequence of script strings.
-                Each entry is UTF-8/base64-encoded automatically for API submission.
             shots (Optional): Number of shots. Default is ``1000``.
             name (Optional): Job name.
             description (Optional): Job description.
@@ -255,7 +246,7 @@ class OqtopusJobSpec:
         return cls(
             device_id=device_id,
             job_type=models.JobsJobType.SSE,
-            program=_encode_programs_base64(program),
+            program=program,
             shots=shots,
             name=name,
             description=description,
@@ -295,7 +286,24 @@ class OqtopusJobSpec:
         Returns:
             The generated S3 offload payload model.
 
+        Raises:
+            ValueError: If an SSE job does not contain exactly one Python program.
+
         """
+        job_type = self.job_type
+        if isinstance(job_type, str):
+            job_type = models.JobsJobType(job_type)
+
+        if job_type == models.JobsJobType.SSE:
+            programs = _as_program_list(self.program)
+            if len(programs) != 1:
+                msg = "SSE jobs require exactly one Python program."
+                raise ValueError(msg)
+            return models.JobsS3SubmitJobInfo(
+                sse_program=programs[0],
+                operator=None,
+            )
+
         return models.JobsS3SubmitJobInfo(
             program=_as_program_list(self.program),
             operator=_coerce_operators(self.operator),

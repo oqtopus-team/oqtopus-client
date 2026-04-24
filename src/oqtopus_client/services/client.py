@@ -309,6 +309,8 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
         elif hasattr(response, "dict") and callable(response.dict):  # pragma: no cover
             response_payload = response.dict()
 
+        response_payload = cls._normalize_sse_container_response(response_payload)
+
         try:
             return TypeAdapter(models.JobsJob).validate_python(response_payload)
         except ValidationError as exc:
@@ -316,6 +318,32 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
                 return models.JobsJob.model_validate(response, from_attributes=True)
             except ValidationError:  # pragma: no cover
                 raise ResponseValidationError(str(exc), response_payload) from exc
+
+    @staticmethod
+    def _normalize_sse_container_response(response_payload: object) -> object:
+        if not isinstance(response_payload, dict):
+            return response_payload
+        if "job_info" in response_payload:
+            return response_payload
+
+        job_info_keys = (
+            "input",
+            "combined_program",
+            "result",
+            "transpile_result",
+            "sse_log",
+            "message",
+        )
+        if not any(key in response_payload for key in job_info_keys):
+            return response_payload
+
+        normalized = dict(response_payload)
+        normalized["job_info"] = {
+            key: normalized.pop(key)
+            for key in job_info_keys
+            if key in normalized
+        }
+        return normalized
 
     @classmethod
     async def _resolve_job_info_item(
@@ -627,7 +655,7 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
         simulator_info: dict[str, object] | None = None,
         mitigation_info: dict[str, object] | None = None,
         shots: int = 1,
-        max_encoded_file_size: int = 10 * 1024 * 1024,
+        max_file_size: int = 10 * 1024 * 1024,
     ) -> OqtopusJobSpec:
         path = Path(file_path)
         if not path.exists():
@@ -640,13 +668,16 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
             msg = f"The file is not python file: {path}"
             raise ValueError(msg)
 
-        encoded = base64.b64encode(path.read_bytes())
-        if len(encoded) >= max_encoded_file_size:
-            msg = (
-                "size of the base64 encoded file is larger than "
-                f"{max_encoded_file_size}"
-            )
+        raw_bytes = path.read_bytes()
+        if len(raw_bytes) >= max_file_size:
+            msg = f"size of the file is larger than {max_file_size}"
             raise ValueError(msg)
+
+        try:
+            program = raw_bytes.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            msg = f"SSE user program must be UTF-8 text: {path}"
+            raise ValueError(msg) from exc
 
         return OqtopusJobSpec.sse(
             name=name,
@@ -656,7 +687,7 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
             simulator_info=simulator_info or {},
             mitigation_info=mitigation_info or {},
             shots=shots,
-            program=[encoded.decode("utf-8")],
+            program=program,
         )
 
     async def run_sse_file(  # noqa: PLR0913
@@ -670,7 +701,7 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
         simulator_info: dict[str, object] | None = None,
         mitigation_info: dict[str, object] | None = None,
         shots: int = 1,
-        max_encoded_file_size: int = 10 * 1024 * 1024,
+        max_file_size: int = 10 * 1024 * 1024,
         interval: float = 1.0,
         interval_backoff: float = 1.0,
         max_interval: float | None = None,
@@ -688,7 +719,7 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
             simulator_info=simulator_info,
             mitigation_info=mitigation_info,
             shots=shots,
-            max_encoded_file_size=max_encoded_file_size,
+            max_file_size=max_file_size,
         )
         return await self.run_sse(
             request,
@@ -876,11 +907,15 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
         payload = await OqtopusStorage.download(
             sse_log,
             timeout_s=int(self._rest_timeout or OqtopusStorage.DEFAULT_TIMEOUT_S),
+            allow_non_dict=True,
         )
         if not isinstance(payload, str):
             msg = f"Unexpected SSE log payload for job {job_id}."
             raise ResponseValidationError(msg, payload)
-        return JobsGetSselogResponse(file=payload, file_name=f"{job_id}.zip")
+        return JobsGetSselogResponse(
+            file=base64.b64encode(payload.encode("utf-8")).decode("utf-8"),
+            file_name=f"{job_id}.zip",
+        )
 
     async def create_api_token(self) -> models.ApiTokenApiToken:
         token_api = self._token_api
@@ -1509,7 +1544,7 @@ class OqtopusClient:  # noqa: PLR0904
         simulator_info: dict[str, object] | None = None,
         mitigation_info: dict[str, object] | None = None,
         shots: int = 1,
-        max_encoded_file_size: int = 10 * 1024 * 1024,
+        max_file_size: int = 10 * 1024 * 1024,
         interval: float = 1.0,
         interval_backoff: float = 1.0,
         max_interval: float | None = None,
@@ -1529,7 +1564,7 @@ class OqtopusClient:  # noqa: PLR0904
             simulator_info (Optional): Simulator settings.
             mitigation_info (Optional): Error mitigation settings.
             shots (Optional): Number of shots.
-            max_encoded_file_size (Optional): Max encoded script size in bytes.
+            max_file_size (Optional): Max script size in bytes.
             interval (Optional): Polling interval in seconds.
             interval_backoff (Optional): Backoff multiplier for polling interval.
             max_interval (Optional): Upper bound of polling interval in seconds.
@@ -1553,7 +1588,7 @@ class OqtopusClient:  # noqa: PLR0904
                 simulator_info=simulator_info,
                 mitigation_info=mitigation_info,
                 shots=shots,
-                max_encoded_file_size=max_encoded_file_size,
+                max_file_size=max_file_size,
                 interval=interval,
                 interval_backoff=interval_backoff,
                 max_interval=max_interval,

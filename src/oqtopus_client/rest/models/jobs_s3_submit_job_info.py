@@ -28,9 +28,10 @@ class JobsS3SubmitJobInfo(BaseModel):
     """
     JobsS3SubmitJobInfo
     """ # noqa: E501
-    program: List[StrictStr] = Field(description="A list of OPENQASM3 program. For non-multiprogramming jobs, this field is assumed to contain exactly one program. Otherwise, those programs are combined according to the multiprogramming machinery.")
-    operator: Optional[List[JobsS3OperatorItem]] = None
-    __properties: ClassVar[List[str]] = ["program", "operator"]
+    program: Optional[List[StrictStr]] = Field(default=None, description="A list of OPENQASM3 program. Required for sampling, estimation and multiprogramming jobs. For non-multiprogramming jobs, this field is assumed to contain exactly one program. Otherwise, those programs are combined according to the multiprogramming machinery.")
+    operator: Optional[List[JobsS3OperatorItem]] = Field(default=None, description="Estimation operator. Required for estimation jobs.")
+    sse_program: Optional[StrictStr] = Field(default=None, description="SSE user program. Required for SSE jobs.")
+    __properties: ClassVar[List[str]] = ["program", "operator", "sse_program"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -91,7 +92,8 @@ class JobsS3SubmitJobInfo(BaseModel):
 
         _obj = cls.model_validate({
             "program": obj.get("program"),
-            "operator": [JobsS3OperatorItem.from_dict(_item) for _item in obj["operator"]] if obj.get("operator") is not None else None
+            "operator": [JobsS3OperatorItem.from_dict(_item) for _item in obj["operator"]] if obj.get("operator") is not None else None,
+            "sse_program": obj.get("sse_program")
         })
         return _obj
 

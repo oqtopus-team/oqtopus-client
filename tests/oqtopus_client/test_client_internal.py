@@ -201,7 +201,7 @@ def test_run_sse_file_forwards_kwargs(tmp_path: Path, monkeypatch: pytest.Monkey
         return OqtopusJobSpec.sse(
             device_id=device_id,
             shots=1,
-            program=["encoded"],
+            program="print('ok')\n",
         )
 
     async def run_sse_stub(
@@ -227,6 +227,21 @@ def test_run_sse_file_forwards_kwargs(tmp_path: Path, monkeypatch: pytest.Monkey
         assert observed["run"]["kwargs"]["timeout"] == 5.0
 
     _run_with_async_client(OqtopusConfig(base_url="http://test"), _assert)
+
+
+def test_build_sse_job_request_uses_sse_program(tmp_path: Path) -> None:
+    """Test case: test_build_sse_job_request_uses_sse_program."""
+    script = tmp_path / "job.py"
+    script.write_text("print('ok')\n", encoding="utf-8")
+
+    request = _AsyncOqtopusClient.build_sse_job_request(
+        file_path=script,
+        device_id="K",
+    )
+
+    payload = request.to_s3_submit_job_info()
+    assert payload.sse_program == "print('ok')\n"
+    assert payload.program is None
 
 
 def test_run_job_uses_sse_sampler_in_sse_container(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -265,6 +280,45 @@ def test_run_job_uses_sse_sampler_in_sse_container(monkeypatch: pytest.MonkeyPat
 
     _run_with_async_client(OqtopusConfig(base_url=""), _assert)
     assert observed["thread_id"] != loop_thread_id
+
+
+def test_run_job_normalizes_flat_sse_container_response(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test case: test_run_job_normalizes_flat_sse_container_response."""
+    monkeypatch.setenv("OQTOPUS_ENV", "sse_container")
+
+    def req_transpile_and_exec(
+        program: list[str], shots: int, transpiler_info: dict[str, Any]
+    ) -> dict[str, Any]:
+        return {
+            "job_id": "job-sse-flat",
+            "name": "job",
+            "job_type": "sampling",
+            "status": "succeeded",
+            "device_id": "sse",
+            "shots": shots,
+            "input": {"program": program},
+            "result": {"sampling": {"counts": {"00": 1}}},
+            "transpile_result": {"transpiled_program": "OPENQASM 3;", "stats": {}, "virtual_physical_mapping": {}},
+            "message": "ok",
+        }
+
+    fake_module = types.SimpleNamespace(
+        req_transpile_and_exec=req_transpile_and_exec,
+    )
+    monkeypatch.setitem(sys.modules, "sse_sampler", fake_module)
+
+    async def _assert(client: _AsyncOqtopusClient) -> None:
+        result = await client.run_job(
+            OqtopusJobSpec.sampling(device_id="sse", program="OPENQASM 3; qubit[1] q;"),
+        )
+        assert result.job_id == "job-sse-flat"
+        assert result.job_info is not None
+        assert result.job_info.result is not None
+        assert result.job_info.message == "ok"
+
+    _run_with_async_client(OqtopusConfig(base_url=""), _assert)
 
 
 def test_run_job_raises_when_sse_sampler_missing(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -194,7 +194,7 @@ def test_sse_result_direct_construction() -> None:
         device_id="Kawasaki",
         shots=4,
         job_info=models.JobsJobInfo(
-            input=models.JobsS3SubmitJobInfo(program=["print('x')"]),
+            input=models.JobsS3SubmitJobInfo(sse_program="print('x')"),
             result=models.JobsS3JobResult(
                 sampling=models.JobsS3SamplingResult(counts={"00": 4}),
             ),
@@ -222,7 +222,7 @@ def test_sse_result_log_helpers(tmp_path: Path, capsys: pytest.CaptureFixture[st
         name="job-42",
         device_id="Kawasaki",
         shots=1,
-        job_info=models.JobsJobInfo(input=models.JobsS3SubmitJobInfo(program=["print('x')"])),
+        job_info=models.JobsJobInfo(input=models.JobsS3SubmitJobInfo(sse_program="print('x')")),
         client=_DummyClient(),  # type: ignore[arg-type]
     )
     archive = result.download_log()
@@ -254,7 +254,7 @@ def test_sse_download_log_default_does_not_write_files(tmp_path: Path, monkeypat
         name="job-99",
         device_id="Kawasaki",
         shots=1,
-        job_info=models.JobsJobInfo(input=models.JobsS3SubmitJobInfo(program=["print('x')"])),
+        job_info=models.JobsJobInfo(input=models.JobsS3SubmitJobInfo(sse_program="print('x')")),
         client=_DummyClient(),  # type: ignore[arg-type]
     )
     data = result.download_log()
