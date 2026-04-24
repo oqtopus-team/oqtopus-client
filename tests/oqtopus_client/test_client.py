@@ -23,17 +23,25 @@ from oqtopus_client import (
 )
 
 
-def _job(job_type: models.JobsJobType, *, status: models.JobsJobStatus = models.JobsJobStatus.SUCCEEDED) -> models.JobsJobDef:
-    result: models.JobsJobResult
+def _job(
+    job_type: models.JobsJobType,
+    *,
+    status: models.JobsJobStatus = models.JobsJobStatus.SUCCEEDED,
+) -> models.JobsJob:
+    result: models.JobsS3JobResult
     if job_type == models.JobsJobType.ESTIMATION:
-        result = models.JobsJobResult(estimation=models.JobsEstimationResult(exp_value=1.0, stds=0.1))
+        result = models.JobsS3JobResult(
+            estimation=models.JobsS3EstimationResult(exp_value=1.0, stds=0.1)
+        )
     else:
-        result = models.JobsJobResult(sampling=models.JobsSamplingResult(counts={"00": 1}))
+        result = models.JobsS3JobResult(
+            sampling=models.JobsS3SamplingResult(counts={"00": 1})
+        )
     submitted_at = datetime(2025, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
     ready_at = datetime(2025, 1, 2, 3, 4, 6, tzinfo=timezone.utc)
     running_at = datetime(2025, 1, 2, 3, 4, 7, tzinfo=timezone.utc)
     ended_at = datetime(2025, 1, 2, 3, 4, 8, tzinfo=timezone.utc)
-    return models.JobsJobDef(
+    return models.JobsJob(
         job_id="job-1",
         name="job",
         description="test job",
@@ -45,9 +53,9 @@ def _job(job_type: models.JobsJobType, *, status: models.JobsJobStatus = models.
         simulator_info={"seed": 7},
         mitigation_info={"enabled": True},
         job_info=models.JobsJobInfo(
-            program=["OPENQASM 3; qubit[1] q;"],
+            input=models.JobsS3SubmitJobInfo(program=["OPENQASM 3; qubit[1] q;"]),
             result=result,
-            transpile_result=models.JobsTranspileResult(
+            transpile_result=models.JobsS3TranspileResult(
                 transpiled_program="OPENQASM 3; // transpiled",
                 stats={},
                 virtual_physical_mapping={"qubit_mapping": {"0": 0}},
@@ -78,7 +86,13 @@ def test_submit_job_accepts_job_spec() -> None:
 
     def fake_call(method_name: str, *args: Any, **kwargs: Any) -> Any:
         called.append((method_name, args, kwargs))
-        return models.JobsSubmitJobResponse(job_id="job-1")
+        return models.JobsRegisterJobResponse(
+            job_id="job-1",
+            presigned_url=models.JobsJobInfoUploadPresignedURL(
+                url="https://example.invalid/upload",
+                fields=models.JobsJobInfoUploadPresignedURLFields(key="job-1/input.zip"),
+            ),
+        )
 
     client = _build_client_with_fake_call(fake_call)
     res = client.submit_job(OqtopusJobSpec.sampling(device_id="K", program="OPENQASM 3; qubit[1] q;"))
@@ -109,7 +123,7 @@ def test_get_job_returns_extended_job_result() -> None:
     assert result.running_at == datetime(2025, 1, 2, 3, 4, 7, tzinfo=timezone.utc)
     assert result.ended_at == datetime(2025, 1, 2, 3, 4, 8, tzinfo=timezone.utc)
     assert result.message == "queued"
-    assert isinstance(result.transpile_result, models.JobsTranspileResult)
+    assert isinstance(result.transpile_result, models.JobsS3TranspileResult)
 
 
 def test_result_aliases_return_job_result() -> None:
@@ -181,14 +195,14 @@ def test_list_jobs_and_filters_passthrough() -> None:
         assert method_name == "list_jobs"
         assert kwargs["end_time"] == now
         return [
-            models.JobsGetJobsResponse(
+            models.JobsJob(
                 job_id="job-1",
                 name="job",
                 job_type=models.JobsJobType.SAMPLING,
                 status=models.JobsJobStatus.SUCCEEDED,
                 device_id="K",
                 shots=1,
-                job_info=models.JobsJobInfo(program=["x"]),
+                job_info=models.JobsJobInfo(input="https://example.invalid/job-1/input.zip"),
             ),
         ]
 

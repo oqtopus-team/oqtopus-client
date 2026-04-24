@@ -10,7 +10,7 @@ def test_estimation_operator_to_and_from_model() -> None:
     """Test case: test_estimation_operator_to_and_from_model."""
     wrapper = OqtopusEstimationOperator(pauli="Z0", coeff=1.0)
     model = wrapper.to_model()
-    assert isinstance(model, models.JobsOperatorItem)
+    assert isinstance(model, models.JobsS3OperatorItem)
     assert model.pauli == "Z0"
     assert model.coeff == 1.0
 
@@ -39,7 +39,7 @@ def test_job_spec_estimation_accepts_operator_wrapper() -> None:
         program="OPENQASM 3; qubit[1] q;",
         operator=[OqtopusEstimationOperator(pauli="Z0", coeff=1.0)],
     )
-    submit = spec.to_model()
-    assert submit.job_info.operator is not None
-    assert submit.job_info.operator[0].pauli == "Z0"
-    assert submit.job_info.operator[0].coeff == 1.0
+    submit = spec.to_s3_submit_job_info()
+    assert submit.operator is not None
+    assert submit.operator[0].pauli == "Z0"
+    assert submit.operator[0].coeff == 1.0

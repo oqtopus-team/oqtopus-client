@@ -20,6 +20,7 @@ from oqtopus_client import (
 from oqtopus_client import (
     rest as models,
 )
+from oqtopus_client.rest.models.jobs_get_sselog_response import JobsGetSselogResponse
 
 
 def test_job_result_kind_for_model_sampling() -> None:
@@ -32,9 +33,9 @@ def test_job_result_kind_for_model_sampling() -> None:
         device_id="Kawasaki",
         shots=1,
         job_info=models.JobsJobInfo(
-            program=["OPENQASM 3;"],
-            result=models.JobsJobResult(
-                sampling=models.JobsSamplingResult(counts={"00": 1}),
+            input=models.JobsS3SubmitJobInfo(program=["OPENQASM 3;"]),
+            result=models.JobsS3JobResult(
+                sampling=models.JobsS3SamplingResult(counts={"00": 1}),
             ),
         ),
     )
@@ -47,7 +48,7 @@ def test_job_result_kind_for_model_sampling() -> None:
 def test_job_result_kind_for_estimation_job_def() -> None:
     """Test case: test_job_result_kind_for_estimation_job_def."""
     result = OqtopusJobResult.from_raw(
-        models.JobsJobDef(
+        models.JobsJob(
             job_id="job-2",
             name="job-2",
             job_type=models.JobsJobType.ESTIMATION,
@@ -55,9 +56,9 @@ def test_job_result_kind_for_estimation_job_def() -> None:
             device_id="Kawasaki",
             shots=1,
             job_info=models.JobsJobInfo(
-                program=["OPENQASM 3;"],
-                result=models.JobsJobResult(
-                    estimation=models.JobsEstimationResult(exp_value=1.0),
+                input=models.JobsS3SubmitJobInfo(program=["OPENQASM 3;"]),
+                result=models.JobsS3JobResult(
+                    estimation=models.JobsS3EstimationResult(exp_value=1.0),
                 ),
             ),
         )
@@ -70,7 +71,7 @@ def test_job_result_kind_for_estimation_job_def() -> None:
 def test_job_result_from_job_model_like_payload() -> None:
     """Test case: test_job_result_from_job_model_like_payload."""
     submitted_at = datetime(2025, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
-    job = models.JobsJobDef(
+    job = models.JobsJob(
         job_id="job-3",
         name="job",
         job_type=models.JobsJobType.SAMPLING,
@@ -81,9 +82,9 @@ def test_job_result_from_job_model_like_payload() -> None:
         simulator_info={"seed": 7},
         mitigation_info={"enabled": True},
         job_info=models.JobsJobInfo(
-            program=["OPENQASM 3; qubit[1] q;"],
-            result=models.JobsJobResult(
-                sampling=models.JobsSamplingResult(counts={"01": 10}),
+            input=models.JobsS3SubmitJobInfo(program=["OPENQASM 3; qubit[1] q;"]),
+            result=models.JobsS3JobResult(
+                sampling=models.JobsS3SamplingResult(counts={"01": 10}),
             ),
         ),
         submitted_at=submitted_at,
@@ -100,7 +101,7 @@ def test_job_result_from_job_model_like_payload() -> None:
     assert result.mitigation_info == {"enabled": True}
     assert result.submitted_at == submitted_at
     assert isinstance(result.job_info, models.JobsJobInfo)
-    assert isinstance(result.job_info.result, models.JobsJobResult)
+    assert isinstance(result.job_info.result, models.JobsS3JobResult)
 
 
 def test_sampling_result_direct_construction() -> None:
@@ -113,9 +114,9 @@ def test_sampling_result_direct_construction() -> None:
         device_id="Kawasaki",
         shots=2,
         job_info=models.JobsJobInfo(
-            program=["OPENQASM 3;"],
-            result=models.JobsJobResult(
-                sampling=models.JobsSamplingResult(counts={"11": 2}),
+            input=models.JobsS3SubmitJobInfo(program=["OPENQASM 3;"]),
+            result=models.JobsS3JobResult(
+                sampling=models.JobsS3SamplingResult(counts={"11": 2}),
             ),
         ),
     )
@@ -138,9 +139,9 @@ def test_estimation_result_direct_construction() -> None:
         device_id="Kawasaki",
         shots=2,
         job_info=models.JobsJobInfo(
-            program=["OPENQASM 3;"],
-            result=models.JobsJobResult(
-                estimation=models.JobsEstimationResult(exp_value=0.75, stds=0.1),
+            input=models.JobsS3SubmitJobInfo(program=["OPENQASM 3;"]),
+            result=models.JobsS3JobResult(
+                estimation=models.JobsS3EstimationResult(exp_value=0.75, stds=0.1),
             ),
         ),
     )
@@ -162,9 +163,9 @@ def test_multi_manual_result_direct_construction() -> None:
         device_id="Kawasaki",
         shots=2,
         job_info=models.JobsJobInfo(
-            program=["OPENQASM 3;"],
-            result=models.JobsJobResult(
-                sampling=models.JobsSamplingResult(
+            input=models.JobsS3SubmitJobInfo(program=["OPENQASM 3;"]),
+            result=models.JobsS3JobResult(
+                sampling=models.JobsS3SamplingResult(
                     counts={"11": 2},
                     divided_counts={
                         "0": {"11": 1},
@@ -193,9 +194,9 @@ def test_sse_result_direct_construction() -> None:
         device_id="Kawasaki",
         shots=4,
         job_info=models.JobsJobInfo(
-            program=["print('x')"],
-            result=models.JobsJobResult(
-                sampling=models.JobsSamplingResult(counts={"00": 4}),
+            input=models.JobsS3SubmitJobInfo(program=["print('x')"]),
+            result=models.JobsS3JobResult(
+                sampling=models.JobsS3SamplingResult(counts={"00": 4}),
             ),
         ),
     )
@@ -210,9 +211,9 @@ def test_sse_result_direct_construction() -> None:
 def test_sse_result_log_helpers(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     """Test case: test_sse_result_log_helpers."""
     class _DummyClient:
-        def get_sselog(self, job_id: str) -> models.JobsGetSselogResponse:
+        def get_sselog(self, job_id: str) -> JobsGetSselogResponse:
             data = base64.b64encode(f"log-{job_id}".encode()).decode("utf-8")
-            return models.JobsGetSselogResponse(file=data, file_name=f"{job_id}.zip")
+            return JobsGetSselogResponse(file=data, file_name=f"{job_id}.zip")
 
     result = OqtopusSseJobResult(
         job_id="job-42",
@@ -221,7 +222,7 @@ def test_sse_result_log_helpers(tmp_path: Path, capsys: pytest.CaptureFixture[st
         name="job-42",
         device_id="Kawasaki",
         shots=1,
-        job_info=models.JobsJobInfo(program=["print('x')"]),
+        job_info=models.JobsJobInfo(input=models.JobsS3SubmitJobInfo(program=["print('x')"])),
         client=_DummyClient(),  # type: ignore[arg-type]
     )
     archive = result.download_log()
@@ -239,9 +240,9 @@ def test_sse_result_log_helpers(tmp_path: Path, capsys: pytest.CaptureFixture[st
 def test_sse_download_log_default_does_not_write_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test case: test_sse_download_log_default_does_not_write_files."""
     class _DummyClient:
-        def get_sselog(self, job_id: str) -> models.JobsGetSselogResponse:
+        def get_sselog(self, job_id: str) -> JobsGetSselogResponse:
             data = base64.b64encode(f"log-{job_id}".encode()).decode("utf-8")
-            return models.JobsGetSselogResponse(file=data, file_name=f"{job_id}.zip")
+            return JobsGetSselogResponse(file=data, file_name=f"{job_id}.zip")
 
     monkeypatch.chdir(tmp_path)
     before = {p.name for p in tmp_path.iterdir()}
@@ -253,7 +254,7 @@ def test_sse_download_log_default_does_not_write_files(tmp_path: Path, monkeypat
         name="job-99",
         device_id="Kawasaki",
         shots=1,
-        job_info=models.JobsJobInfo(program=["print('x')"]),
+        job_info=models.JobsJobInfo(input=models.JobsS3SubmitJobInfo(program=["print('x')"])),
         client=_DummyClient(),  # type: ignore[arg-type]
     )
     data = result.download_log()
@@ -268,9 +269,9 @@ def test_sse_download_log_default_does_not_write_files(tmp_path: Path, monkeypat
 def test_sse_download_log_rejects_save_options_without_persist(tmp_path: Path) -> None:
     """Test case: test_sse_download_log_rejects_save_options_without_persist."""
     class _DummyClient:
-        def get_sselog(self, job_id: str) -> models.JobsGetSselogResponse:
+        def get_sselog(self, job_id: str) -> JobsGetSselogResponse:
             data = base64.b64encode(f"log-{job_id}".encode()).decode("utf-8")
-            return models.JobsGetSselogResponse(file=data, file_name=f"{job_id}.zip")
+            return JobsGetSselogResponse(file=data, file_name=f"{job_id}.zip")
 
     result = OqtopusSseJobResult(
         job_id="job-99",
@@ -279,7 +280,7 @@ def test_sse_download_log_rejects_save_options_without_persist(tmp_path: Path) -
         name="job-99",
         device_id="Kawasaki",
         shots=1,
-        job_info=models.JobsJobInfo(program=["print('x')"]),
+        job_info=models.JobsJobInfo(input=models.JobsS3SubmitJobInfo(program=["print('x')"])),
         client=_DummyClient(),  # type: ignore[arg-type]
     )
 
@@ -300,7 +301,7 @@ def test_sse_result_log_helpers_require_client() -> None:
         name="job-1",
         device_id="Kawasaki",
         shots=1,
-        job_info=models.JobsJobInfo(program=["print('x')"]),
+        job_info=models.JobsJobInfo(input=models.JobsS3SubmitJobInfo(program=["print('x')"])),
     )
     with pytest.raises(ValueError):
         result.read_log_text()
@@ -315,7 +316,7 @@ def test_job_result_repr_and_flags_for_string_job_type() -> None:
         name="job-x",
         device_id="Kawasaki",
         shots=1,
-        job_info=models.JobsJobInfo(program=["OPENQASM 3;"]),
+        job_info=models.JobsJobInfo(input=models.JobsS3SubmitJobInfo(program=["OPENQASM 3;"])),
     )
     assert "job-x" in repr(result)
     assert result.is_multi_manual() is True
@@ -375,14 +376,14 @@ def test_multi_manual_result_ignores_invalid_divided_counts_entries() -> None:
 def test_sse_download_log_error_paths(tmp_path: Path) -> None:
     """Test case: test_sse_download_log_error_paths."""
     class _NoFileClient:
-        def get_sselog(self, job_id: str) -> models.JobsGetSselogResponse:
+        def get_sselog(self, job_id: str) -> JobsGetSselogResponse:
             _ = job_id
-            return models.JobsGetSselogResponse(file=None, file_name=None)
+            return JobsGetSselogResponse(file=None, file_name=None)
 
     class _BadBase64Client:
-        def get_sselog(self, job_id: str) -> models.JobsGetSselogResponse:
+        def get_sselog(self, job_id: str) -> JobsGetSselogResponse:
             _ = job_id
-            return models.JobsGetSselogResponse(file="*", file_name="x.zip")
+            return JobsGetSselogResponse(file="*", file_name="x.zip")
 
     no_file = OqtopusSseJobResult(
         job_id="job-1",
@@ -391,7 +392,7 @@ def test_sse_download_log_error_paths(tmp_path: Path) -> None:
         name="job-1",
         device_id="Kawasaki",
         shots=1,
-        job_info=models.JobsJobInfo(program=["print('x')"]),
+        job_info=models.JobsJobInfo(input=models.JobsS3SubmitJobInfo(program=["print('x')"])),
         client=_NoFileClient(),
     )  # type: ignore[arg-type]
     with pytest.raises(ValueError):
@@ -417,7 +418,7 @@ def test_sse_download_log_error_paths(tmp_path: Path) -> None:
         name="job-1",
         device_id="Kawasaki",
         shots=1,
-        job_info=models.JobsJobInfo(program=["print('x')"]),
+        job_info=models.JobsJobInfo(input=models.JobsS3SubmitJobInfo(program=["print('x')"])),
         client=_BadBase64Client(),
     )  # type: ignore[arg-type]
     with pytest.raises(ValueError):
@@ -430,7 +431,7 @@ def test_sse_download_log_error_paths(tmp_path: Path) -> None:
         name="job-1",
         device_id="Kawasaki",
         shots=1,
-        job_info=models.JobsJobInfo(program=["print('x')"]),
+        job_info=models.JobsJobInfo(input=models.JobsS3SubmitJobInfo(program=["print('x')"])),
         client=_BadBase64Client(),
     )  # type: ignore[arg-type]
     with pytest.raises(ValueError):
@@ -450,9 +451,9 @@ def test_sse_read_log_text_zip_variants() -> None:
         def __init__(self, payload: str | None) -> None:
             self.payload = payload
 
-        def get_sselog(self, job_id: str) -> models.JobsGetSselogResponse:
+        def get_sselog(self, job_id: str) -> JobsGetSselogResponse:
             _ = job_id
-            return models.JobsGetSselogResponse(file=self.payload, file_name="log.zip")
+            return JobsGetSselogResponse(file=self.payload, file_name="log.zip")
 
     no_file = OqtopusSseJobResult(
         job_id="job-1",
@@ -461,7 +462,7 @@ def test_sse_read_log_text_zip_variants() -> None:
         name="job-1",
         device_id="Kawasaki",
         shots=1,
-        job_info=models.JobsJobInfo(program=["print('x')"]),
+        job_info=models.JobsJobInfo(input=models.JobsS3SubmitJobInfo(program=["print('x')"])),
         client=_ZipClient(None),
     )  # type: ignore[arg-type]
     with pytest.raises(ValueError):
@@ -474,7 +475,7 @@ def test_sse_read_log_text_zip_variants() -> None:
         name="job-1",
         device_id="Kawasaki",
         shots=1,
-        job_info=models.JobsJobInfo(program=["print('x')"]),
+        job_info=models.JobsJobInfo(input=models.JobsS3SubmitJobInfo(program=["print('x')"])),
         client=_ZipClient("*"),
     )  # type: ignore[arg-type]
     with pytest.raises(ValueError):
@@ -487,7 +488,7 @@ def test_sse_read_log_text_zip_variants() -> None:
         name="job-1",
         device_id="Kawasaki",
         shots=1,
-        job_info=models.JobsJobInfo(program=["print('x')"]),
+        job_info=models.JobsJobInfo(input=models.JobsS3SubmitJobInfo(program=["print('x')"])),
         client=_ZipClient(_zip_payload({"dir/": ""})),  # type: ignore[arg-type]
     )
     assert zipped_empty_name.read_log_text() == ""
@@ -499,7 +500,7 @@ def test_sse_read_log_text_zip_variants() -> None:
         name="job-1",
         device_id="Kawasaki",
         shots=1,
-        job_info=models.JobsJobInfo(program=["print('x')"]),
+        job_info=models.JobsJobInfo(input=models.JobsS3SubmitJobInfo(program=["print('x')"])),
         client=_ZipClient(_zip_payload({"a.txt": "A", "b.txt": "B"})),  # type: ignore[arg-type]
     )
     text = zipped_multi.read_log_text()

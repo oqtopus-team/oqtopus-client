@@ -18,25 +18,22 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictStr
+from pydantic import BaseModel, ConfigDict, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
-from oqtopus_client.rest.models.jobs_job_result import JobsJobResult
-from oqtopus_client.rest.models.jobs_operator_item import JobsOperatorItem
-from oqtopus_client.rest.models.jobs_transpile_result import JobsTranspileResult
 from typing import Optional, Set
 from typing_extensions import Self
 
 class JobsJobInfo(BaseModel):
     """
-    JobsJobInfo
+    Presigned URLs for downloading relevant job information .zip files from OQTOPUS cloud.
     """ # noqa: E501
-    program: List[StrictStr] = Field(description="A list of OPENQASM3 program. For non-multiprogramming jobs, this field is assumed to contain exactly one program. Otherwise, those programs are combined according to the multiprogramming machinery.")
-    combined_program: Optional[StrictStr] = Field(default=None, description="For multiprogramming jobs, this field contains the combined circuit.")
-    operator: Optional[List[JobsOperatorItem]] = Field(default=None, description="*(Only for estimation jobs)* The operator (or observable) for which the expectation value is to be estimated. ")
-    result: Optional[JobsJobResult] = None
-    transpile_result: Optional[JobsTranspileResult] = None
-    message: Optional[StrictStr] = Field(default=None, description="Describing the reason why there is no result")
-    __properties: ClassVar[List[str]] = ["program", "combined_program", "operator", "result", "transpile_result", "message"]
+    input: Any
+    combined_program: Optional[Any] = None
+    result: Optional[Any] = None
+    transpile_result: Optional[Any] = None
+    sse_log: Optional[Any] = None
+    message: Optional[StrictStr] = None
+    __properties: ClassVar[List[str]] = ["input", "combined_program", "result", "transpile_result", "sse_log", "message"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -77,19 +74,6 @@ class JobsJobInfo(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of each item in operator (list)
-        _items = []
-        if self.operator:
-            for _item_operator in self.operator:
-                if _item_operator:
-                    _items.append(_item_operator.to_dict())
-            _dict['operator'] = _items
-        # override the default output from pydantic by calling `to_dict()` of result
-        if self.result:
-            _dict['result'] = self.result.to_dict()
-        # override the default output from pydantic by calling `to_dict()` of transpile_result
-        if self.transpile_result:
-            _dict['transpile_result'] = self.transpile_result.to_dict()
         return _dict
 
     @classmethod
@@ -102,11 +86,11 @@ class JobsJobInfo(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "program": obj.get("program"),
+            "input": obj.get("input"),
             "combined_program": obj.get("combined_program"),
-            "operator": [JobsOperatorItem.from_dict(_item) for _item in obj["operator"]] if obj.get("operator") is not None else None,
-            "result": JobsJobResult.from_dict(obj["result"]) if obj.get("result") is not None else None,
-            "transpile_result": JobsTranspileResult.from_dict(obj["transpile_result"]) if obj.get("transpile_result") is not None else None,
+            "result": obj.get("result"),
+            "transpile_result": obj.get("transpile_result"),
+            "sse_log": obj.get("sse_log"),
             "message": obj.get("message")
         })
         return _obj

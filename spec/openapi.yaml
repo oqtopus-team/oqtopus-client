@@ -1,0 +1,1582 @@
+openapi: 3.0.1
+info:
+  title: OQTOPUS Cloud User API
+  version: '1.0'
+  contact:
+    name: oqtopus-team
+    email: oqtopus-team[at]googlegroups.com
+  description: OQTOPUS Cloud User API. This API is used to interact with the OQTOPUS Cloud service. The API provides endpoints to manage devices, jobs, and results.
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+servers:
+  - url: http://localhost:8080
+    description: Local server url
+paths:
+  /devices:
+    get:
+      tags:
+        - device
+      summary: List available devices
+      description: List available devices
+      operationId: list_devices
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Returns a list of available devices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/devices.DeviceInfo'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.UnauthorizedError'
+              example:
+                message: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.InternalServerError'
+  /devices/{device_id}:
+    get:
+      tags:
+        - device
+      summary: Get specified device details
+      description: get device
+      operationId: get_device
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: device_id
+          in: path
+          description: Device identifier
+          required: true
+          schema:
+            type: string
+          example: Kawasaki
+      responses:
+        '200':
+          description: job response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/devices.DeviceInfo'
+        '403':
+          description: Cannot access device with device_id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.ForbiddenError'
+        '404':
+          description: Device with device_id not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.NotFoundError'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.InternalServerError'
+  /jobs:
+    get:
+      tags:
+        - job
+      summary: List all quantum jobs
+      description: |-
+        By default, all available job's properties are returned. Use 'fields' parameter to specify exact list of properties to get for each job.
+
+        List of jobs can be filtered by submission time, status or search text with 'start_time', 'end_time', 'status' and 'q' parameters.
+
+        Jobs are fetched with the pagination mechanism. This can be configured with 'page' and 'perPage' parameters. Check response's 'Link' header for pagination details.
+      operationId: list_jobs
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: fields
+          in: query
+          description: |-
+            Allows to specify an exact list of job properties to fetch for a single job. Each element of the list must be a valid name of job property.
+
+            If parameter is specified and requested job field is not defined for a job null is returned.
+
+            If parameter is omitted all available job properties are returned. Undefined job properties (null properties) are not included in the response.
+          required: false
+          schema:
+            type: string
+            maxLength: 1024
+            example: job_id,status,name
+        - name: start_time
+          in: query
+          description: Allows to filter the list of jobs to fetch by submission time. If specified only jobs with submission time (submitted_at property) >= start_time are returned.
+          required: false
+          schema:
+            type: string
+            format: date-time
+            example: '2022-10-19T11:45:34Z'
+        - name: end_time
+          in: query
+          description: Allows to filter the list of jobs to fetch by to submission time. If specified only jobs with submission time (submitted_at property) <= end_time are returned.
+          required: false
+          schema:
+            type: string
+            format: date-time
+            example: '2022-10-19T11:45:34Z'
+        - name: status
+          in: query
+          description: Allows to filter the list of jobs to fetch by job's status. If specified only jobs which status is equal to provided status are returned.
+          required: false
+          schema:
+            $ref: '#/components/schemas/jobs.JobStatus'
+        - name: q
+          in: query
+          description: Allows to filter the list of jobs to fetch by job's id, name and description. If specified only jobs which id, name or description contains specified search string are returned.
+          required: false
+          schema:
+            type: string
+            maxLength: 1024
+            example: Bell
+        - name: page
+          in: query
+          description: |-
+            Set jobs list page number to fetch.
+            If requested page number exceeds number of all pages last page is returned.
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 4294967295
+            default: 1
+        - name: size
+          in: query
+          description: Configure number of jobs per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 65535
+            default: 10
+        - name: order
+          in: query
+          description: Specify jobs order according to creation time (createdAt property)
+          required: false
+          schema:
+            type: string
+            enum:
+              - DESC
+              - ASC
+            default: ASC
+      responses:
+        '200':
+          description: Return a list of quantum jobs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/jobs.Job'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.UnauthorizedError'
+              example:
+                message: Unauthorized
+    post:
+      tags:
+        - job
+      summary: Register new job
+      description: Register new job and generate a presigned URL to upload job information (`jobs.S3SubmitJobInfo`) to OQTOPUS cloud.
+      operationId: register_job_id
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Return new job_id and presigned URL for job information upload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/jobs.RegisterJobResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.BadRequest'
+              example:
+                message: Bad request malformed input data
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.UnauthorizedError'
+              example:
+                message: Unauthorized
+  /jobs/{job_id}/submit:
+    post:
+      tags:
+        - job
+      summary: Complete submission of a quantum job
+      description: |-
+        Complete submission of a previously registered quantum job.
+
+        job_id must be created via 'POST /jobs' request.
+
+        Submit job information (`jobs.S3SubmitJobInfo`) must be formerly uploaded to OQTOPUS cloud using presigned URL received in 'POST /jobs' response.
+      operationId: submit_job
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: job_id
+          required: true
+          description: Job identifier
+          schema:
+            type: string
+      requestBody:
+        description: Quantum job to be submitted
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/jobs.SubmitJobRequest'
+            examples:
+              simulator:
+                description: Simulator example
+                value:
+                  name: Bell State Sampling
+                  description: Bell State Sampling Example
+                  device_id: Kawasaki
+                  job_type: sampling
+                  transpiler_info: {}
+                  simulator_info:
+                    n_qubits: 5
+                    n_nodes: 12
+                    n_per_node: 2
+                    seed_simulation: 39058567
+                    simulation_opt:
+                      optimization_method: light
+                      optimization_block_size: 1
+                      optimization_swap_level: 1
+                  mitigation_info: {}
+                  shots: 1000
+              qpu:
+                description: QPU example
+                value:
+                  name: Bell State Estimation
+                  description: Bell State Estimation Example
+                  device_id: Kawasaki
+                  job_type: estimation
+                  transpiler_info:
+                    qubit_allocation:
+                      '0': 12
+                      '1': 16
+                    skip_transpilation: false
+                    seed_transpilation: 873
+                  simulator_info: {}
+                  mitigation_info:
+                    ro_error_mitigation: pseudo_inverse
+                  shots: 1000
+      responses:
+        '200':
+          description: Job submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/success.SuccessResponse'
+              example:
+                message: Quantum job submitted
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.BadRequest'
+              example:
+                message: Bad request malformed input data
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.UnauthorizedError'
+              example:
+                message: Unauthorized
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.ForbiddenError'
+              example:
+                message: Forbidden
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.NotFoundError'
+              example:
+                message: job not found
+  /jobs/{job_id}:
+    get:
+      tags:
+        - job
+      summary: Get selected job
+      description: Get selected job
+      operationId: get_job
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: job_id
+          required: true
+          description: Job identifier
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Return quantum job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/jobs.Job'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.BadRequest'
+              example:
+                message: Bad request malformed input data
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.UnauthorizedError'
+              example:
+                message: Unauthorized
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.NotFoundError'
+              example:
+                message: job not found
+    delete:
+      tags:
+        - job
+      summary: Delete job
+      description: 'Deletes quantum job and related result<br/><br/>Operation is valid only for job with status: succeeded, failed and cancelled. submitted, ready and running jobs must be cancelled before deletion.'
+      operationId: delete_job
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: job_id
+          required: true
+          description: Job identifier
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Quantum job deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/success.SuccessResponse'
+              example:
+                message: Quantum job deleted
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.BadRequest'
+              example:
+                message: Bad request malformed input data
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.UnauthorizedError'
+              example:
+                message: Unauthorized
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.NotFoundError'
+              example:
+                message: job not found
+  /jobs/{job_id}/status:
+    get:
+      tags:
+        - job
+      summary: Get selected job's status
+      description: Get selected job's status
+      operationId: get_job_status
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: job_id
+          required: true
+          description: Job identifier
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Return quantum job status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/jobs.GetJobStatusResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.BadRequest'
+              example:
+                message: Bad request malformed input data
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.UnauthorizedError'
+              example:
+                message: Unauthorized
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.NotFoundError'
+              example:
+                message: job not found
+  /jobs/{job_id}/cancel:
+    post:
+      tags:
+        - job
+      summary: Cancel job
+      description: 'Start a procedure to cancel quantum job.<br/><br/> Operation is valid only for job with status: submitted, ready or running.'
+      operationId: cancel_job
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: job_id
+          required: true
+          description: Job identifier
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Job cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/success.SuccessResponse'
+              example:
+                message: cancel request accepted
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.BadRequest'
+              example:
+                message: Bad request malformed input data
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.UnauthorizedError'
+              example:
+                message: Unauthorized
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.NotFoundError'
+              example:
+                message: job not found
+  /api-token:
+    post:
+      tags:
+        - api-token
+      summary: create api token
+      description: Create api token
+      operationId: create_api_token
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Create api token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api-token.ApiToken'
+        '403':
+          description: Frobidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.ForbiddenError'
+              example:
+                message: Frobidden
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.NotFoundError'
+              example:
+                message: Not found the specified user
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.InternalServerError'
+    delete:
+      tags:
+        - api-token
+      summary: delete api token
+      description: Delete api token
+      operationId: delete_api_token
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Delete api token
+        '403':
+          description: Frobidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.ForbiddenError'
+              example:
+                message: Frobidden
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.NotFoundError'
+              example:
+                message: Not found the specified user
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.InternalServerError'
+  /api-token/status:
+    get:
+      tags:
+        - api-token
+      summary: get api token status
+      description: Get api token status
+      operationId: get_api_token_status
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Return api token status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api-token.ApiTokenStatus'
+        '403':
+          description: Frobidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.ForbiddenError'
+              example:
+                message: Frobidden
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.NotFoundError'
+              example:
+                message: Not found the specified user
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.InternalServerError'
+  /announcements:
+    get:
+      tags:
+        - Announcements
+      summary: Get announcements list from backend
+      description: Get announcements list from backend
+      operationId: get_announcements_list
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: offset
+          in: query
+          description: offset information
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Limit information
+          required: false
+          schema:
+            type: string
+        - name: order
+          in: query
+          description: Specify order according to start time
+          required: false
+          schema:
+            type: string
+            enum:
+              - DESC
+              - ASC
+            default: ASC
+        - name: current_time
+          in: query
+          description: Allows to filter the list of announcements to fetch by provided time. If specified only announcements with start_time <= current_time and end_time >= current_time are returned.
+          required: false
+          schema:
+            type: string
+            format: date-time
+            example: '2022-10-19T11:45:34Z'
+      responses:
+        '200':
+          description: Return announcements
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/announcements.GetAnnouncementsListResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: 'Not authorized : user is not admin'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.InternalServerError'
+  /announcements/{announcement_id}:
+    get:
+      tags:
+        - Announcements
+      summary: Get selected announcement
+      description: Get selected announcement
+      operationId: get_announcement
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: announcement_id
+          description: announcement ID
+          required: true
+          schema:
+            type: integer
+            example: 0
+      responses:
+        '200':
+          description: Return selected announcement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/announcements.GetAnnouncementResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.BadRequest'
+              example:
+                message: Bad request malformed input data
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not authorized
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.NotFoundError'
+              example:
+                message: Announcement not found
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.InternalServerError'
+              example:
+                message: Internal server error
+  /users/me:
+    get:
+      tags:
+        - Users
+      summary: Get current user
+      description: Get current user
+      operationId: get_current_user
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Return current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/users.GetOneUserResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.NotFoundError'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.InternalServerError'
+    patch:
+      tags:
+        - Users
+      summary: Update current user
+      description: Update current user
+      operationId: update_current_user
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/users.UpdateUserRequest'
+      responses:
+        '200':
+          description: Return current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/users.GetOneUserResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.BadRequest'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.NotFoundError'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.InternalServerError'
+    delete:
+      tags:
+        - Users
+      summary: Delete current user
+      description: Delete current user
+      operationId: delete_current_user
+      security:
+        - BearerAuth: []
+      responses:
+        '204':
+          description: Current user deleted
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.ForbiddenError'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.NotFoundError'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.InternalServerError'
+  /system/settings:
+    get:
+      tags:
+        - Settings
+      summary: Get current settings
+      description: Get current settings
+      operationId: get_current_settings
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Return current settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/settings.GetSettingsResponse'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error.InternalServerError'
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    jobs.SubmittedJob:
+      description: Represents a fully submitted quantum job.
+      allOf:
+        - $ref: '#/components/schemas/jobs.Job'
+      required:
+        - job_id
+        - name
+        - job_type
+        - status
+        - device_id
+        - shots
+        - job_info
+        - submitted_at
+    jobs.RegisteredJob:
+      description: Represents a newly registered quantum job.
+      allOf:
+        - $ref: '#/components/schemas/jobs.Job'
+      required:
+        - job_id
+        - status
+    jobs.S3SubmitJobInfo:
+      type: object
+      properties:
+        program:
+          type: array
+          description: A list of OPENQASM3 program. For non-multiprogramming jobs, this field is assumed to contain exactly one program. Otherwise, those programs are combined according to the multiprogramming machinery.
+          items:
+            type: string
+          example:
+            - OPENQASM 3; qubit[2] q; bit[2] c; h q[0]; cnot q[0], q[1]; c = measure q;
+        operator:
+          type: array
+          items:
+            $ref: '#/components/schemas/jobs.S3OperatorItem'
+      required:
+        - program
+    jobs.S3JobResult:
+      type: object
+      properties:
+        sampling:
+          $ref: '#/components/schemas/jobs.S3SamplingResult'
+        estimation:
+          $ref: '#/components/schemas/jobs.S3EstimationResult'
+      additionalProperties: true
+      required: []
+    jobs.S3TranspileResult:
+      type: object
+      properties:
+        transpiled_program:
+          type: string
+          nullable: true
+          example: OPENQASM 3; include "stdgates.inc"; qubit[2] _all_qubits; let q = _all_qubits[0:1]; h q[0]; cx q[0], q[1];
+        stats:
+          type: object
+          properties: {}
+          additionalProperties: true
+          nullable: true
+        virtual_physical_mapping:
+          type: object
+          properties: {}
+          additionalProperties: true
+          nullable: true
+      required:
+        - transpiled_program
+        - stats
+        - virtual_physical_mapping
+    devices.DeviceInfo:
+      type: object
+      properties:
+        device_id:
+          type: string
+          example: SVSim
+        device_type:
+          type: string
+          enum:
+            - QPU
+            - simulator
+          example: simulator
+        status:
+          type: string
+          enum:
+            - available
+            - unavailable
+          example: available
+        available_at:
+          description: Parameter mandatory and valid for 'unavailable' devices
+          type: string
+          format: date-time
+          example: '2022-10-19T11:45:34Z'
+        n_pending_jobs:
+          type: integer
+          example: 8
+        n_qubits:
+          type: integer
+          example: 39
+        basis_gates:
+          type: array
+          items:
+            type: string
+          example:
+            - x
+            - 'y'
+            - z
+            - h
+            - s
+            - sdg
+            - t
+            - tdg
+            - rx
+            - ry
+            - rz
+            - cx
+            - cz
+            - swap
+            - u1
+            - u2
+            - u3
+            - u
+            - p
+            - id
+            - sx
+            - sxdg
+        supported_instructions:
+          type: array
+          items:
+            type: string
+          example:
+            - measure
+            - barrier
+            - reset
+        device_info:
+          description: json format calibration_data and n_nodes etc
+          type: string
+          example: |-
+            {
+              "n_nodes": 512,
+              "calibration_data": {
+                "qubit_connectivity": ["(1,4)", "(4,5)", "(5,8)"],
+                "t1": {
+                  "0": 55.51,
+                  "1": 37.03,
+                  "2": 57.13
+                }
+              }
+            }
+        calibrated_at:
+          description: Parameter available only for `QPU` devices with available calibration data
+          type: string
+          format: date-time
+          example: '2022-10-19T11:45:34Z'
+        description:
+          type: string
+          example: State vector-based quantum circuit simulator
+      required:
+        - device_id
+        - device_type
+        - status
+        - n_pending_jobs
+        - basis_gates
+        - supported_instructions
+        - description
+      example:
+        device_id: SVSim
+        device_type: simulator
+        status: available
+        n_pending_jobs: 8
+        n_qubits: 39
+        n_nodes: 512
+        basis_gates:
+          - x
+          - 'y'
+          - z
+          - h
+          - s
+          - sdg
+          - t
+          - tdg
+          - rx
+          - ry
+          - rz
+          - cx
+          - cz
+          - swap
+          - u1
+          - u2
+          - u3
+          - u
+          - p
+          - id
+          - sx
+          - sxdg
+        supported_instructions:
+          - measure
+          - barrier
+          - reset
+        device_info: |-
+          {
+            "n_nodes": 512,
+            "calibration_data": {
+              "qubit_connectivity": [ "(1,4)", "(4,5)", "(5,8)"],
+              "t1": {
+                "0": 55.51,
+                "1": 37.03,
+                "2": 57.13
+              }
+            }
+          }
+        calibrated_at: '2022-10-19T11:45:34Z'
+        description: State vector-based quantum circuit simulator
+    error.UnauthorizedError:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+    error.InternalServerError:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+    error.ForbiddenError:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+    error.NotFoundError:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+    jobs.JobStatus:
+      type: string
+      enum:
+        - registered
+        - submitted
+        - ready
+        - running
+        - succeeded
+        - failed
+        - cancelled
+      example: submitted
+    jobs.JobId:
+      type: string
+      example: 7af020f6-2e38-4d70-8cf0-4349650ea08c
+    jobs.JobType:
+      type: string
+      enum:
+        - estimation
+        - sampling
+        - multi_manual
+        - sse
+      example: sampling
+    jobs.JobInfoDownloadPresignedURL:
+      description: Presigned URL for downloading a file from OCTOPUS cloud.
+      type: string
+      example: https://oqtopus-cloud.s3.amazonaws.com/jobs/7af020f6-2e38-4d70-8cf0-4349650ea08c/filename.zip?AWSAccessKeyId=AKIAIOSFODNN7EXAMPLE&Expires=1714425600&Signature=abc123def456ghi789jkl%2Fsignature%3D
+    jobs.JobInfo:
+      description: Presigned URLs for downloading relevant job information .zip files from OQTOPUS cloud.
+      type: object
+      properties:
+        input:
+          allOf:
+            - $ref: '#/components/schemas/jobs.JobInfoDownloadPresignedURL'
+            - description: Content of the file will match `jobs.S3SubmitJobInfo` schema.
+        combined_program:
+          allOf:
+            - $ref: '#/components/schemas/jobs.JobInfoDownloadPresignedURL'
+            - description: For multiprogramming jobs, this file contains the combined circuit.
+        result:
+          allOf:
+            - $ref: '#/components/schemas/jobs.JobInfoDownloadPresignedURL'
+            - description: Content of the file will match `jobs.S3JobResult` schema.
+        transpile_result:
+          allOf:
+            - $ref: '#/components/schemas/jobs.JobInfoDownloadPresignedURL'
+            - description: Content of the file will match `jobs.S3TranspileResult` schema.
+        sse_log:
+          allOf:
+            - $ref: '#/components/schemas/jobs.JobInfoDownloadPresignedURL'
+            - description: File available only for sse jobs.
+        message:
+          type: string
+      required:
+        - input
+    jobs.Job:
+      description: |-
+        Represents a quantum job.
+
+        Newly registered jobs (status=registered) must provide:
+           - job_id,
+           - status (registered)
+
+        Fully defined jobs must also provide:
+          - name
+          - device_id
+          - job_type,
+          - shots
+          - job_info
+        Other properties and optional and depend on job type and status.
+      type: object
+      properties:
+        job_id:
+          $ref: '#/components/schemas/jobs.JobId'
+        name:
+          type: string
+          example: Bell State Sampling
+        description:
+          type: string
+          example: Bell State Sampling Example
+        job_type:
+          $ref: '#/components/schemas/jobs.JobType'
+        status:
+          $ref: '#/components/schemas/jobs.JobStatus'
+        device_id:
+          type: string
+          example: Kawasaki
+        shots:
+          type: integer
+          minimum: 1
+          maximum: 10000000
+          example: 1000
+        job_info:
+          $ref: '#/components/schemas/jobs.JobInfo'
+        transpiler_info:
+          type: object
+          properties: {}
+          additionalProperties: true
+          example:
+            qubit_allocation:
+              '0': 12
+              '1': 16
+            skip_transpilation: false
+            seed_transpilation: 873
+        simulator_info:
+          type: object
+          properties: {}
+          additionalProperties: true
+          example:
+            n_qubits: 5
+            n_nodes: 12
+            n_per_node: 2
+            seed_simulation: 39058567
+            simulation_opt:
+              optimization_method: light
+              optimization_block_size: 1
+              optimization_swap_level: 1
+        mitigation_info:
+          type: object
+          properties: {}
+          additionalProperties: true
+          example:
+            ro_error_mitigation: pseudo_inverse
+        execution_time:
+          type: number
+          example: 10.123
+        submitted_at:
+          type: string
+          format: date-time
+          example: '2022-10-19T11:45:34Z'
+        ready_at:
+          type: string
+          format: date-time
+          example: '2022-10-19T11:45:34Z'
+        running_at:
+          type: string
+          format: date-time
+          example: '2022-10-19T11:45:34Z'
+        ended_at:
+          type: string
+          format: date-time
+          example: '2022-10-19T11:45:34Z'
+      required: []
+      example:
+        job_id: 7af020f6-2e38-4d70-8cf0-4349650ea08c
+        name: Bell State Sampling
+        description: Bell State Sampling Example
+        device_id: Kawasaki
+        job_type: estimation
+        job_info:
+          input: https://oqtopus-cloud.s3.amazonaws.com/jobs/7af020f6-2e38-4d70-8cf0-4349650ea08c/input.zip?AWSAccessKeyId=AKIAIOSFODNN7EXAMPLE&Expires=1714425600&Signature=abc123def456ghi789jkl%2Fsignature%3D
+        transpiler_info:
+          qubit_allocation:
+            '0': 12
+            '1': 16
+          skip_transpilation: false
+          seed_transpilation: 873
+        simulator_info:
+          n_qubits: 5
+          n_nodes: 12
+          n_per_node: 2
+          seed_simulation: 39058567
+          simulation_opt:
+            optimization_method: light
+            optimization_block_size: 1
+            optimization_swap_level: 1
+        mitigation_info:
+          ro_error_mitigation: pseudo_inverse
+        shots: 1000
+        status: submitted
+        execution_time: 10.123
+        submitted_at: '2022-10-19T11:45:34Z'
+        ready_at: '2022-10-19T11:45:34Z'
+        running_at: '2022-10-19T11:45:34Z'
+        ended_at: '2022-10-19T11:45:34Z'
+    jobs.JobInfoUploadPresignedURL:
+      description: Presigned URL for uploading file to OCTOPUS cloud.
+      type: object
+      properties:
+        url:
+          type: string
+          example: https://oqtopus-cloud.s3.amazonaws.com/
+        fields:
+          type: object
+          properties:
+            key:
+              type: string
+              example: jobs/7af020f6-2e38-4d70-8cf0-4349650ea08c/filename.zip
+            AWSAccessKeyId:
+              type: string
+            x-amz-security-token:
+              type: string
+            policy:
+              type: string
+            signature:
+              type: string
+          required:
+            - key
+      required:
+        - url
+        - fields
+    jobs.RegisterJobResponse:
+      description: Register new job
+      type: object
+      properties:
+        job_id:
+          $ref: '#/components/schemas/jobs.JobId'
+        presigned_url:
+          $ref: '#/components/schemas/jobs.JobInfoUploadPresignedURL'
+      required:
+        - job_id
+        - presigned_url
+    error.BadRequest:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+    jobs.SubmitJobRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Bell State Sampling
+        description:
+          type: string
+          example: An example of Bell state sampling job
+        device_id:
+          type: string
+          example: Kawasaki
+        job_type:
+          $ref: '#/components/schemas/jobs.JobType'
+        transpiler_info:
+          type: object
+          properties: {}
+          additionalProperties: true
+          example:
+            qubit_allocation:
+              '0': 12
+              '1': 16
+            skip_transpilation: false
+            seed_transpilation: 873
+        simulator_info:
+          type: object
+          properties: {}
+          additionalProperties: true
+          example:
+            n_qubits: 5
+            n_nodes: 12
+            n_per_node: 2
+            seed_simulation: 39058567
+            simulation_opt:
+              optimization_method: light
+              optimization_block_size: 1
+              optimization_swap_level: 1
+        mitigation_info:
+          type: object
+          properties: {}
+          additionalProperties: true
+          example:
+            ro_error_mitigation: pseudo_inverse
+        shots:
+          type: integer
+          minimum: 1
+          maximum: 10000000
+          example: 1000
+      required:
+        - device_id
+        - shots
+        - job_type
+    success.SuccessResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+    jobs.GetJobStatusResponse:
+      description: job status
+      type: object
+      properties:
+        job_id:
+          $ref: '#/components/schemas/jobs.JobId'
+        status:
+          $ref: '#/components/schemas/jobs.JobStatus'
+      required:
+        - job_id
+        - status
+    api-token.Expiration:
+      type: string
+      format: date-time
+      example: '2025-01-09T12:34:56Z'
+      description: The expiration date of the api token
+    api-token.ApiToken:
+      type: object
+      properties:
+        api_token_id:
+          type: string
+          description: The api token id
+        api_token_secret:
+          type: string
+          description: The api token secret
+        api_token_expiration:
+          $ref: '#/components/schemas/api-token.Expiration'
+    api-token.ApiTokenStatus:
+      type: object
+      properties:
+        api_token_expiration:
+          $ref: '#/components/schemas/api-token.Expiration'
+    announcements.GetAnnouncementResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 0
+        title:
+          type: string
+          example: Example Title
+        content:
+          type: string
+          example: Example Content
+        start_time:
+          type: string
+          format: date-time
+          example: '2022-10-19T11:45:34Z'
+        end_time:
+          type: string
+          format: date-time
+          example: '2022-12-19T11:45:34Z'
+        publishable:
+          type: boolean
+          example: true
+      required:
+        - id
+        - title
+        - content
+        - start_time
+        - end_time
+        - publishable
+      example:
+        id: 0
+        title: Example Title
+        content: Example Content
+        start_time: '2022-10-19T11:45:34Z'
+        end_time: '2022-12-19T11:45:34Z'
+        publishable: true
+    announcements.GetAnnouncementsListResponse:
+      properties:
+        announcements:
+          type: array
+          items:
+            $ref: '#/components/schemas/announcements.GetAnnouncementResponse'
+    users.LoginEvent:
+      description: details of login event
+      type: object
+      properties:
+        event_date:
+          type: string
+          format: date-time
+        user_agent:
+          type: string
+        ip:
+          type: string
+    users.GetOneUserResponse:
+      description: detail of user response
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        organization:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        login_events:
+          type: array
+          items:
+            $ref: '#/components/schemas/users.LoginEvent'
+    users.UpdateUserRequest:
+      description: user update data
+      type: object
+      properties:
+        name:
+          type: string
+        organization:
+          type: string
+    settings.GetSettingsResponse:
+      description: detail of settings response
+      type: object
+      properties:
+        editable_fields:
+          type: array
+          items:
+            type: string
+            enum:
+              - name
+              - organization
+        allow_deletion:
+          type: boolean
+        visible_fields:
+          type: array
+          items:
+            type: string
+            enum:
+              - id
+              - name
+              - email
+              - organization
+              - created_at
+        login_history_enabled:
+          type: boolean
+      required:
+        - editable_fields
+        - allow_deletion
+        - visible_fields
+        - login_history_enabled
+    jobs.S3OperatorItem:
+      type: object
+      properties:
+        pauli:
+          type: string
+          description: The Pauli string.
+          example: X 0 X 1
+        coeff:
+          type: number
+          description: Coefficient number in the Pauli string representation.
+          example: 1
+      required:
+        - pauli
+    jobs.S3SamplingResult:
+      type: object
+      description: '*(Only for sampling jobs)* JSON string representing the sampling result'
+      properties:
+        counts:
+          type: object
+          properties: {}
+          additionalProperties: true
+          example:
+            '10': 454
+            '11': 387
+            '00': 84
+            '01': 75
+        divided_counts:
+          type: object
+          properties: {}
+          additionalProperties: true
+          nullable: true
+          example:
+            '0':
+              '10': 454
+              '11': 387
+              '00': 84
+              '01': 75
+            '1':
+              '10': 454
+              '11': 387
+              '00': 84
+              '01': 75
+    jobs.S3EstimationResult:
+      type: object
+      description: |
+        *(Only for estimation jobs)* The estimated expectation value and the standard deviation
+        of the operators specified in `job_info.operator` field which is intended to be provided for estimation jobs.
+      properties:
+        exp_value:
+          description: The estimated expectation value
+          type: number
+        stds:
+          description: The standard deviation value
+          type: number

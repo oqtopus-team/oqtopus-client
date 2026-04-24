@@ -32,7 +32,7 @@ def test_bitstring_dict_to_int_keys_converts_mapping() -> None:
 
 def test_convert_sampling_counts_to_int_keys_from_model() -> None:
     """Test case: test_convert_sampling_counts_to_int_keys_from_model."""
-    sampling = models.JobsSamplingResult(
+    sampling = models.JobsS3SamplingResult(
         counts={"00": 8, "11": 2},
         divided_counts={"00": 0.8, "11": 0.2},
     )
