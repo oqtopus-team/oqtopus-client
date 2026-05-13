@@ -30,6 +30,7 @@ authors:
   given-names: "Ryo"
 version: 1.0.1
 date-released: 2026-05-13
+doi: 10.5281/zenodo.20155552
 license: Apache-2.0
 repository-code: "https://github.com/oqtopus-team/oqtopus-client"
 url: "https://oqtopus-client.readthedocs.io/"
