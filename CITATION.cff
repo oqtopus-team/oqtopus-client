@@ -28,8 +28,8 @@ authors:
   orcid: "https://orcid.org/0009-0000-3825-9083"
 - family-names: "Uchida"
   given-names: "Ryo"
-version: 0.1.0
-date-released: 2026-03-11
+version: 1.0.1
+date-released: 2026-05-13
 license: Apache-2.0
 repository-code: "https://github.com/oqtopus-team/oqtopus-client"
 url: "https://oqtopus-client.readthedocs.io/"

@@ -37,7 +37,7 @@ wrappers for a more concise workflow.
 
 You can use the DOI to cite OQTOPUS in your research.
 
-[![DOI](https://zenodo.org/badge/943222082.svg)](https://zenodo.org/badge/latestdoi/943222082)
+[![DOI](https://zenodo.org/badge/1156029183.svg)](https://zenodo.org/badge/latestdoi/1156029183)
 
 Citation information is also available in the [CITATION](https://github.com/oqtopus-team/oqtopus-client/blob/main/CITATION.cff) file.
 
