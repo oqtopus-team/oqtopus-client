@@ -2,8 +2,10 @@
 
 # OQTOPUS Client
 
-[![Package and release](https://github.com/oqtopus-team/oqtopus-client/actions/workflows/python-publish.yaml/badge.svg)](https://github.com/oqtopus-team/oqtopus-client/actions/workflows/python-publish.yaml)
+[![CI](https://github.com/oqtopus-team/oqtopus-client/actions/workflows/ci.yaml/badge.svg)](https://github.com/oqtopus-team/oqtopus-client/actions/workflows/ci.yaml)
 [![pypi version](https://img.shields.io/pypi/v/oqtopus-client.svg)](https://pypi.org/project/oqtopus-client/)
+[![Python versions](https://img.shields.io/pypi/pyversions/oqtopus-client.svg)](https://pypi.org/project/oqtopus-client/)
+[![GitHub release](https://img.shields.io/github/v/release/oqtopus-team/oqtopus-client)](https://github.com/oqtopus-team/oqtopus-client/releases)
 [![Documentation Status](https://readthedocs.org/projects/oqtopus-client/badge/?version=latest)](https://oqtopus-client.readthedocs.io/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![slack](https://img.shields.io/badge/slack-OQTOPUS-pink.svg?logo=slack&style=plastic)](https://join.slack.com/t/oqtopus/shared_invite/zt-3bpjb7yc3-Vg8IYSMY1m5wV3DR~TMSnw)
