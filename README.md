@@ -2,7 +2,7 @@
 
 # OQTOPUS Client
 
-[![Package and release](https://github.com/oqtopus-team/oqtopus-client/actions/workflows/python-publish.yaml/badge.svg)](https://github.com/oqtopus-team/oqtopus-client/actions/workflows/python-publish.yaml)
+[![CI](https://github.com/oqtopus-team/oqtopus-client/actions/workflows/ci.yaml/badge.svg)](https://github.com/oqtopus-team/oqtopus-client/actions/workflows/ci.yaml)
 [![pypi version](https://img.shields.io/pypi/v/oqtopus-client.svg)](https://pypi.org/project/oqtopus-client/)
 [![Documentation Status](https://readthedocs.org/projects/oqtopus-client/badge/?version=latest)](https://oqtopus-client.readthedocs.io/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
