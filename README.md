@@ -1,4 +1,4 @@
-![OQTOPUS logo](./docs/asset/oqtopus-logo.png)
+![OQTOPUS logo](https://raw.githubusercontent.com/oqtopus-team/oqtopus-client/main/docs/asset/oqtopus-logo.png)
 
 # OQTOPUS Client
 
@@ -31,7 +31,7 @@ wrappers for a more concise workflow.
 
 ## Documentation
 
-- [Documentation Home](./docs/index.md)
+- [Documentation Home](https://oqtopus-client.readthedocs.io/)
 
 ## Citation
 
