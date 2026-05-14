@@ -18,6 +18,7 @@
 from oqtopus_client.rest.models.announcements_get_announcement_response import AnnouncementsGetAnnouncementResponse
 from oqtopus_client.rest.models.announcements_get_announcements_list_response import AnnouncementsGetAnnouncementsListResponse
 from oqtopus_client.rest.models.api_token_api_token import ApiTokenApiToken
+from oqtopus_client.rest.models.api_token_api_token_status import ApiTokenApiTokenStatus
 from oqtopus_client.rest.models.devices_device_info import DevicesDeviceInfo
 from oqtopus_client.rest.models.error_bad_request import ErrorBadRequest
 from oqtopus_client.rest.models.error_forbidden_error import ErrorForbiddenError
@@ -39,4 +40,8 @@ from oqtopus_client.rest.models.jobs_submit_job_info import JobsSubmitJobInfo
 from oqtopus_client.rest.models.jobs_submit_job_request import JobsSubmitJobRequest
 from oqtopus_client.rest.models.jobs_submit_job_response import JobsSubmitJobResponse
 from oqtopus_client.rest.models.jobs_transpile_result import JobsTranspileResult
+from oqtopus_client.rest.models.settings_get_settings_response import SettingsGetSettingsResponse
 from oqtopus_client.rest.models.success_success_response import SuccessSuccessResponse
+from oqtopus_client.rest.models.users_get_one_user_response import UsersGetOneUserResponse
+from oqtopus_client.rest.models.users_login_event import UsersLoginEvent
+from oqtopus_client.rest.models.users_update_user_request import UsersUpdateUserRequest
