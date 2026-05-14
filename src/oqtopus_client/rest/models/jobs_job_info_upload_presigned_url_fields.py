@@ -18,24 +18,21 @@ import pprint
 import re  # noqa: F401
 import json
 
-from datetime import datetime
-from pydantic import BaseModel, ConfigDict, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
-from oqtopus_client.rest.models.users_login_event import UsersLoginEvent
 from typing import Optional, Set
 from typing_extensions import Self
 
-class UsersGetOneUserResponse(BaseModel):
+class JobsJobInfoUploadPresignedURLFields(BaseModel):
     """
-    detail of user response
+    JobsJobInfoUploadPresignedURLFields
     """ # noqa: E501
-    id: Optional[StrictStr] = None
-    email: Optional[StrictStr] = None
-    name: Optional[StrictStr] = None
-    organization: Optional[StrictStr] = None
-    created_at: Optional[datetime] = None
-    login_events: Optional[List[UsersLoginEvent]] = None
-    __properties: ClassVar[List[str]] = ["id", "email", "name", "organization", "created_at", "login_events"]
+    key: StrictStr
+    aws_access_key_id: Optional[StrictStr] = Field(default=None, alias="AWSAccessKeyId")
+    x_amz_security_token: Optional[StrictStr] = Field(default=None, alias="x-amz-security-token")
+    policy: Optional[StrictStr] = None
+    signature: Optional[StrictStr] = None
+    __properties: ClassVar[List[str]] = ["key", "AWSAccessKeyId", "x-amz-security-token", "policy", "signature"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -55,7 +52,7 @@ class UsersGetOneUserResponse(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of UsersGetOneUserResponse from a JSON string"""
+        """Create an instance of JobsJobInfoUploadPresignedURLFields from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -76,18 +73,11 @@ class UsersGetOneUserResponse(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of each item in login_events (list)
-        _items = []
-        if self.login_events:
-            for _item_login_events in self.login_events:
-                if _item_login_events:
-                    _items.append(_item_login_events.to_dict())
-            _dict['login_events'] = _items
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of UsersGetOneUserResponse from a dict"""
+        """Create an instance of JobsJobInfoUploadPresignedURLFields from a dict"""
         if obj is None:
             return None
 
@@ -95,12 +85,11 @@ class UsersGetOneUserResponse(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "id": obj.get("id"),
-            "email": obj.get("email"),
-            "name": obj.get("name"),
-            "organization": obj.get("organization"),
-            "created_at": obj.get("created_at"),
-            "login_events": [UsersLoginEvent.from_dict(_item) for _item in obj["login_events"]] if obj.get("login_events") is not None else None
+            "key": obj.get("key"),
+            "AWSAccessKeyId": obj.get("AWSAccessKeyId"),
+            "x-amz-security-token": obj.get("x-amz-security-token"),
+            "policy": obj.get("policy"),
+            "signature": obj.get("signature")
         })
         return _obj
 

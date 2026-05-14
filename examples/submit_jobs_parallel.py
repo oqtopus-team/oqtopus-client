@@ -38,14 +38,14 @@ jobs = [
     OqtopusJobSpec.sampling(
         name="Parallel Sampling 1",
         description="BatchRunner parallel example 1",
-        device_id="Kawasaki",
+        device_id="qulacs",
         shots=1000,
         program=program_bell,
     ),
     OqtopusJobSpec.sampling(
         name="Parallel Sampling 2",
         description="BatchRunner parallel example 2",
-        device_id="Kawasaki",
+        device_id="qulacs",
         shots=1000,
         program=program_single,
     ),

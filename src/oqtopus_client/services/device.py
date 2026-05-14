@@ -102,7 +102,7 @@ class OqtopusDevice:
         payload into a dictionary for easier consumption.
 
         """
-        if self.device_info_str is None:
+        if not self.device_info_str:
             return None
 
         parsed = json.loads(self.device_info_str)

@@ -36,7 +36,7 @@ c[0] = measure q[0];
 req = OqtopusJobSpec.multi_manual(
     name="Multi Manual Example",
     description="Submit multi_manual job example",
-    device_id="Kawasaki",
+    device_id="qulacs",
     shots=1000,
     program=[program1, program2],
 )

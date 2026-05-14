@@ -27,13 +27,13 @@ c[0] = measure q[0];
 
 jobs = [
     OqtopusJobSpec.sampling(
-        device_id="Kawasaki",
+        device_id="qulacs",
         shots=500,
         program=PROGRAM_A,
         name="Batch A",
     ),
     OqtopusJobSpec.sampling(
-        device_id="Kawasaki",
+        device_id="qulacs",
         shots=500,
         program=PROGRAM_B,
         name="Batch B",
