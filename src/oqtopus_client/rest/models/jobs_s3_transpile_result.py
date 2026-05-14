@@ -18,24 +18,19 @@ import pprint
 import re  # noqa: F401
 import json
 
-from datetime import datetime
 from pydantic import BaseModel, ConfigDict, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
-from oqtopus_client.rest.models.users_login_event import UsersLoginEvent
 from typing import Optional, Set
 from typing_extensions import Self
 
-class UsersGetOneUserResponse(BaseModel):
+class JobsS3TranspileResult(BaseModel):
     """
-    detail of user response
+    JobsS3TranspileResult
     """ # noqa: E501
-    id: Optional[StrictStr] = None
-    email: Optional[StrictStr] = None
-    name: Optional[StrictStr] = None
-    organization: Optional[StrictStr] = None
-    created_at: Optional[datetime] = None
-    login_events: Optional[List[UsersLoginEvent]] = None
-    __properties: ClassVar[List[str]] = ["id", "email", "name", "organization", "created_at", "login_events"]
+    transpiled_program: Optional[StrictStr]
+    stats: Optional[Dict[str, Any]]
+    virtual_physical_mapping: Optional[Dict[str, Any]]
+    __properties: ClassVar[List[str]] = ["transpiled_program", "stats", "virtual_physical_mapping"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -55,7 +50,7 @@ class UsersGetOneUserResponse(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of UsersGetOneUserResponse from a JSON string"""
+        """Create an instance of JobsS3TranspileResult from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -76,18 +71,26 @@ class UsersGetOneUserResponse(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of each item in login_events (list)
-        _items = []
-        if self.login_events:
-            for _item_login_events in self.login_events:
-                if _item_login_events:
-                    _items.append(_item_login_events.to_dict())
-            _dict['login_events'] = _items
+        # set to None if transpiled_program (nullable) is None
+        # and model_fields_set contains the field
+        if self.transpiled_program is None and "transpiled_program" in self.model_fields_set:
+            _dict['transpiled_program'] = None
+
+        # set to None if stats (nullable) is None
+        # and model_fields_set contains the field
+        if self.stats is None and "stats" in self.model_fields_set:
+            _dict['stats'] = None
+
+        # set to None if virtual_physical_mapping (nullable) is None
+        # and model_fields_set contains the field
+        if self.virtual_physical_mapping is None and "virtual_physical_mapping" in self.model_fields_set:
+            _dict['virtual_physical_mapping'] = None
+
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of UsersGetOneUserResponse from a dict"""
+        """Create an instance of JobsS3TranspileResult from a dict"""
         if obj is None:
             return None
 
@@ -95,12 +98,9 @@ class UsersGetOneUserResponse(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "id": obj.get("id"),
-            "email": obj.get("email"),
-            "name": obj.get("name"),
-            "organization": obj.get("organization"),
-            "created_at": obj.get("created_at"),
-            "login_events": [UsersLoginEvent.from_dict(_item) for _item in obj["login_events"]] if obj.get("login_events") is not None else None
+            "transpiled_program": obj.get("transpiled_program"),
+            "stats": obj.get("stats"),
+            "virtual_physical_mapping": obj.get("virtual_physical_mapping")
         })
         return _obj
 

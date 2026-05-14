@@ -18,24 +18,18 @@ import pprint
 import re  # noqa: F401
 import json
 
-from datetime import datetime
-from pydantic import BaseModel, ConfigDict, StrictStr
-from typing import Any, ClassVar, Dict, List, Optional
-from oqtopus_client.rest.models.users_login_event import UsersLoginEvent
+from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt
+from typing import Any, ClassVar, Dict, List, Optional, Union
 from typing import Optional, Set
 from typing_extensions import Self
 
-class UsersGetOneUserResponse(BaseModel):
+class JobsS3EstimationResult(BaseModel):
     """
-    detail of user response
+    *(Only for estimation jobs)* The estimated expectation value and the standard deviation of the operators specified in `job_info.operator` field which is intended to be provided for estimation jobs. 
     """ # noqa: E501
-    id: Optional[StrictStr] = None
-    email: Optional[StrictStr] = None
-    name: Optional[StrictStr] = None
-    organization: Optional[StrictStr] = None
-    created_at: Optional[datetime] = None
-    login_events: Optional[List[UsersLoginEvent]] = None
-    __properties: ClassVar[List[str]] = ["id", "email", "name", "organization", "created_at", "login_events"]
+    exp_value: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="The estimated expectation value")
+    stds: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="The standard deviation value")
+    __properties: ClassVar[List[str]] = ["exp_value", "stds"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -55,7 +49,7 @@ class UsersGetOneUserResponse(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of UsersGetOneUserResponse from a JSON string"""
+        """Create an instance of JobsS3EstimationResult from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -76,18 +70,11 @@ class UsersGetOneUserResponse(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of each item in login_events (list)
-        _items = []
-        if self.login_events:
-            for _item_login_events in self.login_events:
-                if _item_login_events:
-                    _items.append(_item_login_events.to_dict())
-            _dict['login_events'] = _items
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of UsersGetOneUserResponse from a dict"""
+        """Create an instance of JobsS3EstimationResult from a dict"""
         if obj is None:
             return None
 
@@ -95,12 +82,8 @@ class UsersGetOneUserResponse(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "id": obj.get("id"),
-            "email": obj.get("email"),
-            "name": obj.get("name"),
-            "organization": obj.get("organization"),
-            "created_at": obj.get("created_at"),
-            "login_events": [UsersLoginEvent.from_dict(_item) for _item in obj["login_events"]] if obj.get("login_events") is not None else None
+            "exp_value": obj.get("exp_value"),
+            "stds": obj.get("stds")
         })
         return _obj
 

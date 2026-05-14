@@ -288,6 +288,7 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
         fields: str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
+        status: models.JobsJobStatus | None = None,
         q: str | None = None,
         page: int | None = None,
         size: int | None = None,
@@ -300,7 +301,8 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
                 job_api.list_jobs(
                     fields=fields,
                     start_time=start_time,
-                    end_tiime=end_time,
+                    end_time=end_time,
+                    status=status,
                     q=q,
                     page=page,
                     size=size,
@@ -767,14 +769,17 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
             raise ResponseValidationError(msg, token)
         return token
 
-    async def get_api_token(self) -> models.ApiTokenApiToken:
+    async def get_api_token_status(self) -> models.ApiTokenApiTokenStatus:
         token_api = self._token_api
         return cast(
-            "models.ApiTokenApiToken",
+            "models.ApiTokenApiTokenStatus",
             await self._call_rest(
-                token_api.get_api_token(_request_timeout=self._rest_timeout)
+                token_api.get_api_token_status(_request_timeout=self._rest_timeout)
             ),
         )
+
+    async def get_api_token(self) -> models.ApiTokenApiTokenStatus:
+        return await self.get_api_token_status()
 
     async def delete_api_token(self) -> None:
         token_api = self._token_api
@@ -1020,6 +1025,7 @@ class OqtopusClient:  # noqa: PLR0904
         fields: str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
+        status: models.JobsJobStatus | None = None,
         q: str | None = None,
         page: int | None = None,
         size: int | None = None,
@@ -1036,6 +1042,7 @@ class OqtopusClient:  # noqa: PLR0904
             fields=fields,
             start_time=start_time,
             end_time=end_time,
+            status=status,
             q=q,
             page=page,
             size=size,
@@ -1800,14 +1807,23 @@ class OqtopusClient:  # noqa: PLR0904
         """
         return self._run_async_method(_AsyncOqtopusClient.create_api_token)
 
-    def get_api_token(self) -> models.ApiTokenApiToken:
-        """Get API token.
+    def get_api_token_status(self) -> models.ApiTokenApiTokenStatus:
+        """Get API token status.
 
         Returns:
-            The current API token payload.
+            The current API token status payload.
 
         """
-        return self._run_async_method(_AsyncOqtopusClient.get_api_token)
+        return self._run_async_method(_AsyncOqtopusClient.get_api_token_status)
+
+    def get_api_token(self) -> models.ApiTokenApiTokenStatus:
+        """Get API token status.
+
+        Returns:
+            The current API token status payload.
+
+        """
+        return self.get_api_token_status()
 
     def delete_api_token(self) -> None:
         """Delete current API token."""

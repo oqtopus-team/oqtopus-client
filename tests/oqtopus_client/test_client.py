@@ -180,6 +180,7 @@ def test_list_jobs_and_filters_passthrough() -> None:
     def fake_call(method_name: str, *args: Any, **kwargs: Any) -> Any:
         assert method_name == "list_jobs"
         assert kwargs["end_time"] == now
+        assert kwargs["status"] == models.JobsJobStatus.SUCCEEDED
         return [
             models.JobsGetJobsResponse(
                 job_id="job-1",
@@ -193,7 +194,7 @@ def test_list_jobs_and_filters_passthrough() -> None:
         ]
 
     client = _build_client_with_fake_call(fake_call)
-    jobs = client.list_jobs(end_time=now)
+    jobs = client.list_jobs(end_time=now, status=models.JobsJobStatus.SUCCEEDED)
     assert len(jobs) == 1
 
 
