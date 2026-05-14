@@ -20,7 +20,7 @@ c[0] = measure q[0];
 client = OqtopusClient(OqtopusConfig.from_file(SECTION, path=CONFIG_PATH))
 job_id = client.submit_job(
     OqtopusJobSpec.sampling(
-        device_id="Kawasaki",
+        device_id="qulacs",
         shots=100,
         program=PROGRAM,
         name="Wait/Delete example",

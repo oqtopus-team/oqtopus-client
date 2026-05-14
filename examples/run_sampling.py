@@ -27,7 +27,7 @@ c[1] = measure q[1];
 req = OqtopusJobSpec.sampling(
     name="Bell State Sampling",
     description="Bell state sampling example",
-    device_id="Kawasaki",
+    device_id="qulacs",
     shots=1000,
     program=program,
 )
