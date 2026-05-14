@@ -25,7 +25,7 @@ c[0] = measure q[0];
 job_spec = OqtopusJobSpec.sampling(
     name="Run Job Generic",
     description="Use run_job helper with a sampling spec",
-    device_id="Kawasaki",
+    device_id="qulacs",
     shots=1000,
     program=PROGRAM,
 )

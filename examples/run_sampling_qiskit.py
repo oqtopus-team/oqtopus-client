@@ -24,7 +24,7 @@ qasm = qasm3.dumps(circuit)
 req = OqtopusJobSpec.sampling(
     name="Bell State Sampling (Qiskit)",
     description="Submit sampling job from Qiskit circuit",
-    device_id="Kawasaki",
+    device_id="qulacs",
     shots=1000,
     program=qasm,
 )

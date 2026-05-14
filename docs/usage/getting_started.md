@@ -88,7 +88,7 @@ implement that lifecycle control yourself:
 from oqtopus_client import OqtopusClient, OqtopusJobSpec
 
 req = OqtopusJobSpec.sampling(
-    device_id="Kawasaki",
+    device_id="qulacs",
     shots=1000,
     program=program,
 )
@@ -108,7 +108,7 @@ You can also use job-type-specific shortcuts (raise `ValueError` on mismatch):
 
 ```python
 sampling_req = OqtopusJobSpec.sampling(
-    device_id="Kawasaki",
+    device_id="qulacs",
     shots=1000,
     program=program,
 )
@@ -131,7 +131,7 @@ from oqtopus_client import OqtopusClient, OqtopusJobSpec
 
 client = OqtopusClient()
 req = OqtopusJobSpec.sampling(
-    device_id="Kawasaki",
+    device_id="qulacs",
     shots=1000,
     program=program,
 )
@@ -170,13 +170,13 @@ async def main() -> None:
     client = OqtopusClient()
     jobs = [
         OqtopusJobSpec.sampling(
-            device_id="Kawasaki",
+            device_id="qulacs",
             shots=1000,
             program=program,
             name="async-job-1",
         ),
         OqtopusJobSpec.sampling(
-            device_id="Kawasaki",
+            device_id="qulacs",
             shots=1000,
             program=program,
             name="async-job-2",
@@ -232,7 +232,7 @@ from oqtopus_client import OqtopusClient, OqtopusJobSpec
 
 client = OqtopusClient()
 req = OqtopusJobSpec.sampling(
-    device_id="Kawasaki",
+    device_id="qulacs",
     shots=1000,
     program=program,
 )

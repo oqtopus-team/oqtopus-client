@@ -14,7 +14,7 @@ sse_script_path = Path(__file__).with_name("userprogram.py")
 client = OqtopusClient(OqtopusConfig.from_file(section, path=config_path))
 result = client.run_sse_file(
     file_path=sse_script_path,
-    device_id="Kawasaki",
+    device_id="qulacs",
     name="SSE Example",
     description="Submit sse job example",
     timeout=300.0,

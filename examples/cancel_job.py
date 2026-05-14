@@ -21,7 +21,7 @@ c[0] = measure q[0];
 req = OqtopusJobSpec.sampling(
     name="Cancel Job Example",
     description="Create a job and cancel it",
-    device_id="Kawasaki",
+    device_id="qulacs",
     shots=100,
     program=program,
 )
