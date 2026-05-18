@@ -63,3 +63,28 @@ def test_device_info_raises_for_malformed_json() -> None:
 
     with pytest.raises(json.JSONDecodeError):
         _ = device.device_info
+
+
+@pytest.mark.parametrize("raw_device_info", [None, ""])
+def test_device_info_is_none_for_missing_payload(
+    raw_device_info: str | None,
+) -> None:
+    """Test case: test_device_info_is_none_for_missing_payload."""
+    device = OqtopusDevice(
+        raw=models.DevicesDeviceInfo(
+            device_id="K",
+            device_type="simulator",
+            status="available",
+            available_at=None,
+            n_pending_jobs=0,
+            n_qubits=2,
+            basis_gates=["x", "h"],
+            supported_instructions=["measure"],
+            device_info=raw_device_info,
+            calibrated_at=None,
+            description="sim",
+        ),
+    )
+
+    assert device.device_info_str == raw_device_info
+    assert device.device_info is None

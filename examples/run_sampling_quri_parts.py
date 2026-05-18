@@ -25,7 +25,7 @@ qasm = convert_to_qasm_str(circuit)
 req = OqtopusJobSpec.sampling(
     name="Bell State Sampling (QURI Parts)",
     description="Submit sampling job from QURI Parts circuit",
-    device_id="Kawasaki",
+    device_id="qulacs",
     shots=1000,
     program=qasm,
 )

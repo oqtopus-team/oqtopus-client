@@ -23,6 +23,9 @@ from typing import List, Optional
 from typing_extensions import Annotated
 from oqtopus_client.rest.models.jobs_get_job_status_response import JobsGetJobStatusResponse
 from oqtopus_client.rest.models.jobs_job import JobsJob
+from oqtopus_client.rest.models.jobs_get_jobs_response import JobsGetJobsResponse
+from oqtopus_client.rest.models.jobs_get_sselog_response import JobsGetSselogResponse
+from oqtopus_client.rest.models.jobs_job_def import JobsJobDef
 from oqtopus_client.rest.models.jobs_job_status import JobsJobStatus
 from oqtopus_client.rest.models.jobs_register_job_response import JobsRegisterJobResponse
 from oqtopus_client.rest.models.jobs_submit_job_request import JobsSubmitJobRequest

@@ -42,6 +42,8 @@ from oqtopus_client.rest.models.jobs_s3_submit_job_info import JobsS3SubmitJobIn
 from oqtopus_client.rest.models.jobs_s3_transpile_result import JobsS3TranspileResult
 from oqtopus_client.rest.models.jobs_submit_job_request import JobsSubmitJobRequest
 from oqtopus_client.rest.models.jobs_submitted_job import JobsSubmittedJob
+from oqtopus_client.rest.models.jobs_submit_job_response import JobsSubmitJobResponse
+from oqtopus_client.rest.models.jobs_transpile_result import JobsTranspileResult
 from oqtopus_client.rest.models.settings_get_settings_response import SettingsGetSettingsResponse
 from oqtopus_client.rest.models.success_success_response import SuccessSuccessResponse
 from oqtopus_client.rest.models.users_get_one_user_response import UsersGetOneUserResponse

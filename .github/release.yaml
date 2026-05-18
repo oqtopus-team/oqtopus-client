@@ -1,0 +1,23 @@
+changelog:
+  categories:
+    - title: New Feature
+      labels:
+        - feature
+    - title: Bug Fixes
+      labels:
+        - bugfix
+    - title: Refactor
+      labels:
+        - refactor
+    - title: Style
+      labels:
+        - style
+    - title: Test
+      labels:
+        - test
+    - title: CI/CD
+      labels:
+        - ci
+    - title: Documentation
+      labels:
+        - documentation

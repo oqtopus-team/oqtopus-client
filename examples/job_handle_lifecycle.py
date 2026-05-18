@@ -20,7 +20,7 @@ c[0] = measure q[0];
 job_spec = OqtopusJobSpec.sampling(
     name="Job Lifecycle",
     description="Use client job methods end-to-end",
-    device_id="Kawasaki",
+    device_id="qulacs",
     shots=500,
     program=PROGRAM,
 )

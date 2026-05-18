@@ -10,5 +10,5 @@ build:
     - asdf plugin add uv || true
     - asdf install uv latest
     - asdf global uv latest
-    - uv sync --frozen
-    - NO_COLOR=1 uv run mkdocs build --site-dir $READTHEDOCS_OUTPUT/html
+    - uv sync --frozen --extra dev
+    - NO_COLOR=1 uv run --extra dev mkdocs build --site-dir $READTHEDOCS_OUTPUT/html

@@ -63,7 +63,7 @@ examples, API reference pages, or contributor guidance.
 
 You can use the DOI to cite OQTOPUS in your research.
 
-[![DOI](https://zenodo.org/badge/943222082.svg)](https://zenodo.org/badge/latestdoi/943222082)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20155552.svg)](https://doi.org/10.5281/zenodo.20155552)
 
 Citation information is also available in the
 [CITATION](https://github.com/oqtopus-team/oqtopus-client/blob/main/CITATION.cff)

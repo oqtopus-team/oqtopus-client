@@ -413,8 +413,8 @@ def test_sync_wrappers_delegate_to_call() -> None:
             return JobsGetSselogResponse(file="Zm9v", file_name="x.zip")
         if method_name == "create_api_token":
             return models.ApiTokenApiToken(api_token_secret="secret", api_token_expiration=None)
-        if method_name == "get_api_token":
-            return models.ApiTokenApiToken(api_token_expiration=None)
+        if method_name == "get_api_token_status":
+            return models.ApiTokenApiTokenStatus(api_token_expiration=None)
         if method_name == "get_announcements_list":
             return models.AnnouncementsGetAnnouncementsListResponse(
                 announcements=[
@@ -467,14 +467,15 @@ def test_sync_wrappers_delegate_to_call() -> None:
     assert isinstance(client.cancel_job("j"), models.SuccessSuccessResponse)
     assert isinstance(client.get_sselog("j"), JobsGetSselogResponse)
     assert isinstance(client.create_api_token(), models.ApiTokenApiToken)
-    assert isinstance(client.get_api_token(), models.ApiTokenApiToken)
+    assert isinstance(client.get_api_token_status(), models.ApiTokenApiTokenStatus)
+    assert isinstance(client.get_api_token(), models.ApiTokenApiTokenStatus)
     client.delete_api_token()
     assert isinstance(client.get_announcements_list(), models.AnnouncementsGetAnnouncementsListResponse)
     assert isinstance(client.get_announcement(1), models.AnnouncementsGetAnnouncementResponse)
 
     methods = {name for name, _, _ in called}
     assert "get_device" in methods
-    assert "get_api_token" in methods
+    assert "get_api_token_status" in methods
 
 
 def test_sync_clients_keep_isolated_configuration() -> None:
@@ -587,7 +588,7 @@ def test_run_async_method_delegates_selected_async_method() -> None:
     assert cancel_response.message == "ok"
     assert observed == [
         "list_devices",
-        "get_api_token",
+        "get_api_token_status",
         "submit_job",
         "get_job_status",
         "cancel_job",

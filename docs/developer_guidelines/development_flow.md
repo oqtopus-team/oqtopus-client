@@ -226,6 +226,24 @@ Prefer a clean history on both `develop` and `main`.
 - Keep the PR title or squash commit message in Conventional Commits style.
 - Avoid mixing unrelated generated diffs and hand-written refactors in one PR.
 
+## Release
+
+Before a release, update the package version in `pyproject.toml` and run the
+release checks:
+
+```bash
+make check
+make docs
+rm -rf build dist src/*.egg-info
+uv build
+uvx twine check dist/*
+```
+
+After promoting `develop` to `main`, create a `vX.Y.Z` tag and publish a
+GitHub Release. Publishing the GitHub Release triggers
+`.github/workflows/python-publish.yaml`, which builds the package and publishes
+it to PyPI with Trusted Publishing.
+
 ## Review Tips for Generated Diffs
 
 Generated diffs can be noisy, so review them separately from hand-written code

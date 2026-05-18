@@ -38,13 +38,13 @@ async def main() -> None:
     """Submit and wait for multiple jobs concurrently from an async context."""
     jobs = [
         OqtopusJobSpec.sampling(
-            device_id="Kawasaki",
+            device_id="qulacs",
             shots=500,
             program=PROGRAM_A,
             name="Async Batch A",
         ),
         OqtopusJobSpec.sampling(
-            device_id="Kawasaki",
+            device_id="qulacs",
             shots=500,
             program=PROGRAM_B,
             name="Async Batch B",
