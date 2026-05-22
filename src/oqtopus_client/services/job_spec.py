@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import base64
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -19,29 +18,22 @@ def _as_program_list(program: str | Sequence[str]) -> list[str]:
     return list(program)
 
 
-def _encode_programs_base64(program: str | Sequence[str]) -> list[str]:
-    return [
-        base64.b64encode(text.encode("utf-8")).decode("utf-8")
-        for text in _as_program_list(program)
-    ]
-
-
 def _coerce_operators(
     operator: Sequence[
-        OqtopusEstimationOperator | models.JobsOperatorItem | Mapping[str, Any]
+        OqtopusEstimationOperator | models.JobsS3OperatorItem | Mapping[str, Any]
     ]
     | None,
-) -> list[models.JobsOperatorItem] | None:
+) -> list[models.JobsS3OperatorItem] | None:
     if operator is None:
         return None
-    coerced: list[models.JobsOperatorItem] = []
+    coerced: list[models.JobsS3OperatorItem] = []
     for item in operator:
         if isinstance(item, OqtopusEstimationOperator):
             coerced.append(item.to_model())
-        elif isinstance(item, models.JobsOperatorItem):
+        elif isinstance(item, models.JobsS3OperatorItem):
             coerced.append(item)
         else:
-            coerced.append(models.JobsOperatorItem.model_validate(dict(item)))
+            coerced.append(models.JobsS3OperatorItem.model_validate(dict(item)))
     return coerced
 
 
@@ -76,7 +68,7 @@ class OqtopusJobSpec:
     mitigation_info: Mapping[str, Any] = field(default_factory=dict)
     operator: (
         Sequence[
-            OqtopusEstimationOperator | models.JobsOperatorItem | Mapping[str, Any]
+            OqtopusEstimationOperator | models.JobsS3OperatorItem | Mapping[str, Any]
         ]
         | None
     ) = None
@@ -94,7 +86,7 @@ class OqtopusJobSpec:
         simulator_info: Mapping[str, Any] | None = None,
         mitigation_info: Mapping[str, Any] | None = None,
         operator: Sequence[
-            OqtopusEstimationOperator | models.JobsOperatorItem | Mapping[str, Any]
+            OqtopusEstimationOperator | models.JobsS3OperatorItem | Mapping[str, Any]
         ]
         | None = None,
     ) -> OqtopusJobSpec:
@@ -141,7 +133,7 @@ class OqtopusJobSpec:
         simulator_info: Mapping[str, Any] | None = None,
         mitigation_info: Mapping[str, Any] | None = None,
         operator: Sequence[
-            OqtopusEstimationOperator | models.JobsOperatorItem | Mapping[str, Any]
+            OqtopusEstimationOperator | models.JobsS3OperatorItem | Mapping[str, Any]
         ]
         | None = None,
     ) -> OqtopusJobSpec:
@@ -188,7 +180,7 @@ class OqtopusJobSpec:
         simulator_info: Mapping[str, Any] | None = None,
         mitigation_info: Mapping[str, Any] | None = None,
         operator: Sequence[
-            OqtopusEstimationOperator | models.JobsOperatorItem | Mapping[str, Any]
+            OqtopusEstimationOperator | models.JobsS3OperatorItem | Mapping[str, Any]
         ]
         | None = None,
     ) -> OqtopusJobSpec:
@@ -240,7 +232,6 @@ class OqtopusJobSpec:
         Args:
             device_id (Required): Target device ID.
             program (Required): A Python script string or a sequence of script strings.
-                Each entry is UTF-8/base64-encoded automatically for API submission.
             shots (Optional): Number of shots. Default is ``1000``.
             name (Optional): Job name.
             description (Optional): Job description.
@@ -255,7 +246,7 @@ class OqtopusJobSpec:
         return cls(
             device_id=device_id,
             job_type=models.JobsJobType.SSE,
-            program=_encode_programs_base64(program),
+            program=program,
             shots=shots,
             name=name,
             description=description,
@@ -284,11 +275,36 @@ class OqtopusJobSpec:
             device_id=self.device_id,
             job_type=job_type,
             shots=self.shots,
-            job_info=models.JobsSubmitJobInfo(
-                program=_as_program_list(self.program),
-                operator=_coerce_operators(self.operator),
-            ),
             transpiler_info=dict(self.transpiler_info or {}),
             simulator_info=dict(self.simulator_info or {}),
             mitigation_info=dict(self.mitigation_info or {}),
+        )
+
+    def to_s3_submit_job_info(self) -> models.JobsS3SubmitJobInfo:
+        """Convert to the generated ``JobsS3SubmitJobInfo`` model.
+
+        Returns:
+            The generated S3 offload payload model.
+
+        Raises:
+            ValueError: If an SSE job does not contain exactly one Python program.
+
+        """
+        job_type = self.job_type
+        if isinstance(job_type, str):
+            job_type = models.JobsJobType(job_type)
+
+        if job_type == models.JobsJobType.SSE:
+            programs = _as_program_list(self.program)
+            if len(programs) != 1:
+                msg = "SSE jobs require exactly one Python program."
+                raise ValueError(msg)
+            return models.JobsS3SubmitJobInfo(
+                sse_program=programs[0],
+                operator=None,
+            )
+
+        return models.JobsS3SubmitJobInfo(
+            program=_as_program_list(self.program),
+            operator=_coerce_operators(self.operator),
         )

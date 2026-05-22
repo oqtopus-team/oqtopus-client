@@ -14,18 +14,21 @@ class OqtopusEstimationOperator:
     pauli: str
     coeff: float | None = None
 
-    def to_model(self) -> models.JobsOperatorItem:
-        """Convert this wrapper to the REST ``JobsOperatorItem`` model.
+    def to_model(self) -> models.JobsS3OperatorItem:
+        """Convert this wrapper to the REST ``JobsS3OperatorItem`` model.
 
         Returns:
             The API model for this operator.
 
         """
-        return models.JobsOperatorItem(pauli=self.pauli, coeff=self.coeff)
+        return models.JobsS3OperatorItem(pauli=self.pauli, coeff=self.coeff)
 
     @classmethod
-    def from_model(cls, operator: models.JobsOperatorItem) -> OqtopusEstimationOperator:
-        """Build a wrapper from a REST ``JobsOperatorItem`` model.
+    def from_model(
+        cls,
+        operator: models.JobsS3OperatorItem,
+    ) -> OqtopusEstimationOperator:
+        """Build a wrapper from a REST ``JobsS3OperatorItem`` model.
 
         Args:
             operator (Required): REST model to convert.

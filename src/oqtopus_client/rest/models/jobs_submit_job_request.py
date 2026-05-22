@@ -22,7 +22,6 @@ from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
 from typing_extensions import Annotated
 from oqtopus_client.rest.models.jobs_job_type import JobsJobType
-from oqtopus_client.rest.models.jobs_submit_job_info import JobsSubmitJobInfo
 from typing import Optional, Set
 from typing_extensions import Self
 
@@ -34,12 +33,11 @@ class JobsSubmitJobRequest(BaseModel):
     description: Optional[StrictStr] = None
     device_id: StrictStr
     job_type: JobsJobType
-    job_info: JobsSubmitJobInfo
     transpiler_info: Optional[Dict[str, Any]] = None
     simulator_info: Optional[Dict[str, Any]] = None
     mitigation_info: Optional[Dict[str, Any]] = None
     shots: Annotated[int, Field(le=10000000, strict=True, ge=1)]
-    __properties: ClassVar[List[str]] = ["name", "description", "device_id", "job_type", "job_info", "transpiler_info", "simulator_info", "mitigation_info", "shots"]
+    __properties: ClassVar[List[str]] = ["name", "description", "device_id", "job_type", "transpiler_info", "simulator_info", "mitigation_info", "shots"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -80,9 +78,6 @@ class JobsSubmitJobRequest(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of job_info
-        if self.job_info:
-            _dict['job_info'] = self.job_info.to_dict()
         return _dict
 
     @classmethod
@@ -99,7 +94,6 @@ class JobsSubmitJobRequest(BaseModel):
             "description": obj.get("description"),
             "device_id": obj.get("device_id"),
             "job_type": obj.get("job_type"),
-            "job_info": JobsSubmitJobInfo.from_dict(obj["job_info"]) if obj.get("job_info") is not None else None,
             "transpiler_info": obj.get("transpiler_info"),
             "simulator_info": obj.get("simulator_info"),
             "mitigation_info": obj.get("mitigation_info"),
