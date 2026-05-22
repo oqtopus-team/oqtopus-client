@@ -5,10 +5,11 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 from types import TracebackType
-from typing import Any, Self
+from typing import Any
 
 import aiohttp
 import pytest
+from typing_extensions import Self
 
 from oqtopus_client import rest as models
 from oqtopus_client.services.storage import OqtopusStorage, OqtopusStorageError
