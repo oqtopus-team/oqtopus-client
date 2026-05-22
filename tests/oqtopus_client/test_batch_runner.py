@@ -16,8 +16,8 @@ from oqtopus_client import (
 from oqtopus_client import rest as models
 
 
-def _job(job_id: str) -> models.JobsJobDef:
-    return models.JobsJobDef(
+def _job(job_id: str) -> models.JobsJob:
+    return models.JobsJob(
         job_id=job_id,
         name="job",
         job_type=models.JobsJobType.SAMPLING,
@@ -25,8 +25,10 @@ def _job(job_id: str) -> models.JobsJobDef:
         device_id="K",
         shots=1,
         job_info=models.JobsJobInfo(
-            program=["OPENQASM 3; qubit[1] q;"],
-            result=models.JobsJobResult(sampling=models.JobsSamplingResult(counts={"00": 1})),
+            input=models.JobsS3SubmitJobInfo(program=["OPENQASM 3; qubit[1] q;"]),
+            result=models.JobsS3JobResult(
+                sampling=models.JobsS3SamplingResult(counts={"00": 1})
+            ),
         ),
     )
 
@@ -39,18 +41,30 @@ def _build_client() -> OqtopusClient:
         if name == "submit_job":
             spec = args[0]
             if isinstance(spec, OqtopusJobSpec) and spec.name:
-                return models.JobsSubmitJobResponse(job_id=spec.name)
-            return models.JobsSubmitJobResponse(job_id="job-from-spec")
+                job_id = spec.name
+            else:
+                job_id = "job-from-spec"
+            return models.JobsRegisterJobResponse(
+                job_id=job_id,
+                presigned_url=models.JobsJobInfoUploadPresignedURL(
+                    url="https://example.invalid/upload",
+                    fields=models.JobsJobInfoUploadPresignedURLFields(
+                        key=f"{job_id}/input.zip"
+                    ),
+                ),
+            )
         if name == "wait_for_job":
             return _job(args[0])
         raise AssertionError(name)
 
     async def fake_run_async_with_client(callback: Any) -> Any:
         class StubAsyncClient:
-            async def submit_job(self, body: OqtopusJobSpec) -> models.JobsSubmitJobResponse:
+            async def submit_job(
+                self, body: OqtopusJobSpec
+            ) -> models.JobsRegisterJobResponse:
                 return fake_run_async_method(self.submit_job, body)
 
-            async def wait_for_job(self, job_id: str, **kwargs: Any) -> models.JobsJobDef:
+            async def wait_for_job(self, job_id: str, **kwargs: Any) -> models.JobsJob:
                 return fake_run_async_method(self.wait_for_job, job_id, **kwargs)
 
         return await callback(StubAsyncClient())

@@ -22,12 +22,13 @@ from pydantic import Field, StrictStr, field_validator
 from typing import List, Optional
 from typing_extensions import Annotated
 from oqtopus_client.rest.models.jobs_get_job_status_response import JobsGetJobStatusResponse
+from oqtopus_client.rest.models.jobs_job import JobsJob
 from oqtopus_client.rest.models.jobs_get_jobs_response import JobsGetJobsResponse
 from oqtopus_client.rest.models.jobs_get_sselog_response import JobsGetSselogResponse
 from oqtopus_client.rest.models.jobs_job_def import JobsJobDef
 from oqtopus_client.rest.models.jobs_job_status import JobsJobStatus
+from oqtopus_client.rest.models.jobs_register_job_response import JobsRegisterJobResponse
 from oqtopus_client.rest.models.jobs_submit_job_request import JobsSubmitJobRequest
-from oqtopus_client.rest.models.jobs_submit_job_response import JobsSubmitJobResponse
 from oqtopus_client.rest.models.success_success_response import SuccessSuccessResponse
 
 from oqtopus_client.rest.api_client import ApiClient, RequestSerialized
@@ -600,7 +601,7 @@ class JobApi:
         _content_type: Optional[StrictStr] = None,
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> JobsJobDef:
+    ) -> JobsJob:
         """Get selected job
 
         Get selected job
@@ -638,7 +639,7 @@ class JobApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "JobsJobDef",
+            '200': "JobsJob",
             '400': "ErrorBadRequest",
             '401': "ErrorUnauthorizedError",
             '404': "ErrorNotFoundError",
@@ -670,7 +671,7 @@ class JobApi:
         _content_type: Optional[StrictStr] = None,
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> ApiResponse[JobsJobDef]:
+    ) -> ApiResponse[JobsJob]:
         """Get selected job
 
         Get selected job
@@ -708,7 +709,7 @@ class JobApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "JobsJobDef",
+            '200': "JobsJob",
             '400': "ErrorBadRequest",
             '401': "ErrorUnauthorizedError",
             '404': "ErrorNotFoundError",
@@ -778,7 +779,7 @@ class JobApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "JobsJobDef",
+            '200': "JobsJob",
             '400': "ErrorBadRequest",
             '401': "ErrorUnauthorizedError",
             '404': "ErrorNotFoundError",
@@ -1121,277 +1122,6 @@ class JobApi:
 
 
     @validate_call
-    async def get_sselog(
-        self,
-        job_id: Annotated[StrictStr, Field(description="Job identifier")],
-        _request_timeout: Union[
-            None,
-            Annotated[StrictFloat, Field(gt=0)],
-            Tuple[
-                Annotated[StrictFloat, Field(gt=0)],
-                Annotated[StrictFloat, Field(gt=0)]
-            ]
-        ] = None,
-        _request_auth: Optional[Dict[StrictStr, Any]] = None,
-        _content_type: Optional[StrictStr] = None,
-        _headers: Optional[Dict[StrictStr, Any]] = None,
-        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> JobsGetSselogResponse:
-        """Get SSE log file
-
-        Get SSE log file of selected job
-
-        :param job_id: Job identifier (required)
-        :type job_id: str
-        :param _request_timeout: timeout setting for this request. If one
-                                 number provided, it will be total request
-                                 timeout. It can also be a pair (tuple) of
-                                 (connection, read) timeouts.
-        :type _request_timeout: int, tuple(int, int), optional
-        :param _request_auth: set to override the auth_settings for an a single
-                              request; this effectively ignores the
-                              authentication in the spec for a single request.
-        :type _request_auth: dict, optional
-        :param _content_type: force content-type for the request.
-        :type _content_type: str, Optional
-        :param _headers: set to override the headers for a single
-                         request; this effectively ignores the headers
-                         in the spec for a single request.
-        :type _headers: dict, optional
-        :param _host_index: set to override the host_index for a single
-                            request; this effectively ignores the host_index
-                            in the spec for a single request.
-        :type _host_index: int, optional
-        :return: Returns the result object.
-        """ # noqa: E501
-
-        _param = self._get_sselog_serialize(
-            job_id=job_id,
-            _request_auth=_request_auth,
-            _content_type=_content_type,
-            _headers=_headers,
-            _host_index=_host_index
-        )
-
-        _response_types_map: Dict[str, Optional[str]] = {
-            '200': "JobsGetSselogResponse",
-            '400': "ErrorBadRequest",
-            '401': "ErrorUnauthorizedError",
-            '404': "ErrorNotFoundError",
-            '500': "ErrorInternalServerError",
-        }
-        response_data = await self.api_client.call_api(
-            *_param,
-            _request_timeout=_request_timeout
-        )
-        await response_data.read()
-        return self.api_client.response_deserialize(
-            response_data=response_data,
-            response_types_map=_response_types_map,
-        ).data
-
-
-    @validate_call
-    async def get_sselog_with_http_info(
-        self,
-        job_id: Annotated[StrictStr, Field(description="Job identifier")],
-        _request_timeout: Union[
-            None,
-            Annotated[StrictFloat, Field(gt=0)],
-            Tuple[
-                Annotated[StrictFloat, Field(gt=0)],
-                Annotated[StrictFloat, Field(gt=0)]
-            ]
-        ] = None,
-        _request_auth: Optional[Dict[StrictStr, Any]] = None,
-        _content_type: Optional[StrictStr] = None,
-        _headers: Optional[Dict[StrictStr, Any]] = None,
-        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> ApiResponse[JobsGetSselogResponse]:
-        """Get SSE log file
-
-        Get SSE log file of selected job
-
-        :param job_id: Job identifier (required)
-        :type job_id: str
-        :param _request_timeout: timeout setting for this request. If one
-                                 number provided, it will be total request
-                                 timeout. It can also be a pair (tuple) of
-                                 (connection, read) timeouts.
-        :type _request_timeout: int, tuple(int, int), optional
-        :param _request_auth: set to override the auth_settings for an a single
-                              request; this effectively ignores the
-                              authentication in the spec for a single request.
-        :type _request_auth: dict, optional
-        :param _content_type: force content-type for the request.
-        :type _content_type: str, Optional
-        :param _headers: set to override the headers for a single
-                         request; this effectively ignores the headers
-                         in the spec for a single request.
-        :type _headers: dict, optional
-        :param _host_index: set to override the host_index for a single
-                            request; this effectively ignores the host_index
-                            in the spec for a single request.
-        :type _host_index: int, optional
-        :return: Returns the result object.
-        """ # noqa: E501
-
-        _param = self._get_sselog_serialize(
-            job_id=job_id,
-            _request_auth=_request_auth,
-            _content_type=_content_type,
-            _headers=_headers,
-            _host_index=_host_index
-        )
-
-        _response_types_map: Dict[str, Optional[str]] = {
-            '200': "JobsGetSselogResponse",
-            '400': "ErrorBadRequest",
-            '401': "ErrorUnauthorizedError",
-            '404': "ErrorNotFoundError",
-            '500': "ErrorInternalServerError",
-        }
-        response_data = await self.api_client.call_api(
-            *_param,
-            _request_timeout=_request_timeout
-        )
-        await response_data.read()
-        return self.api_client.response_deserialize(
-            response_data=response_data,
-            response_types_map=_response_types_map,
-        )
-
-
-    @validate_call
-    async def get_sselog_without_preload_content(
-        self,
-        job_id: Annotated[StrictStr, Field(description="Job identifier")],
-        _request_timeout: Union[
-            None,
-            Annotated[StrictFloat, Field(gt=0)],
-            Tuple[
-                Annotated[StrictFloat, Field(gt=0)],
-                Annotated[StrictFloat, Field(gt=0)]
-            ]
-        ] = None,
-        _request_auth: Optional[Dict[StrictStr, Any]] = None,
-        _content_type: Optional[StrictStr] = None,
-        _headers: Optional[Dict[StrictStr, Any]] = None,
-        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> RESTResponseType:
-        """Get SSE log file
-
-        Get SSE log file of selected job
-
-        :param job_id: Job identifier (required)
-        :type job_id: str
-        :param _request_timeout: timeout setting for this request. If one
-                                 number provided, it will be total request
-                                 timeout. It can also be a pair (tuple) of
-                                 (connection, read) timeouts.
-        :type _request_timeout: int, tuple(int, int), optional
-        :param _request_auth: set to override the auth_settings for an a single
-                              request; this effectively ignores the
-                              authentication in the spec for a single request.
-        :type _request_auth: dict, optional
-        :param _content_type: force content-type for the request.
-        :type _content_type: str, Optional
-        :param _headers: set to override the headers for a single
-                         request; this effectively ignores the headers
-                         in the spec for a single request.
-        :type _headers: dict, optional
-        :param _host_index: set to override the host_index for a single
-                            request; this effectively ignores the host_index
-                            in the spec for a single request.
-        :type _host_index: int, optional
-        :return: Returns the result object.
-        """ # noqa: E501
-
-        _param = self._get_sselog_serialize(
-            job_id=job_id,
-            _request_auth=_request_auth,
-            _content_type=_content_type,
-            _headers=_headers,
-            _host_index=_host_index
-        )
-
-        _response_types_map: Dict[str, Optional[str]] = {
-            '200': "JobsGetSselogResponse",
-            '400': "ErrorBadRequest",
-            '401': "ErrorUnauthorizedError",
-            '404': "ErrorNotFoundError",
-            '500': "ErrorInternalServerError",
-        }
-        response_data = await self.api_client.call_api(
-            *_param,
-            _request_timeout=_request_timeout
-        )
-        return response_data.response
-
-
-    def _get_sselog_serialize(
-        self,
-        job_id,
-        _request_auth,
-        _content_type,
-        _headers,
-        _host_index,
-    ) -> RequestSerialized:
-
-        _host = None
-
-        _collection_formats: Dict[str, str] = {
-        }
-
-        _path_params: Dict[str, str] = {}
-        _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
-        _form_params: List[Tuple[str, str]] = []
-        _files: Dict[str, Union[str, bytes]] = {}
-        _body_params: Optional[bytes] = None
-
-        # process the path parameters
-        if job_id is not None:
-            _path_params['job_id'] = job_id
-        # process the query parameters
-        # process the header parameters
-        # process the form parameters
-        # process the body parameter
-
-
-        # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
-            _header_params['Accept'] = self.api_client.select_header_accept(
-                [
-                    'application/json'
-                ]
-            )
-
-
-        # authentication setting
-        _auth_settings: List[str] = [
-            'BearerAuth'
-        ]
-
-        return self.api_client.param_serialize(
-            method='GET',
-            resource_path='/jobs/{job_id}/sselog',
-            path_params=_path_params,
-            query_params=_query_params,
-            header_params=_header_params,
-            body=_body_params,
-            post_params=_form_params,
-            files=_files,
-            auth_settings=_auth_settings,
-            collection_formats=_collection_formats,
-            _host=_host,
-            _request_auth=_request_auth
-        )
-
-
-
-
-    @validate_call
     async def list_jobs(
         self,
         fields: Annotated[Optional[Annotated[str, Field(strict=True, max_length=1024)]], Field(description="Allows to specify an exact list of job properties to fetch for a single job. Each element of the list must be a valid name of job property.  If parameter is specified and requested job field is not defined for a job null is returned.  If parameter is omitted all available job properties are returned. Undefined job properties (null properties) are not included in the response.")] = None,
@@ -1414,7 +1144,7 @@ class JobApi:
         _content_type: Optional[StrictStr] = None,
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> List[JobsGetJobsResponse]:
+    ) -> List[JobsJob]:
         """List all quantum jobs
 
         By default, all available job's properties are returned. Use 'fields' parameter to specify exact list of properties to get for each job.  List of jobs can be filtered by submission time, status or search text with 'start_time', 'end_time', 'status' and 'q' parameters.  Jobs are fetched with the pagination mechanism. This can be configured with 'page' and 'perPage' parameters. Check response's 'Link' header for pagination details.
@@ -1473,7 +1203,7 @@ class JobApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "List[JobsGetJobsResponse]",
+            '200': "List[JobsJob]",
             '401': "ErrorUnauthorizedError",
         }
         response_data = await self.api_client.call_api(
@@ -1510,7 +1240,7 @@ class JobApi:
         _content_type: Optional[StrictStr] = None,
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> ApiResponse[List[JobsGetJobsResponse]]:
+    ) -> ApiResponse[List[JobsJob]]:
         """List all quantum jobs
 
         By default, all available job's properties are returned. Use 'fields' parameter to specify exact list of properties to get for each job.  List of jobs can be filtered by submission time, status or search text with 'start_time', 'end_time', 'status' and 'q' parameters.  Jobs are fetched with the pagination mechanism. This can be configured with 'page' and 'perPage' parameters. Check response's 'Link' header for pagination details.
@@ -1569,7 +1299,7 @@ class JobApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "List[JobsGetJobsResponse]",
+            '200': "List[JobsJob]",
             '401': "ErrorUnauthorizedError",
         }
         response_data = await self.api_client.call_api(
@@ -1665,7 +1395,7 @@ class JobApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "List[JobsGetJobsResponse]",
+            '200': "List[JobsJob]",
             '401': "ErrorUnauthorizedError",
         }
         response_data = await self.api_client.call_api(
@@ -1793,8 +1523,259 @@ class JobApi:
 
 
     @validate_call
+    async def register_job_id(
+        self,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> JobsRegisterJobResponse:
+        """Register new job
+
+        Register new job and generate a presigned URL to upload job information (`jobs.S3SubmitJobInfo`) to OQTOPUS cloud.
+
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._register_job_id_serialize(
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "JobsRegisterJobResponse",
+            '400': "ErrorBadRequest",
+            '401': "ErrorUnauthorizedError",
+        }
+        response_data = await self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        await response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    async def register_job_id_with_http_info(
+        self,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[JobsRegisterJobResponse]:
+        """Register new job
+
+        Register new job and generate a presigned URL to upload job information (`jobs.S3SubmitJobInfo`) to OQTOPUS cloud.
+
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._register_job_id_serialize(
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "JobsRegisterJobResponse",
+            '400': "ErrorBadRequest",
+            '401': "ErrorUnauthorizedError",
+        }
+        response_data = await self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        await response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    async def register_job_id_without_preload_content(
+        self,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Register new job
+
+        Register new job and generate a presigned URL to upload job information (`jobs.S3SubmitJobInfo`) to OQTOPUS cloud.
+
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._register_job_id_serialize(
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "JobsRegisterJobResponse",
+            '400': "ErrorBadRequest",
+            '401': "ErrorUnauthorizedError",
+        }
+        response_data = await self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _register_job_id_serialize(
+        self,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[str, Union[str, bytes]] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        # process the query parameters
+        # process the header parameters
+        # process the form parameters
+        # process the body parameter
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'BearerAuth'
+        ]
+
+        return self.api_client.param_serialize(
+            method='POST',
+            resource_path='/jobs',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
     async def submit_job(
         self,
+        job_id: Annotated[StrictStr, Field(description="Job identifier")],
         jobs_submit_job_request: Annotated[Optional[JobsSubmitJobRequest], Field(description="Quantum job to be submitted")] = None,
         _request_timeout: Union[
             None,
@@ -1808,11 +1789,13 @@ class JobApi:
         _content_type: Optional[StrictStr] = None,
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> JobsSubmitJobResponse:
-        """Submit a quantum job
+    ) -> SuccessSuccessResponse:
+        """Complete submission of a quantum job
 
-        Submit a quantum job
+        Complete submission of a previously registered quantum job.  job_id must be created via 'POST /jobs' request.  Submit job information (`jobs.S3SubmitJobInfo`) must be formerly uploaded to OQTOPUS cloud using presigned URL received in 'POST /jobs' response.
 
+        :param job_id: Job identifier (required)
+        :type job_id: str
         :param jobs_submit_job_request: Quantum job to be submitted
         :type jobs_submit_job_request: JobsSubmitJobRequest
         :param _request_timeout: timeout setting for this request. If one
@@ -1838,6 +1821,7 @@ class JobApi:
         """ # noqa: E501
 
         _param = self._submit_job_serialize(
+            job_id=job_id,
             jobs_submit_job_request=jobs_submit_job_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -1846,10 +1830,11 @@ class JobApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "JobsSubmitJobResponse",
+            '200': "SuccessSuccessResponse",
             '400': "ErrorBadRequest",
             '401': "ErrorUnauthorizedError",
             '403': "ErrorForbiddenError",
+            '404': "ErrorNotFoundError",
         }
         response_data = await self.api_client.call_api(
             *_param,
@@ -1865,6 +1850,7 @@ class JobApi:
     @validate_call
     async def submit_job_with_http_info(
         self,
+        job_id: Annotated[StrictStr, Field(description="Job identifier")],
         jobs_submit_job_request: Annotated[Optional[JobsSubmitJobRequest], Field(description="Quantum job to be submitted")] = None,
         _request_timeout: Union[
             None,
@@ -1878,11 +1864,13 @@ class JobApi:
         _content_type: Optional[StrictStr] = None,
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> ApiResponse[JobsSubmitJobResponse]:
-        """Submit a quantum job
+    ) -> ApiResponse[SuccessSuccessResponse]:
+        """Complete submission of a quantum job
 
-        Submit a quantum job
+        Complete submission of a previously registered quantum job.  job_id must be created via 'POST /jobs' request.  Submit job information (`jobs.S3SubmitJobInfo`) must be formerly uploaded to OQTOPUS cloud using presigned URL received in 'POST /jobs' response.
 
+        :param job_id: Job identifier (required)
+        :type job_id: str
         :param jobs_submit_job_request: Quantum job to be submitted
         :type jobs_submit_job_request: JobsSubmitJobRequest
         :param _request_timeout: timeout setting for this request. If one
@@ -1908,6 +1896,7 @@ class JobApi:
         """ # noqa: E501
 
         _param = self._submit_job_serialize(
+            job_id=job_id,
             jobs_submit_job_request=jobs_submit_job_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -1916,10 +1905,11 @@ class JobApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "JobsSubmitJobResponse",
+            '200': "SuccessSuccessResponse",
             '400': "ErrorBadRequest",
             '401': "ErrorUnauthorizedError",
             '403': "ErrorForbiddenError",
+            '404': "ErrorNotFoundError",
         }
         response_data = await self.api_client.call_api(
             *_param,
@@ -1935,6 +1925,7 @@ class JobApi:
     @validate_call
     async def submit_job_without_preload_content(
         self,
+        job_id: Annotated[StrictStr, Field(description="Job identifier")],
         jobs_submit_job_request: Annotated[Optional[JobsSubmitJobRequest], Field(description="Quantum job to be submitted")] = None,
         _request_timeout: Union[
             None,
@@ -1949,10 +1940,12 @@ class JobApi:
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
     ) -> RESTResponseType:
-        """Submit a quantum job
+        """Complete submission of a quantum job
 
-        Submit a quantum job
+        Complete submission of a previously registered quantum job.  job_id must be created via 'POST /jobs' request.  Submit job information (`jobs.S3SubmitJobInfo`) must be formerly uploaded to OQTOPUS cloud using presigned URL received in 'POST /jobs' response.
 
+        :param job_id: Job identifier (required)
+        :type job_id: str
         :param jobs_submit_job_request: Quantum job to be submitted
         :type jobs_submit_job_request: JobsSubmitJobRequest
         :param _request_timeout: timeout setting for this request. If one
@@ -1978,6 +1971,7 @@ class JobApi:
         """ # noqa: E501
 
         _param = self._submit_job_serialize(
+            job_id=job_id,
             jobs_submit_job_request=jobs_submit_job_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -1986,10 +1980,11 @@ class JobApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "JobsSubmitJobResponse",
+            '200': "SuccessSuccessResponse",
             '400': "ErrorBadRequest",
             '401': "ErrorUnauthorizedError",
             '403': "ErrorForbiddenError",
+            '404': "ErrorNotFoundError",
         }
         response_data = await self.api_client.call_api(
             *_param,
@@ -2000,6 +1995,7 @@ class JobApi:
 
     def _submit_job_serialize(
         self,
+        job_id,
         jobs_submit_job_request,
         _request_auth,
         _content_type,
@@ -2020,6 +2016,8 @@ class JobApi:
         _body_params: Optional[bytes] = None
 
         # process the path parameters
+        if job_id is not None:
+            _path_params['job_id'] = job_id
         # process the query parameters
         # process the header parameters
         # process the form parameters
@@ -2057,7 +2055,7 @@ class JobApi:
 
         return self.api_client.param_serialize(
             method='POST',
-            resource_path='/jobs',
+            resource_path='/jobs/{job_id}/submit',
             path_params=_path_params,
             query_params=_query_params,
             header_params=_header_params,

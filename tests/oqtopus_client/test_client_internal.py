@@ -30,6 +30,7 @@ from oqtopus_client import (
 from oqtopus_client import (
     rest as models,
 )
+from oqtopus_client.rest.models.jobs_get_sselog_response import JobsGetSselogResponse
 from oqtopus_client.services.client import (
     _AsyncOqtopusClient,
     _resolve_user_agent,
@@ -64,20 +65,31 @@ def test_removed_compatibility_module_import_fails() -> None:
         importlib.import_module("oqtopus_client.client")
 
 
-def _job(job_type: models.JobsJobType, *, status: models.JobsJobStatus = models.JobsJobStatus.SUCCEEDED) -> models.JobsJobDef:
-    result: models.JobsJobResult
+def _job(
+    job_type: models.JobsJobType,
+    *,
+    status: models.JobsJobStatus = models.JobsJobStatus.SUCCEEDED,
+) -> models.JobsJob:
+    result: models.JobsS3JobResult
     if job_type == models.JobsJobType.ESTIMATION:
-        result = models.JobsJobResult(estimation=models.JobsEstimationResult(exp_value=1.0, stds=0.1))
+        result = models.JobsS3JobResult(
+            estimation=models.JobsS3EstimationResult(exp_value=1.0, stds=0.1)
+        )
     else:
-        result = models.JobsJobResult(sampling=models.JobsSamplingResult(counts={"00": 1}))
-    return models.JobsJobDef(
+        result = models.JobsS3JobResult(
+            sampling=models.JobsS3SamplingResult(counts={"00": 1})
+        )
+    return models.JobsJob(
         job_id="job-1",
         name="job",
         job_type=job_type,
         status=status,
         device_id="K",
         shots=1,
-        job_info=models.JobsJobInfo(program=["x"], result=result),
+        job_info=models.JobsJobInfo(
+            input=models.JobsS3SubmitJobInfo(program=["x"]),
+            result=result,
+        ),
     )
 
 
@@ -161,7 +173,7 @@ def test_wait_for_job_failure_and_timeout(monkeypatch: pytest.MonkeyPatch) -> No
         async def status_running(_: str) -> models.JobsGetJobStatusResponse:
             return models.JobsGetJobStatusResponse(job_id="job-1", status=models.JobsJobStatus.RUNNING)
 
-        async def get_job(_: str) -> models.JobsJobDef:
+        async def get_job(_: str) -> models.JobsJob:
             return _job(models.JobsJobType.SAMPLING, status=models.JobsJobStatus.FAILED)
 
         monkeypatch.setattr(client, "get_job_status", status_failed)
@@ -182,16 +194,19 @@ def test_run_sse_file_forwards_kwargs(tmp_path: Path, monkeypatch: pytest.Monkey
     script.write_text("print('ok')\n", encoding="utf-8")
     observed: dict[str, Any] = {}
 
-    def build_stub(*, file_path: str | Path, device_id: str, **kwargs: Any) -> models.JobsSubmitJobRequest:
+    def build_stub(
+        *, file_path: str | Path, device_id: str, **kwargs: Any
+    ) -> OqtopusJobSpec:
         observed["build"] = {"file_path": str(file_path), "device_id": device_id, **kwargs}
-        return models.JobsSubmitJobRequest(
+        return OqtopusJobSpec.sse(
             device_id=device_id,
-            job_type=models.JobsJobType.SSE,
             shots=1,
-            job_info=models.JobsSubmitJobInfo(program=["encoded"]),
+            program="print('ok')\n",
         )
 
-    async def run_sse_stub(self: _AsyncOqtopusClient, job: Any, **kwargs: Any) -> models.JobsJobDef:
+    async def run_sse_stub(
+        self: _AsyncOqtopusClient, job: Any, **kwargs: Any
+    ) -> models.JobsJob:
         observed["run"] = {"job": job, "kwargs": kwargs}
         return _job(models.JobsJobType.SSE)
 
@@ -214,6 +229,21 @@ def test_run_sse_file_forwards_kwargs(tmp_path: Path, monkeypatch: pytest.Monkey
     _run_with_async_client(OqtopusConfig(base_url="http://test"), _assert)
 
 
+def test_build_sse_job_request_uses_sse_program(tmp_path: Path) -> None:
+    """Test case: test_build_sse_job_request_uses_sse_program."""
+    script = tmp_path / "job.py"
+    script.write_text("print('ok')\n", encoding="utf-8")
+
+    request = _AsyncOqtopusClient.build_sse_job_request(
+        file_path=script,
+        device_id="K",
+    )
+
+    payload = request.to_s3_submit_job_info()
+    assert payload.sse_program == "print('ok')\n"
+    assert payload.program is None
+
+
 def test_run_job_uses_sse_sampler_in_sse_container(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test case: test_run_job_uses_sse_sampler_in_sse_container."""
     monkeypatch.setenv("OQTOPUS_ENV", "sse_container")
@@ -231,7 +261,10 @@ def test_run_job_uses_sse_sampler_in_sse_container(monkeypatch: pytest.MonkeyPat
             "status": "succeeded",
             "device_id": "sse",
             "shots": shots,
-            "job_info": {"program": program, "result": {"sampling": {"counts": {"00": 1}}}},
+            "job_info": {
+                "input": {"program": program},
+                "result": {"sampling": {"counts": {"00": 1}}},
+            },
         }
 
     fake_module = types.SimpleNamespace(
@@ -247,6 +280,45 @@ def test_run_job_uses_sse_sampler_in_sse_container(monkeypatch: pytest.MonkeyPat
 
     _run_with_async_client(OqtopusConfig(base_url=""), _assert)
     assert observed["thread_id"] != loop_thread_id
+
+
+def test_run_job_normalizes_flat_sse_container_response(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test case: test_run_job_normalizes_flat_sse_container_response."""
+    monkeypatch.setenv("OQTOPUS_ENV", "sse_container")
+
+    def req_transpile_and_exec(
+        program: list[str], shots: int, transpiler_info: dict[str, Any]
+    ) -> dict[str, Any]:
+        return {
+            "job_id": "job-sse-flat",
+            "name": "job",
+            "job_type": "sampling",
+            "status": "succeeded",
+            "device_id": "sse",
+            "shots": shots,
+            "input": {"program": program},
+            "result": {"sampling": {"counts": {"00": 1}}},
+            "transpile_result": {"transpiled_program": "OPENQASM 3;", "stats": {}, "virtual_physical_mapping": {}},
+            "message": "ok",
+        }
+
+    fake_module = types.SimpleNamespace(
+        req_transpile_and_exec=req_transpile_and_exec,
+    )
+    monkeypatch.setitem(sys.modules, "sse_sampler", fake_module)
+
+    async def _assert(client: _AsyncOqtopusClient) -> None:
+        result = await client.run_job(
+            OqtopusJobSpec.sampling(device_id="sse", program="OPENQASM 3; qubit[1] q;"),
+        )
+        assert result.job_id == "job-sse-flat"
+        assert result.job_info is not None
+        assert result.job_info.result is not None
+        assert result.job_info.message == "ok"
+
+    _run_with_async_client(OqtopusConfig(base_url=""), _assert)
 
 
 def test_run_job_raises_when_sse_sampler_missing(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -295,20 +367,26 @@ def test_sync_wrappers_delegate_to_call() -> None:
             )
         if method_name == "list_jobs":
             return [
-                models.JobsGetJobsResponse(
+                models.JobsJob(
                     job_id="job-1",
                     name="job",
                     job_type=models.JobsJobType.SAMPLING,
-                    status=models.JobsJobStatus.SUCCEEDED,
-                    device_id="K",
-                    shots=1,
-                    job_info=models.JobsJobInfo(program=["x"]),
-                ),
-            ]
+                status=models.JobsJobStatus.SUCCEEDED,
+                device_id="K",
+                shots=1,
+                job_info=models.JobsJobInfo(input="https://example.invalid/job-1/input.zip"),
+            ),
+        ]
         if method_name == "delete_api_token":
             return None
         if method_name == "submit_job":
-            return models.JobsSubmitJobResponse(job_id="ok")
+            return models.JobsRegisterJobResponse(
+                job_id="ok",
+                presigned_url=models.JobsJobInfoUploadPresignedURL(
+                    url="https://example.invalid/upload",
+                    fields=models.JobsJobInfoUploadPresignedURLFields(key="ok/input.zip"),
+                ),
+            )
         if method_name == "run_job":
             return _job(models.JobsJobType.SAMPLING)
         if method_name == "run_sampling":
@@ -332,7 +410,7 @@ def test_sync_wrappers_delegate_to_call() -> None:
         if method_name == "cancel_job":
             return models.SuccessSuccessResponse(message="ok")
         if method_name == "get_sselog":
-            return models.JobsGetSselogResponse(file="Zm9v", file_name="x.zip")
+            return JobsGetSselogResponse(file="Zm9v", file_name="x.zip")
         if method_name == "create_api_token":
             return models.ApiTokenApiToken(api_token_secret="secret", api_token_expiration=None)
         if method_name == "get_api_token_status":
@@ -387,7 +465,7 @@ def test_sync_wrappers_delegate_to_call() -> None:
     assert isinstance(client.status("j"), models.JobsJobStatus)
     assert isinstance(client.is_finished("j"), bool)
     assert isinstance(client.cancel_job("j"), models.SuccessSuccessResponse)
-    assert isinstance(client.get_sselog("j"), models.JobsGetSselogResponse)
+    assert isinstance(client.get_sselog("j"), JobsGetSselogResponse)
     assert isinstance(client.create_api_token(), models.ApiTokenApiToken)
     assert isinstance(client.get_api_token_status(), models.ApiTokenApiTokenStatus)
     assert isinstance(client.get_api_token(), models.ApiTokenApiTokenStatus)
@@ -470,7 +548,15 @@ def test_run_async_method_delegates_selected_async_method() -> None:
         method_name = method.__name__
         observed.append(method_name)
         if method_name == "submit_job":
-            return models.JobsSubmitJobResponse(job_id="job-42")
+            return models.JobsRegisterJobResponse(
+                job_id="job-42",
+                presigned_url=models.JobsJobInfoUploadPresignedURL(
+                    url="https://example.invalid/upload",
+                    fields=models.JobsJobInfoUploadPresignedURLFields(
+                        key="job-42/input.zip"
+                    ),
+                ),
+            )
         if method_name == "get_job_status":
             return models.JobsGetJobStatusResponse(
                 job_id="job-42",
@@ -485,7 +571,7 @@ def test_run_async_method_delegates_selected_async_method() -> None:
     client.list_devices()
     client.get_api_token()
     submit_response = cast(
-        "models.JobsSubmitJobResponse",
+        "models.JobsRegisterJobResponse",
         client.submit_job(OqtopusJobSpec.sampling(device_id="K", program="x")),
     )
     status_response = cast(

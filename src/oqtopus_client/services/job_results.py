@@ -8,7 +8,7 @@ import io
 import zipfile
 from collections.abc import Callable, Mapping
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeAlias, cast
 
 from oqtopus_client import rest as models
 from oqtopus_client.services.result_utils import (
@@ -23,8 +23,10 @@ if TYPE_CHECKING:
 
     from .client import OqtopusClient
 
-SamplingPayload = models.JobsSamplingResult | Mapping[str, Any] | None
-EstimationPayload = models.JobsEstimationResult | Mapping[str, Any] | None
+SamplingPayload: TypeAlias = models.JobsS3SamplingResult | Mapping[str, Any] | None
+EstimationPayload: TypeAlias = (
+    models.JobsS3EstimationResult | Mapping[str, Any] | None
+)
 
 
 class OqtopusJobResult:  # noqa: PLR0904
@@ -41,7 +43,9 @@ class OqtopusJobResult:  # noqa: PLR0904
     _transpiler_info: Mapping[str, Any] | None
     _simulator_info: Mapping[str, Any] | None
     _mitigation_info: Mapping[str, Any] | None
-    _transpile_result: models.JobsTranspileResult | Mapping[str, Any] | None
+    _transpile_result: (
+        models.JobsS3TranspileResult | Mapping[str, Any] | None
+    )
     _message: str | None
     _execution_time: float | None
     _submitted_at: datetime | None
@@ -64,7 +68,9 @@ class OqtopusJobResult:  # noqa: PLR0904
         transpiler_info: Mapping[str, Any] | None = None,
         simulator_info: Mapping[str, Any] | None = None,
         mitigation_info: Mapping[str, Any] | None = None,
-        transpile_result: models.JobsTranspileResult | Mapping[str, Any] | None = None,
+        transpile_result: (
+            models.JobsS3TranspileResult | Mapping[str, Any] | None
+        ) = None,
         message: str | None = None,
         execution_time: float | None = None,
         submitted_at: datetime | None = None,
@@ -109,11 +115,11 @@ class OqtopusJobResult:  # noqa: PLR0904
     @classmethod
     def from_raw(
         cls,
-        job: models.JobsJobDef,
+        job: models.JobsJob,
         *,
         client: object | None = None,
     ) -> Self:
-        """Build a result object from a full ``JobsJobDef`` payload.
+        """Build a result object from a full job payload.
 
         Args:
             job (Required): Job definition returned by the API.
@@ -122,19 +128,36 @@ class OqtopusJobResult:  # noqa: PLR0904
         Returns:
             A result object populated from the job definition.
 
+        Raises:
+            ValueError: If the payload is missing required submitted-job fields.
+
         """
+        required = {
+            "job_id": job.job_id,
+            "job_type": job.job_type,
+            "status": job.status,
+            "name": job.name,
+            "device_id": job.device_id,
+            "shots": job.shots,
+            "job_info": job.job_info,
+        }
+        missing = [key for key, value in required.items() if value is None]
+        if missing:
+            msg = f"Job payload is missing required fields: {', '.join(missing)}"
+            raise ValueError(msg)
+
         job_info = job.job_info
         transpile_result = job_info.transpile_result if job_info is not None else None
         message = job_info.message if job_info is not None else None
         return cls(
-            job_id=job.job_id,
-            job_type=job.job_type,
-            status=job.status,
-            name=job.name,
+            job_id=cast("str", job.job_id),
+            job_type=cast("models.JobsJobType | str", job.job_type),
+            status=cast("models.JobsJobStatus | str", job.status),
+            name=cast("str", job.name),
             description=job.description,
-            device_id=job.device_id,
-            shots=job.shots,
-            job_info=job.job_info,
+            device_id=cast("str", job.device_id),
+            shots=cast("int", job.shots),
+            job_info=cast("models.JobsJobInfo | Mapping[str, Any]", job.job_info),
             transpiler_info=job.transpiler_info,
             simulator_info=job.simulator_info,
             mitigation_info=job.mitigation_info,
@@ -257,7 +280,9 @@ class OqtopusJobResult:  # noqa: PLR0904
         return self._mitigation_info
 
     @property
-    def transpile_result(self) -> models.JobsTranspileResult | Mapping[str, Any] | None:
+    def transpile_result(
+        self,
+    ) -> models.JobsS3TranspileResult | Mapping[str, Any] | None:
         """Return the related transpile result when known.
 
         This may include transpiled circuits or backend-specific transpilation
@@ -397,6 +422,30 @@ class OqtopusJobResult:  # noqa: PLR0904
             f"status={self.status!r})"
         )
 
+    @staticmethod
+    def _extract_branch(
+        result: object,
+        key: str,
+    ) -> (
+        models.JobsS3SamplingResult
+        | models.JobsS3EstimationResult
+        | Mapping[str, Any]
+        | None
+    ):
+        if isinstance(result, models.JobsS3JobResult):
+            return cast(
+                "models.JobsS3SamplingResult | models.JobsS3EstimationResult | None",
+                getattr(result, key),
+            )
+        if isinstance(result, Mapping):
+            branch = result.get(key)
+            if isinstance(
+                branch,
+                (Mapping, models.JobsS3SamplingResult, models.JobsS3EstimationResult),
+            ):
+                return branch
+        return None
+
     @property
     def sampling(self) -> SamplingPayload:
         """Return sampling payload when result is sampling-like.
@@ -407,15 +456,15 @@ class OqtopusJobResult:  # noqa: PLR0904
         """
         job_info = self.job_info
         if isinstance(job_info, models.JobsJobInfo):
-            result = job_info.result
-            return result.sampling if result is not None else None
+            return cast(
+                "SamplingPayload",
+                self._extract_branch(job_info.result, "sampling"),
+            )
         if isinstance(job_info, Mapping):
-            result = job_info.get("result")
-            if isinstance(result, models.JobsJobResult):
-                return result.sampling
-            if isinstance(result, Mapping):
-                sampling = result.get("sampling")
-                return sampling if isinstance(sampling, Mapping) else None
+            return cast(
+                "SamplingPayload",
+                self._extract_branch(job_info.get("result"), "sampling"),
+            )
         return None
 
     @property
@@ -428,15 +477,15 @@ class OqtopusJobResult:  # noqa: PLR0904
         """
         job_info = self.job_info
         if isinstance(job_info, models.JobsJobInfo):
-            result = job_info.result
-            return result.estimation if result is not None else None
+            return cast(
+                "EstimationPayload",
+                self._extract_branch(job_info.result, "estimation"),
+            )
         if isinstance(job_info, Mapping):
-            result = job_info.get("result")
-            if isinstance(result, models.JobsJobResult):
-                return result.estimation
-            if isinstance(result, Mapping):
-                estimation = result.get("estimation")
-                return estimation if isinstance(estimation, Mapping) else None
+            return cast(
+                "EstimationPayload",
+                self._extract_branch(job_info.get("result"), "estimation"),
+            )
         return None
 
 
@@ -470,7 +519,7 @@ class OqtopusSamplingJobResult(OqtopusJobResult):
 
         """
         sampling = self.sampling
-        if isinstance(sampling, models.JobsSamplingResult):
+        if isinstance(sampling, models.JobsS3SamplingResult):
             return dict(sampling.counts or {})
         if isinstance(sampling, Mapping):
             counts = sampling.get("counts")
@@ -529,7 +578,7 @@ class OqtopusEstimationJobResult(OqtopusJobResult):
 
         """
         estimation = self.estimation
-        if isinstance(estimation, models.JobsEstimationResult):
+        if isinstance(estimation, models.JobsS3EstimationResult):
             return estimation.exp_value
         if isinstance(estimation, Mapping):
             exp_value = estimation.get("exp_value")
@@ -544,7 +593,7 @@ class OqtopusEstimationJobResult(OqtopusJobResult):
 
         """
         estimation = self.estimation
-        if isinstance(estimation, models.JobsEstimationResult):
+        if isinstance(estimation, models.JobsS3EstimationResult):
             return estimation.stds
         if isinstance(estimation, Mapping):
             stds = estimation.get("stds")
@@ -572,7 +621,7 @@ class OqtopusMultiManualJobResult(OqtopusSamplingJobResult):
 
         """
         sampling = self.sampling
-        if isinstance(sampling, models.JobsSamplingResult):
+        if isinstance(sampling, models.JobsS3SamplingResult):
             divided_counts = sampling.divided_counts
         elif isinstance(sampling, Mapping):
             divided_counts = sampling.get("divided_counts")
