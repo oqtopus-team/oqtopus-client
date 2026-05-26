@@ -29,6 +29,60 @@ EstimationPayload: TypeAlias = (
 )
 
 
+def _mapping_like_to_dict(value: object) -> dict[str, Any] | None:
+    if value is None:
+        return None
+    if hasattr(value, "to_dict") and callable(value.to_dict):
+        return cast("dict[str, Any]", value.to_dict())
+    if hasattr(value, "model_dump") and callable(value.model_dump):
+        return cast("dict[str, Any]", value.model_dump(mode="json", exclude_none=True))
+    if isinstance(value, Mapping):
+        return dict(value)
+    return None
+
+
+def _with_legacy_job_info_aliases(job_info: dict[str, Any]) -> dict[str, Any]:
+    compat = dict(job_info)
+    input_payload = _mapping_like_to_dict(compat.get("input"))
+    if input_payload is None:
+        return compat
+
+    if "program" not in compat and "program" in input_payload:
+        compat["program"] = input_payload["program"]
+    if "operator" not in compat and "operator" in input_payload:
+        compat["operator"] = input_payload["operator"]
+
+    return compat
+
+
+class _CompatJobsJobInfo(models.JobsJobInfo):
+    def to_dict(self) -> dict[str, Any]:
+        compat = _with_legacy_job_info_aliases(super().to_dict())
+        compat.setdefault("message", self.message)
+        return compat
+
+
+def _wrap_job_info(
+    job_info: models.JobsJobInfo | Mapping[str, Any] | None,
+) -> models.JobsJobInfo | Mapping[str, Any] | None:
+    if job_info is None:
+        return None
+    if isinstance(job_info, _CompatJobsJobInfo):
+        return job_info
+    if isinstance(job_info, models.JobsJobInfo):
+        return _CompatJobsJobInfo(
+            input=job_info.input,
+            combined_program=job_info.combined_program,
+            result=job_info.result,
+            transpile_result=job_info.transpile_result,
+            sse_log=job_info.sse_log,
+            message=job_info.message,
+        )
+    if isinstance(job_info, Mapping):
+        return _with_legacy_job_info_aliases(dict(job_info))
+    return job_info
+
+
 class OqtopusJobResult:  # noqa: PLR0904
     """SDK result object for a job's state and execution output payloads."""
 
@@ -92,7 +146,7 @@ class OqtopusJobResult:  # noqa: PLR0904
         self._description = description
         self._device_id = device_id
         self._shots = shots
-        self._job_info = job_info
+        self._job_info = _wrap_job_info(job_info)
         self._transpiler_info = transpiler_info
         self._simulator_info = simulator_info
         self._mitigation_info = mitigation_info
@@ -249,7 +303,7 @@ class OqtopusJobResult:  # noqa: PLR0904
         This contains nested execution results and other API-provided metadata.
 
         """
-        return self._job_info
+        return _wrap_job_info(self._job_info)
 
     @property
     def transpiler_info(self) -> Mapping[str, Any] | None:

@@ -104,6 +104,29 @@ def test_job_result_from_job_model_like_payload() -> None:
     assert isinstance(result.job_info.result, models.JobsS3JobResult)
 
 
+def test_job_result_job_info_to_dict_keeps_legacy_program_alias() -> None:
+    """Test case: compatibility aliases are preserved in job_info.to_dict."""
+    result = OqtopusJobResult(
+        job_id="job-compat",
+        job_type=models.JobsJobType.SAMPLING,
+        status=models.JobsJobStatus.SUCCEEDED,
+        name="job-compat",
+        device_id="Kawasaki",
+        shots=1,
+        job_info=models.JobsJobInfo(
+            input=models.JobsS3SubmitJobInfo(program=["OPENQASM 3;"]),
+            result=models.JobsS3JobResult(
+                sampling=models.JobsS3SamplingResult(counts={"0": 1}),
+            ),
+            message="ok",
+        ),
+    )
+
+    assert isinstance(result.job_info, models.JobsJobInfo)
+    assert result.job_info.to_dict()["program"] == ["OPENQASM 3;"]
+    assert result.job_info.to_dict()["message"] == "ok"
+
+
 def test_sampling_result_direct_construction() -> None:
     """Test case: test_sampling_result_direct_construction."""
     result = OqtopusSamplingJobResult(
