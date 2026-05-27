@@ -486,6 +486,121 @@ def test_sync_clients_keep_isolated_configuration() -> None:
     assert client1._config is not client2._config
 
 
+def test_submit_job_passes_explicit_proxy_to_storage(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test case: test_submit_job_passes_explicit_proxy_to_storage."""
+    observed: dict[str, object] = {}
+
+    async def _assert(client: _AsyncOqtopusClient) -> None:
+        class _JobApi:
+            def register_job_id(self, _request_timeout: float | None = None) -> str:
+                observed["register_timeout"] = _request_timeout
+                return "register"
+
+            def submit_job(
+                self,
+                job_id: str,
+                request: object,
+                _request_timeout: float | None = None,
+            ) -> str:
+                observed["submitted_job_id"] = job_id
+                observed["submitted_request"] = request
+                observed["submit_timeout"] = _request_timeout
+                return "submit"
+
+        async def _fake_call_rest(call: object) -> object:
+            if call == "register":
+                return models.JobsRegisterJobResponse(
+                    job_id="job-1",
+                    presigned_url=models.JobsJobInfoUploadPresignedURL(
+                        url="https://example.invalid/upload",
+                        fields=models.JobsJobInfoUploadPresignedURLFields(
+                            key="job-1/input.zip"
+                        ),
+                    ),
+                )
+            if call == "submit":
+                return models.SuccessSuccessResponse(message="ok")
+            raise AssertionError(call)
+
+        async def _fake_upload(
+            presigned_url: models.JobsJobInfoUploadPresignedURL,
+            data: dict[str, object],
+            *,
+            timeout_s: int = 60,
+            proxy: str | None = None,
+        ) -> None:
+            observed["upload_url"] = presigned_url.url
+            observed["upload_data"] = data
+            observed["upload_timeout"] = timeout_s
+            observed["upload_proxy"] = proxy
+
+        client._job_api = _JobApi()  # type: ignore[assignment]
+        client._call_rest = _fake_call_rest  # type: ignore[assignment,method-assign]
+        monkeypatch.setattr("oqtopus_client.services.client.OqtopusStorage.upload", _fake_upload)
+
+        response = await client.submit_job(
+            OqtopusJobSpec.sampling(device_id="K", program="OPENQASM 3; qubit[1] q;")
+        )
+
+        assert response.job_id == "job-1"
+
+    _run_with_async_client(
+        OqtopusConfig(base_url="http://test.local", proxy="http://proxy.local:8080"),
+        _assert,
+    )
+
+    assert observed["upload_url"] == "https://example.invalid/upload"
+    assert observed["upload_proxy"] == "http://proxy.local:8080"
+
+
+def test_get_sselog_passes_explicit_proxy_to_storage(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test case: test_get_sselog_passes_explicit_proxy_to_storage."""
+    observed: dict[str, object] = {}
+
+    async def _assert(client: _AsyncOqtopusClient) -> None:
+        async def _fake_get_job(job_id: str) -> models.JobsJob:
+            observed["job_id"] = job_id
+            return models.JobsJob(
+                job_id=job_id,
+                name="job",
+                job_type=models.JobsJobType.SSE,
+                status=models.JobsJobStatus.SUCCEEDED,
+                device_id="K",
+                shots=1,
+                    job_info=models.JobsJobInfo(
+                        input=models.JobsS3SubmitJobInfo(program=["print('x')"]),
+                        sse_log="https://example.invalid/log.zip",
+                    ),
+            )
+
+        async def _fake_download(
+            presigned_url: str,
+            *,
+            timeout_s: int = 60,
+            allow_non_dict: bool = False,
+            proxy: str | None = None,
+        ) -> str:
+            observed["download_url"] = presigned_url
+            observed["download_timeout"] = timeout_s
+            observed["download_allow_non_dict"] = allow_non_dict
+            observed["download_proxy"] = proxy
+            return "log-body"
+
+        client.get_job = _fake_get_job  # type: ignore[assignment,method-assign]
+        monkeypatch.setattr("oqtopus_client.services.client.OqtopusStorage.download", _fake_download)
+
+        response = await client.get_sselog("job-1")
+        assert response.file_name == "job-1.zip"
+
+    _run_with_async_client(
+        OqtopusConfig(base_url="http://test.local", proxy="http://proxy.local:8080"),
+        _assert,
+    )
+
+    assert observed["download_url"] == "https://example.invalid/log.zip"
+    assert observed["download_proxy"] == "http://proxy.local:8080"
+
+
 def test_sync_client_close_does_not_affect_other_clients() -> None:
     """Test case: test_sync_clients_can_coexist_without_shared_state."""
     client1 = OqtopusClient(OqtopusConfig(base_url="http://test.local"))
