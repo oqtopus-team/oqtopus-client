@@ -352,12 +352,14 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
         *,
         parser: Callable[[dict[str, object]], object] | None = None,
         allow_non_dict: bool = False,
+        proxy: str | None = None,
     ) -> object | None:
         if value is None or not cls._looks_like_presigned_url(value):
             return value
         downloaded = await OqtopusStorage.download(
             str(value),
             allow_non_dict=allow_non_dict,
+            proxy=proxy,
         )
         if parser is not None and isinstance(downloaded, dict):
             return parser(downloaded)
@@ -367,6 +369,8 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
     async def _resolve_job_info(
         cls,
         job_info: models.JobsJobInfo | None,
+        *,
+        proxy: str | None = None,
     ) -> models.JobsJobInfo | None:
         if job_info is None:
             return None
@@ -375,31 +379,39 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
             "input": await cls._resolve_job_info_item(
                 job_info.input,
                 parser=models.JobsS3SubmitJobInfo.from_dict,
+                proxy=proxy,
             ),
             "combined_program": await cls._resolve_job_info_item(
                 job_info.combined_program,
                 allow_non_dict=True,
+                proxy=proxy,
             ),
             "result": await cls._resolve_job_info_item(
                 job_info.result,
                 parser=models.JobsS3JobResult.from_dict,
+                proxy=proxy,
             ),
             "transpile_result": await cls._resolve_job_info_item(
                 job_info.transpile_result,
                 parser=models.JobsS3TranspileResult.from_dict,
+                proxy=proxy,
             ),
             "sse_log": job_info.sse_log,
             "message": job_info.message,
         }
         return models.JobsJobInfo.from_dict(resolved)
 
-    @classmethod
-    async def _resolve_job(cls, job: models.JobsJob) -> models.JobsJob:
+    async def _resolve_job(self, job: models.JobsJob) -> models.JobsJob:
         if job.status == models.JobsJobStatus.REGISTERED:
             msg = "registered job (status='registered') is not supported here"
             raise ResponseValidationError(msg, job.model_dump(mode="json"))
         return job.model_copy(
-            update={"job_info": await cls._resolve_job_info(job.job_info)}
+            update={
+                "job_info": await self._resolve_job_info(
+                    job.job_info,
+                    proxy=self._proxy,
+                )
+            }
         )
 
     async def list_devices(self) -> list[models.DevicesDeviceInfo]:
@@ -470,6 +482,7 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
             register_response.presigned_url,
             upload_info.to_dict(),
             timeout_s=int(self._rest_timeout or OqtopusStorage.DEFAULT_TIMEOUT_S),
+            proxy=self._proxy,
         )
         await self._call_rest(
             job_api.submit_job(
@@ -908,6 +921,7 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
             sse_log,
             timeout_s=int(self._rest_timeout or OqtopusStorage.DEFAULT_TIMEOUT_S),
             allow_non_dict=True,
+            proxy=self._proxy,
         )
         if not isinstance(payload, str):
             msg = f"Unexpected SSE log payload for job {job_id}."

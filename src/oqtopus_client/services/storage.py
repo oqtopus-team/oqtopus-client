@@ -74,6 +74,7 @@ class OqtopusStorage:
         data: dict[str, object],
         *,
         timeout_s: int = DEFAULT_TIMEOUT_S,
+        proxy: str | None = None,
     ) -> None:
         """Upload one zipped JSON object using a presigned form POST.
 
@@ -94,11 +95,22 @@ class OqtopusStorage:
         )
         timeout = aiohttp.ClientTimeout(total=timeout_s)
         try:
-            async with (
-                aiohttp.ClientSession(timeout=timeout) as session,
-                session.post(presigned_url.url, data=form) as response,
-            ):
-                response.raise_for_status()
+            if proxy is None:
+                async with (
+                    aiohttp.ClientSession(timeout=timeout, trust_env=True) as session,
+                    session.post(presigned_url.url, data=form) as response,
+                ):
+                    response.raise_for_status()
+            else:
+                async with (
+                    aiohttp.ClientSession(
+                        timeout=timeout,
+                        trust_env=True,
+                        proxy=proxy,
+                    ) as session,
+                    session.post(presigned_url.url, data=form) as response,
+                ):
+                    response.raise_for_status()
         except aiohttp.ClientError as exc:
             msg = f"Network error during upload: {exc}"
             raise OqtopusStorageError(msg) from exc
@@ -110,6 +122,7 @@ class OqtopusStorage:
         *,
         timeout_s: int = DEFAULT_TIMEOUT_S,
         allow_non_dict: bool = False,
+        proxy: str | None = None,
     ) -> dict[str, object] | str:
         """Download one zipped JSON object from a presigned URL.
 
@@ -130,8 +143,22 @@ class OqtopusStorage:
 
         timeout = aiohttp.ClientTimeout(total=timeout_s)
         try:
+            if proxy is None:
+                async with (
+                    aiohttp.ClientSession(timeout=timeout, trust_env=True) as session,
+                    session.get(presigned_url) as response,
+                ):
+                    response.raise_for_status()
+                    return cls._extract_zip_object(
+                        await response.read(),
+                        allow_non_dict=allow_non_dict,
+                    )
             async with (
-                aiohttp.ClientSession(timeout=timeout) as session,
+                aiohttp.ClientSession(
+                    timeout=timeout,
+                    trust_env=True,
+                    proxy=proxy,
+                ) as session,
                 session.get(presigned_url) as response,
             ):
                 response.raise_for_status()
