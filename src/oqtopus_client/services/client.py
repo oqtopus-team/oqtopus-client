@@ -917,17 +917,13 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
         if not isinstance(sse_log, str):
             msg = f"SSE log is not available for job {job_id}."
             raise ResponseValidationError(msg, job.model_dump(mode="json"))
-        payload = await OqtopusStorage.download(
+        payload = await OqtopusStorage.download_archive(
             sse_log,
             timeout_s=int(self._rest_timeout or OqtopusStorage.DEFAULT_TIMEOUT_S),
-            allow_non_dict=True,
             proxy=self._proxy,
         )
-        if not isinstance(payload, str):
-            msg = f"Unexpected SSE log payload for job {job_id}."
-            raise ResponseValidationError(msg, payload)
         return JobsGetSselogResponse(
-            file=base64.b64encode(payload.encode("utf-8")).decode("utf-8"),
+            file=base64.b64encode(payload).decode("utf-8"),
             file_name=f"{job_id}.zip",
         )
 
