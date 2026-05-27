@@ -68,6 +68,50 @@ class OqtopusStorage:
         raise OqtopusStorageError(msg)
 
     @classmethod
+    async def download_archive(
+        cls,
+        presigned_url: str,
+        *,
+        timeout_s: int = DEFAULT_TIMEOUT_S,
+        proxy: str | None = None,
+    ) -> bytes:
+        """Download one ZIP archive from a presigned URL without extracting it.
+
+        Returns:
+            Raw ZIP archive bytes.
+
+        Raises:
+            OqtopusStorageError: If the download fails.
+
+        """
+        parsed = urlparse(presigned_url)
+        if parsed.scheme == "file":
+            return await asyncio.to_thread(Path(parsed.path).read_bytes)
+
+        timeout = aiohttp.ClientTimeout(total=timeout_s)
+        try:
+            if proxy is None:
+                async with (
+                    aiohttp.ClientSession(timeout=timeout, trust_env=True) as session,
+                    session.get(presigned_url) as response,
+                ):
+                    response.raise_for_status()
+                    return await response.read()
+            async with (
+                aiohttp.ClientSession(
+                    timeout=timeout,
+                    trust_env=True,
+                    proxy=proxy,
+                ) as session,
+                session.get(presigned_url) as response,
+            ):
+                response.raise_for_status()
+                return await response.read()
+        except aiohttp.ClientError as exc:
+            msg = f"Network error during download: {exc}"
+            raise OqtopusStorageError(msg) from exc
+
+    @classmethod
     async def upload(
         cls,
         presigned_url: models.JobsJobInfoUploadPresignedURL,
@@ -129,43 +173,13 @@ class OqtopusStorage:
         Returns:
             The extracted JSON payload as a dict or string.
 
-        Raises:
-            OqtopusStorageError: If the download fails.
-
         """
-        parsed = urlparse(presigned_url)
-        if parsed.scheme == "file":
-            zip_bytes = await asyncio.to_thread(Path(parsed.path).read_bytes)
-            return cls._extract_zip_object(
-                zip_bytes,
-                allow_non_dict=allow_non_dict,
-            )
-
-        timeout = aiohttp.ClientTimeout(total=timeout_s)
-        try:
-            if proxy is None:
-                async with (
-                    aiohttp.ClientSession(timeout=timeout, trust_env=True) as session,
-                    session.get(presigned_url) as response,
-                ):
-                    response.raise_for_status()
-                    return cls._extract_zip_object(
-                        await response.read(),
-                        allow_non_dict=allow_non_dict,
-                    )
-            async with (
-                aiohttp.ClientSession(
-                    timeout=timeout,
-                    trust_env=True,
-                    proxy=proxy,
-                ) as session,
-                session.get(presigned_url) as response,
-            ):
-                response.raise_for_status()
-                return cls._extract_zip_object(
-                    await response.read(),
-                    allow_non_dict=allow_non_dict,
-                )
-        except aiohttp.ClientError as exc:
-            msg = f"Network error during download: {exc}"
-            raise OqtopusStorageError(msg) from exc
+        zip_bytes = await cls.download_archive(
+            presigned_url,
+            timeout_s=timeout_s,
+            proxy=proxy,
+        )
+        return cls._extract_zip_object(
+            zip_bytes,
+            allow_non_dict=allow_non_dict,
+        )
