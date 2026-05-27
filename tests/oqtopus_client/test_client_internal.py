@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import importlib
 import sys
 import threading
@@ -573,24 +574,28 @@ def test_get_sselog_passes_explicit_proxy_to_storage(monkeypatch: pytest.MonkeyP
                     ),
             )
 
-        async def _fake_download(
+        archive_bytes = b"PK\x03\x04dummy-zip"
+
+        async def _fake_download_archive(
             presigned_url: str,
             *,
             timeout_s: int = 60,
-            allow_non_dict: bool = False,
             proxy: str | None = None,
-        ) -> str:
+        ) -> bytes:
             observed["download_url"] = presigned_url
             observed["download_timeout"] = timeout_s
-            observed["download_allow_non_dict"] = allow_non_dict
             observed["download_proxy"] = proxy
-            return "log-body"
+            return archive_bytes
 
         client.get_job = _fake_get_job  # type: ignore[assignment,method-assign]
-        monkeypatch.setattr("oqtopus_client.services.client.OqtopusStorage.download", _fake_download)
+        monkeypatch.setattr(
+            "oqtopus_client.services.client.OqtopusStorage.download_archive",
+            _fake_download_archive,
+        )
 
         response = await client.get_sselog("job-1")
         assert response.file_name == "job-1.zip"
+        assert base64.b64decode(cast("str", response.file), validate=True) == archive_bytes
 
     _run_with_async_client(
         OqtopusConfig(base_url="http://test.local", proxy="http://proxy.local:8080"),
