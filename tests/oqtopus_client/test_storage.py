@@ -52,6 +52,7 @@ def test_download_http_roundtrip(monkeypatch: pytest.MonkeyPatch) -> None:
         {"result": {"sampling": {"counts": {"00": 1}}}},
         "result.zip",
     )
+    observed: dict[str, object] = {}
 
     class _Response:
         def __init__(self, body: bytes) -> None:
@@ -76,7 +77,7 @@ def test_download_http_roundtrip(monkeypatch: pytest.MonkeyPatch) -> None:
 
     class _Session:
         def __init__(self, **kwargs: Any) -> None:
-            self.kwargs = kwargs
+            observed["session_kwargs"] = kwargs
 
         async def __aenter__(self) -> Self:
             return self
@@ -100,6 +101,72 @@ def test_download_http_roundtrip(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
     assert downloaded == {"result": {"sampling": {"counts": {"00": 1}}}}
+    assert observed["session_kwargs"] == {"timeout": aiohttp.ClientTimeout(total=60), "trust_env": True}
+
+
+def test_download_http_roundtrip_uses_explicit_proxy(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test case: test_download_http_roundtrip_uses_explicit_proxy."""
+    payload = OqtopusStorage._build_zip_payload(
+        {"result": {"sampling": {"counts": {"00": 1}}}},
+        "result.zip",
+    )
+    observed: dict[str, object] = {}
+
+    class _Response:
+        def __init__(self, body: bytes) -> None:
+            self._body = body
+
+        async def __aenter__(self) -> Self:
+            return self
+
+        async def __aexit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc: BaseException | None,
+            tb: TracebackType | None,
+        ) -> None:
+            return None
+
+        def raise_for_status(self) -> None:
+            return None
+
+        async def read(self) -> bytes:
+            return self._body
+
+    class _Session:
+        def __init__(self, **kwargs: Any) -> None:
+            observed["session_kwargs"] = kwargs
+
+        async def __aenter__(self) -> Self:
+            return self
+
+        async def __aexit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc: BaseException | None,
+            tb: TracebackType | None,
+        ) -> None:
+            return None
+
+        def get(self, url: str) -> _Response:
+            assert url == "https://example.invalid/result.zip"
+            return _Response(payload)
+
+    monkeypatch.setattr("oqtopus_client.services.storage.aiohttp.ClientSession", _Session)
+
+    downloaded = asyncio.run(
+        OqtopusStorage.download(
+            "https://example.invalid/result.zip",
+            proxy="http://proxy.local:8080",
+        )
+    )
+
+    assert downloaded == {"result": {"sampling": {"counts": {"00": 1}}}}
+    assert observed["session_kwargs"] == {
+        "timeout": aiohttp.ClientTimeout(total=60),
+        "trust_env": True,
+        "proxy": "http://proxy.local:8080",
+    }
 
 
 def test_upload_posts_presigned_form(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -123,7 +190,7 @@ def test_upload_posts_presigned_form(monkeypatch: pytest.MonkeyPatch) -> None:
 
     class _Session:
         def __init__(self, **kwargs: Any) -> None:
-            self.kwargs = kwargs
+            observed["session_kwargs"] = kwargs
 
         async def __aenter__(self) -> Self:
             return self
@@ -152,6 +219,65 @@ def test_upload_posts_presigned_form(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert observed["url"] == "https://example.invalid/upload"
     assert observed["data"].__class__.__name__ == "FormData"
+    assert observed["session_kwargs"] == {"timeout": aiohttp.ClientTimeout(total=60), "trust_env": True}
+
+
+def test_upload_posts_presigned_form_uses_explicit_proxy(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test case: test_upload_posts_presigned_form_uses_explicit_proxy."""
+    observed: dict[str, object] = {}
+
+    class _Response:
+        async def __aenter__(self) -> Self:
+            return self
+
+        async def __aexit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc: BaseException | None,
+            tb: TracebackType | None,
+        ) -> None:
+            return None
+
+        def raise_for_status(self) -> None:
+            return None
+
+    class _Session:
+        def __init__(self, **kwargs: Any) -> None:
+            observed["session_kwargs"] = kwargs
+
+        async def __aenter__(self) -> Self:
+            return self
+
+        async def __aexit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc: BaseException | None,
+            tb: TracebackType | None,
+        ) -> None:
+            return None
+
+        def post(self, url: str, *, data: object) -> _Response:
+            observed["url"] = url
+            observed["data"] = data
+            return _Response()
+
+    monkeypatch.setattr("oqtopus_client.services.storage.aiohttp.ClientSession", _Session)
+
+    asyncio.run(
+        OqtopusStorage.upload(
+            _presigned_url(),
+            {"program": ["OPENQASM 3;"]},
+            proxy="http://proxy.local:8080",
+        )
+    )
+
+    assert observed["url"] == "https://example.invalid/upload"
+    assert observed["data"].__class__.__name__ == "FormData"
+    assert observed["session_kwargs"] == {
+        "timeout": aiohttp.ClientTimeout(total=60),
+        "trust_env": True,
+        "proxy": "http://proxy.local:8080",
+    }
 
 
 def test_upload_wraps_network_errors(monkeypatch: pytest.MonkeyPatch) -> None:
