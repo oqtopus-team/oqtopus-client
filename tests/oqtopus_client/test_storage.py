@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+from io import BytesIO
 from pathlib import Path
 from types import TracebackType
 from typing import Any
+from zipfile import ZIP_DEFLATED, ZipFile
 
 import aiohttp
 import pytest
@@ -20,6 +22,13 @@ def _presigned_url() -> models.JobsJobInfoUploadPresignedURL:
         url="https://example.invalid/upload",
         fields=models.JobsJobInfoUploadPresignedURLFields(key="job-1/input.zip"),
     )
+
+
+def _build_text_zip_payload(text: str, archive_name: str) -> bytes:
+    with BytesIO() as zip_buffer:
+        with ZipFile(zip_buffer, mode="w", compression=ZIP_DEFLATED) as zip_arch:
+            zip_arch.writestr(archive_name, text)
+        return zip_buffer.getvalue()
 
 
 def test_download_file_url_roundtrip(tmp_path: Path) -> None:
@@ -48,6 +57,23 @@ def test_download_file_url_rejects_invalid_zip(tmp_path: Path) -> None:
 
     with pytest.raises(OqtopusStorageError, match="Invalid ZIP file"):
         asyncio.run(OqtopusStorage.download(archive.resolve().as_uri()))
+
+
+def test_download_file_url_allows_plain_text_when_requested(tmp_path: Path) -> None:
+    """Test case: test_download_file_url_allows_plain_text_when_requested."""
+    archive = tmp_path / "combined_program.zip"
+    archive.write_bytes(
+        _build_text_zip_payload("OPENQASM 3;\nqubit[1] q;\n", "combined_program"),
+    )
+
+    payload = asyncio.run(
+        OqtopusStorage.download(
+            archive.resolve().as_uri(),
+            allow_non_dict=True,
+        )
+    )
+
+    assert payload == "OPENQASM 3;\nqubit[1] q;\n"
 
 
 def test_download_http_roundtrip(monkeypatch: pytest.MonkeyPatch) -> None:

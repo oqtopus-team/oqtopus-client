@@ -52,12 +52,20 @@ class OqtopusStorage:
                     raise OqtopusStorageError(msg)
 
                 with zip_arch.open(json_file_path_list[0]) as json_file:
-                    data = json.loads(json_file.read())
+                    raw_data = json_file.read()
+                    try:
+                        data = json.loads(raw_data)
+                    except json.JSONDecodeError as exc:
+                        if not allow_non_dict:
+                            msg = "Invalid JSON in ZIP file"
+                            raise OqtopusStorageError(msg) from exc
+                        try:
+                            return raw_data.decode("utf-8")
+                        except UnicodeDecodeError as decode_exc:
+                            msg = "Invalid JSON in ZIP file"
+                            raise OqtopusStorageError(msg) from decode_exc
         except BadZipFile as exc:
             msg = "Invalid ZIP file"
-            raise OqtopusStorageError(msg) from exc
-        except json.JSONDecodeError as exc:
-            msg = "Invalid JSON in ZIP file"
             raise OqtopusStorageError(msg) from exc
 
         if isinstance(data, dict):

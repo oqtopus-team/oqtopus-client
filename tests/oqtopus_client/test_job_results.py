@@ -236,7 +236,7 @@ def test_sse_result_log_helpers(tmp_path: Path, capsys: pytest.CaptureFixture[st
     class _DummyClient:
         def get_sselog(self, job_id: str) -> JobsGetSselogResponse:
             data = base64.b64encode(f"log-{job_id}".encode()).decode("utf-8")
-            return JobsGetSselogResponse(file=data, file_name=f"{job_id}.zip")
+            return JobsGetSselogResponse(file=data, file_name=f"sselog_{job_id}.log")
 
     result = OqtopusSseJobResult(
         job_id="job-42",
@@ -265,7 +265,7 @@ def test_sse_download_log_default_does_not_write_files(tmp_path: Path, monkeypat
     class _DummyClient:
         def get_sselog(self, job_id: str) -> JobsGetSselogResponse:
             data = base64.b64encode(f"log-{job_id}".encode()).decode("utf-8")
-            return JobsGetSselogResponse(file=data, file_name=f"{job_id}.zip")
+            return JobsGetSselogResponse(file=data, file_name=f"sselog_{job_id}.log")
 
     monkeypatch.chdir(tmp_path)
     before = {p.name for p in tmp_path.iterdir()}
@@ -294,7 +294,7 @@ def test_sse_download_log_rejects_save_options_without_persist(tmp_path: Path) -
     class _DummyClient:
         def get_sselog(self, job_id: str) -> JobsGetSselogResponse:
             data = base64.b64encode(f"log-{job_id}".encode()).decode("utf-8")
-            return JobsGetSselogResponse(file=data, file_name=f"{job_id}.zip")
+            return JobsGetSselogResponse(file=data, file_name=f"sselog_{job_id}.log")
 
     result = OqtopusSseJobResult(
         job_id="job-99",

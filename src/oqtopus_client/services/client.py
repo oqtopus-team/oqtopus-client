@@ -924,7 +924,7 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
         )
         return JobsGetSselogResponse(
             file=base64.b64encode(payload).decode("utf-8"),
-            file_name=f"{job_id}.zip",
+            file_name=f"sselog_{job_id}.log",
         )
 
     async def create_api_token(self) -> models.ApiTokenApiToken:
