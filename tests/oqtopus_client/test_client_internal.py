@@ -12,6 +12,7 @@ from collections.abc import Callable, Coroutine
 from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, TypeVar, cast
 
 import pytest
@@ -657,6 +658,62 @@ def test_get_job_requires_valid_job_def_shape() -> None:
 
     with pytest.raises(AttributeError):
         client.get_job("job-1")
+
+
+def test_get_job_resolves_plain_text_combined_program(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test case: test_get_job_resolves_plain_text_combined_program."""
+
+    async def _assert(client: _AsyncOqtopusClient) -> None:
+        async def _fake_call_rest(_call: object) -> models.JobsJob:
+            return models.JobsJob(
+                job_id="job-1",
+                name="job",
+                job_type=models.JobsJobType.MULTI_MANUAL,
+                status=models.JobsJobStatus.SUCCEEDED,
+                device_id="K",
+                shots=1,
+                job_info=models.JobsJobInfo(
+                    input=models.JobsS3SubmitJobInfo(program=["OPENQASM 3;"]),
+                    combined_program="https://example.invalid/job-1/combined_program.zip",
+                    result=models.JobsS3JobResult(
+                        sampling=models.JobsS3SamplingResult(
+                            counts={"00": 1},
+                            divided_counts={"0": {"0": 1}},
+                        )
+                    ),
+                ),
+            )
+
+        async def _fake_download(
+            presigned_url: str,
+            *,
+            timeout_s: int = 60,
+            allow_non_dict: bool = False,
+            proxy: str | None = None,
+        ) -> dict[str, object] | str:
+            assert presigned_url == "https://example.invalid/job-1/combined_program.zip"
+            assert timeout_s == 60
+            assert allow_non_dict is True
+            assert proxy == "http://proxy.local:8080"
+            return "OPENQASM 3;\nqubit[1] q;\n"
+
+        monkeypatch.setattr(client, "_call_rest", _fake_call_rest)
+        monkeypatch.setattr(client, "_job_api", SimpleNamespace(get_job=lambda *_args, **_kwargs: object()))
+        monkeypatch.setattr(
+            "oqtopus_client.services.client.OqtopusStorage.download",
+            _fake_download,
+        )
+
+        result = await client.get_job("job-1")
+        assert result.job_info is not None
+        assert result.job_info.combined_program == "OPENQASM 3;\nqubit[1] q;\n"
+
+    _run_with_async_client(
+        OqtopusConfig(base_url="http://test.local", proxy="http://proxy.local:8080"),
+        _assert,
+    )
 
 
 def test_run_async_method_delegates_selected_async_method() -> None:
