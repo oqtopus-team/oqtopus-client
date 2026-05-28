@@ -594,7 +594,7 @@ def test_get_sselog_passes_explicit_proxy_to_storage(monkeypatch: pytest.MonkeyP
         )
 
         response = await client.get_sselog("job-1")
-        assert response.file_name == "job-1.zip"
+        assert response.file_name == "sselog_job-1.log"
         assert base64.b64decode(cast("str", response.file), validate=True) == archive_bytes
 
     _run_with_async_client(
