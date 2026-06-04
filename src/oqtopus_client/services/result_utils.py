@@ -83,5 +83,8 @@ def convert_sampling_counts_to_int_keys(
 
     return {
         "counts": bitstring_dict_to_int_keys(counts),
-        "divided_counts": bitstring_dict_to_int_keys(divided_counts),
+        "divided_counts": {
+            int(index): bitstring_dict_to_int_keys(sub_counts)
+            for index, sub_counts in (divided_counts or {}).items()
+        }
     }

@@ -34,13 +34,13 @@ def test_convert_sampling_counts_to_int_keys_from_model() -> None:
     """Test case: test_convert_sampling_counts_to_int_keys_from_model."""
     sampling = models.JobsS3SamplingResult(
         counts={"00": 8, "11": 2},
-        divided_counts={"00": 0.8, "11": 0.2},
+        divided_counts={"0": {"0": 8, "1": 2}, "1": {"0": 8, "1": 2}},
     )
 
     integer_key_counts = convert_sampling_counts_to_int_keys(sampling)
     assert integer_key_counts == {
         "counts": {0: 8, 3: 2},
-        "divided_counts": {0: 0.8, 3: 0.2},
+        "divided_counts": {0: {0: 8, 1: 2}, 1: {0: 8, 1: 2}},
     }
 
 

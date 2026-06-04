@@ -285,12 +285,6 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
                     request,
                     upload_info
             )
-            #response = await asyncio.to_thread(
-            #    sse_sampler.req_transpile_and_exec,  # type: ignore[attr-defined]
-            #    upload_info.program,
-            #    request.shots,
-            #    request.transpiler_info or {},
-            #)
         except Exception as exc:  # pragma: no cover - surfaced as API error
             raise UserApiError(
                 0,
