@@ -708,6 +708,15 @@ class OqtopusSseJobResult(OqtopusJobResult):
     """Specialized SDK result object for sse jobs."""
 
     def _to_jobs_job(self) -> models.JobsJob:
+        if self.job_info is None:
+            job_info = None
+        elif isinstance(self.job_info, models.JobsJobInfo):
+            job_info = self.job_info
+        elif isinstance(self.job_info, Mapping):
+            job_info = models.JobsJobInfo.from_dict(
+                _mapping_like_to_dict(self.job_info)
+            )
+
         return models.JobsJob(
             job_id=self.job_id,
             job_type=self.job_type,
@@ -716,10 +725,10 @@ class OqtopusSseJobResult(OqtopusJobResult):
             description=self.description,
             device_id=self.device_id,
             shots=self.shots,
-            job_info=self.job_info,
-            transpiler_info=self.transpiler_info,
-            simulator_info=self.simulator_info,
-            mitigation_info=self.mitigation_info,
+            job_info=job_info,
+            transpiler_info=_mapping_like_to_dict(self.transpiler_info),
+            simulator_info=_mapping_like_to_dict(self.simulator_info),
+            mitigation_info=_mapping_like_to_dict(self.mitigation_info),
             execution_time=self.execution_time,
             submitted_at=self.submitted_at,
             ready_at=self.ready_at,

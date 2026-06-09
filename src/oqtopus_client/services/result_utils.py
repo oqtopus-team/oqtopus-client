@@ -52,7 +52,7 @@ def convert_sampling_counts_to_int_keys(
     sampling_result: (
         models.JobsS3SamplingResult | Mapping[str, object] | None
     ),
-) -> dict[str, dict[int, object]]:
+) -> dict[str, dict[int, object] | dict[int, dict[int, object]]]:
     """Convert sampling result bitstring keys to integers.
 
     Args:
@@ -84,7 +84,9 @@ def convert_sampling_counts_to_int_keys(
     return {
         "counts": bitstring_dict_to_int_keys(counts),
         "divided_counts": {
-            int(index): bitstring_dict_to_int_keys(sub_counts)
+            int(index): bitstring_dict_to_int_keys(
+                cast("Mapping[str, object] | None", sub_counts),
+            )
             for index, sub_counts in (divided_counts or {}).items()
         }
     }
