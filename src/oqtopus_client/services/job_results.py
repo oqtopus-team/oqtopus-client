@@ -736,12 +736,7 @@ class OqtopusSseJobResult(OqtopusJobResult):
             ended_at=self.ended_at,
         )
 
-    def get_job_result(self) -> (
-            OqtopusSamplingJobResult
-            | OqtopusEstimationJobResult
-            | OqtopusMultiManualJobResult
-            | OqtopusJobResult
-    ):
+    def get_job_result(self) -> OqtopusJobResult:
         """Return a job result object with the specific type based on available payload.
 
         Returns:

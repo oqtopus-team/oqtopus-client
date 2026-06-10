@@ -49,6 +49,11 @@ def main() -> None:
             ),
             timeout=120.0,
         )
+
+        if result is None or result.exp_value is None:
+            print(f"Step {i}: No result received.")
+            continue
+
         energy = float(result.exp_value)
         if energy < best_energy:
             best_energy = energy
