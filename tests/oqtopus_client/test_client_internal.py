@@ -246,14 +246,14 @@ def test_build_sse_job_request_uses_sse_program(tmp_path: Path) -> None:
     assert payload.program is None
 
 
-def test_run_job_uses_sse_sampler_in_sse_container(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Test case: test_run_job_uses_sse_sampler_in_sse_container."""
+def test_run_job_uses_sse_driver_in_sse_container(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test case: test_run_job_uses_sse_driver_in_sse_container."""
     monkeypatch.setenv("OQTOPUS_ENV", "sse_container")
     loop_thread_id = threading.get_ident()
     observed: dict[str, int] = {}
 
-    def req_transpile_and_exec(
-        program: list[str], shots: int, transpiler_info: dict[str, Any]
+    def submit_job(
+        input_job: models.JobsSubmitJobRequest, upload_info: models.JobsS3SubmitJobInfo,
     ) -> dict[str, Any]:
         observed["thread_id"] = threading.get_ident()
         return {
@@ -262,17 +262,17 @@ def test_run_job_uses_sse_sampler_in_sse_container(monkeypatch: pytest.MonkeyPat
             "job_type": "sampling",
             "status": "succeeded",
             "device_id": "sse",
-            "shots": shots,
+            "shots": input_job.shots,
             "job_info": {
-                "input": {"program": program},
+                "input": {"program": upload_info.program},
                 "result": {"sampling": {"counts": {"00": 1}}},
             },
         }
 
     fake_module = types.SimpleNamespace(
-        req_transpile_and_exec=req_transpile_and_exec,
+        submit_job=submit_job,
     )
-    monkeypatch.setitem(sys.modules, "sse_sampler", fake_module)
+    monkeypatch.setitem(sys.modules, "sse_driver", fake_module)
 
     async def _assert(client: _AsyncOqtopusClient) -> None:
         result = await client.run_job(
@@ -290,8 +290,8 @@ def test_run_job_normalizes_flat_sse_container_response(
     """Test case: test_run_job_normalizes_flat_sse_container_response."""
     monkeypatch.setenv("OQTOPUS_ENV", "sse_container")
 
-    def req_transpile_and_exec(
-        program: list[str], shots: int, transpiler_info: dict[str, Any]
+    def submit_job(
+        input_job: models.JobsSubmitJobRequest, upload_info: models.JobsS3SubmitJobInfo,
     ) -> dict[str, Any]:
         return {
             "job_id": "job-sse-flat",
@@ -299,17 +299,17 @@ def test_run_job_normalizes_flat_sse_container_response(
             "job_type": "sampling",
             "status": "succeeded",
             "device_id": "sse",
-            "shots": shots,
-            "input": {"program": program},
+            "shots": input_job.shots,
+            "input": {"program": upload_info.program},
             "result": {"sampling": {"counts": {"00": 1}}},
             "transpile_result": {"transpiled_program": "OPENQASM 3;", "stats": {}, "virtual_physical_mapping": {}},
             "message": "ok",
         }
 
     fake_module = types.SimpleNamespace(
-        req_transpile_and_exec=req_transpile_and_exec,
+        submit_job=submit_job,
     )
-    monkeypatch.setitem(sys.modules, "sse_sampler", fake_module)
+    monkeypatch.setitem(sys.modules, "sse_driver", fake_module)
 
     async def _assert(client: _AsyncOqtopusClient) -> None:
         result = await client.run_job(
@@ -323,10 +323,10 @@ def test_run_job_normalizes_flat_sse_container_response(
     _run_with_async_client(OqtopusConfig(base_url=""), _assert)
 
 
-def test_run_job_raises_when_sse_sampler_missing(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Test case: test_run_job_raises_when_sse_sampler_missing."""
+def test_run_job_raises_when_sse_driver_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test case: test_run_job_raises_when_sse_driver_missing."""
     monkeypatch.setenv("OQTOPUS_ENV", "sse_container")
-    monkeypatch.delitem(sys.modules, "sse_sampler", raising=False)
+    monkeypatch.delitem(sys.modules, "sse_driver", raising=False)
 
     async def _assert(client: _AsyncOqtopusClient) -> None:
         with pytest.raises(UserApiError):

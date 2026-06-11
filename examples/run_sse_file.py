@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 
 from oqtopus_client import OqtopusClient, OqtopusConfig
+from oqtopus_client.services.job_results import OqtopusSamplingJobResult
 
 section = os.getenv("OQTOPUS_CONFIG_SECTION", "oqtopus-dev")
 config_path = os.getenv("OQTOPUS_CONFIG_PATH", "~/.config/oqtopus/config.ini")
@@ -21,7 +22,10 @@ result = client.run_sse_file(
 )
 print(result)
 print(result.job_id, result.job_type)
-print(result.counts_with_integer_keys())
+
+typed_result = result.get_job_result()
+if isinstance(typed_result, OqtopusSamplingJobResult):
+    print(typed_result.counts_with_integer_keys())
 
 archive = result.download_log()
 print(f"SSE log archive size (memory only): {len(archive)} bytes")

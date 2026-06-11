@@ -202,13 +202,13 @@ def test_multi_manual_result_direct_construction() -> None:
     assert result.job_type == models.JobsJobType.MULTI_MANUAL
     assert result.counts_with_integer_keys() == {
         "counts": {3: 2},
-        "divided_counts": {0: {"11": 1}, 1: {"00": 1}},
+        "divided_counts": {0: {3: 1}, 1: {0: 1}},
     }
     assert result.get_divided_counts() == {"0": {3: 1}, "1": {0: 1}}
 
 
-def test_sse_result_direct_construction() -> None:
-    """Test case: test_sse_result_direct_construction."""
+def test_sse_result_direct_construction_sampling() -> None:
+    """Test case: test_sse_result_direct_construction_sampling."""
     result = OqtopusSseJobResult(
         job_id="job-8",
         job_type=models.JobsJobType.SSE,
@@ -225,10 +225,121 @@ def test_sse_result_direct_construction() -> None:
     )
     assert isinstance(result, OqtopusSseJobResult)
     assert result.job_type == models.JobsJobType.SSE
-    assert result.counts_with_integer_keys() == {
+    job_result = result.get_job_result()
+    assert isinstance(job_result, OqtopusSamplingJobResult)
+    assert job_result.counts_with_integer_keys() == {
         "counts": {0: 4},
         "divided_counts": {},
     }
+
+
+def test_sse_result_direct_construction_multi_manual() -> None:
+    """Test case: test_sse_result_direct_construction_multi_manual."""
+    result = OqtopusSseJobResult(
+        job_id="job-9",
+        job_type=models.JobsJobType.SSE,
+        status=models.JobsJobStatus.SUCCEEDED,
+        name="job-9",
+        device_id="Kawasaki",
+        shots=4,
+        job_info=models.JobsJobInfo(
+            input=models.JobsS3SubmitJobInfo(sse_program="print('x')"),
+            result=models.JobsS3JobResult(
+                sampling=models.JobsS3SamplingResult(
+                    counts={"010": 4},
+                    divided_counts={"0": {"10": 4}, "1": {"0": 4}}
+                ),
+            ),
+        ),
+    )
+    assert isinstance(result, OqtopusSseJobResult)
+    assert result.job_type == models.JobsJobType.SSE
+    job_result = result.get_job_result()
+    assert isinstance(job_result, OqtopusMultiManualJobResult)
+    assert job_result.counts_with_integer_keys() == {
+        "counts": {2: 4},
+        "divided_counts": {0: {2: 4}, 1: {0: 4}},
+    }
+    assert job_result.get_divided_counts() == {"0": {2: 4}, "1": {0: 4}}
+
+
+def test_sse_result_direct_construction_estimation() -> None:
+    """Test case: test_sse_result_direct_construction_estimation."""
+    result = OqtopusSseJobResult(
+        job_id="job-10",
+        job_type=models.JobsJobType.SSE,
+        status=models.JobsJobStatus.SUCCEEDED,
+        name="job-10",
+        device_id="Kawasaki",
+        shots=4,
+        job_info=models.JobsJobInfo(
+            input=models.JobsS3SubmitJobInfo(sse_program="print('x')"),
+            result=models.JobsS3JobResult(
+                estimation=models.JobsS3EstimationResult(exp_value=0.75, stds=0.1),
+            ),
+        ),
+    )
+    assert isinstance(result, OqtopusSseJobResult)
+    assert result.job_type == models.JobsJobType.SSE
+    job_result = result.get_job_result()
+    assert isinstance(job_result, OqtopusEstimationJobResult)
+    assert job_result.exp_value == 0.75
+    assert job_result.stds == 0.1
+
+
+def test_sse_result_direct_construction_unknown_job() -> None:
+    """Test case: test_sse_result_direct_construction_unknown_job."""
+    result = OqtopusSseJobResult(
+        job_id="job-11",
+        job_type=models.JobsJobType.SSE,
+        status=models.JobsJobStatus.SUCCEEDED,
+        name="job-11",
+        device_id="Kawasaki",
+        shots=4,
+        job_info=models.JobsJobInfo(
+            input=models.JobsS3SubmitJobInfo(sse_program="print('x')"),
+            result=models.JobsS3JobResult(),
+        ),
+    )
+    assert isinstance(result, OqtopusSseJobResult)
+    assert result.job_type == models.JobsJobType.SSE
+    assert isinstance(result.get_job_result(), OqtopusJobResult)
+
+
+def test_sse_result_payload_detection_with_mapping_job_info() -> None:
+    """Test case: SSE payload type detection works with Mapping job_info."""
+    sampling_result = OqtopusSseJobResult(
+        job_id="job-map-1",
+        job_type=models.JobsJobType.SSE,
+        status=models.JobsJobStatus.SUCCEEDED,
+        name="job-map-1",
+        device_id="Kawasaki",
+        shots=10,
+        job_info={
+            "input": {"sse_program": "print('x')"},
+            "result": {"sampling": {"counts": {"01": 10}}},
+        },
+    )
+    sampling_job_result = sampling_result.get_job_result()
+    assert isinstance(sampling_job_result, OqtopusSamplingJobResult)
+    assert sampling_job_result.get_counts() == {"01": 10}
+
+    estimation_result = OqtopusSseJobResult(
+        job_id="job-map-2",
+        job_type=models.JobsJobType.SSE,
+        status=models.JobsJobStatus.SUCCEEDED,
+        name="job-map-2",
+        device_id="Kawasaki",
+        shots=10,
+        job_info={
+            "input": {"sse_program": "print('x')"},
+            "result": {"estimation": {"exp_value": 0.2, "stds": 0.05}},
+        },
+    )
+    estimation_job_result = estimation_result.get_job_result()
+    assert isinstance(estimation_job_result, OqtopusEstimationJobResult)
+    assert estimation_job_result.exp_value == 0.2
+    assert estimation_job_result.stds == 0.05
 
 
 def test_sse_result_log_helpers(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

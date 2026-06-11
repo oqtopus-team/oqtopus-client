@@ -271,20 +271,19 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
         upload_info: models.JobsS3SubmitJobInfo,
     ) -> models.JobsJob:
         try:
-            sse_sampler = import_module("sse_sampler")
+            sse_driver = import_module("sse_driver")
         except ModuleNotFoundError as exc:
             raise UserApiError(
                 0,
-                "sse_container mode requires 'sse_sampler' module.",
+                "sse_container mode requires 'sse_driver' module.",
                 payload={"mode": "sse_container"},
             ) from exc
 
         try:
             response = await asyncio.to_thread(
-                sse_sampler.req_transpile_and_exec,  # type: ignore[attr-defined]
-                upload_info.program,
-                request.shots,
-                request.transpiler_info or {},
+                    sse_driver.submit_job,
+                    request,
+                    upload_info
             )
         except Exception as exc:  # pragma: no cover - surfaced as API error
             raise UserApiError(
@@ -511,6 +510,7 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
             if request.job_type in {
                 models.JobsJobType.SAMPLING,
                 models.JobsJobType.MULTI_MANUAL,
+                models.JobsJobType.ESTIMATION,
                 models.JobsJobType.SSE,
             }:
                 return await self._run_sse_container_job(request, upload_info)
