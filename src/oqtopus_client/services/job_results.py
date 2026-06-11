@@ -704,8 +704,66 @@ class OqtopusMultiManualJobResult(OqtopusSamplingJobResult):
         return f"OqtopusMultiManualJobResult(job_id={self.job_id!r})"
 
 
-class OqtopusSseJobResult(OqtopusSamplingJobResult):
+class OqtopusSseJobResult(OqtopusJobResult):
     """Specialized SDK result object for sse jobs."""
+
+    def _to_jobs_job(self) -> models.JobsJob:
+        if self.job_info is None:
+            job_info = None
+        elif isinstance(self.job_info, models.JobsJobInfo):
+            job_info = self.job_info
+        elif isinstance(self.job_info, Mapping):
+            job_info = models.JobsJobInfo.from_dict(
+                _mapping_like_to_dict(self.job_info)
+            )
+
+        return models.JobsJob(
+            job_id=self.job_id,
+            job_type=self.job_type,
+            status=self.status,
+            name=self.name,
+            description=self.description,
+            device_id=self.device_id,
+            shots=self.shots,
+            job_info=job_info,
+            transpiler_info=_mapping_like_to_dict(self.transpiler_info),
+            simulator_info=_mapping_like_to_dict(self.simulator_info),
+            mitigation_info=_mapping_like_to_dict(self.mitigation_info),
+            execution_time=self.execution_time,
+            submitted_at=self.submitted_at,
+            ready_at=self.ready_at,
+            running_at=self.running_at,
+            ended_at=self.ended_at,
+        )
+
+    def get_job_result(self) -> OqtopusJobResult:
+        """Return a job result object with the specific type based on available payload.
+
+        Returns:
+            A job result object with the specific type based on available payload.
+
+        """
+        job = self._to_jobs_job()
+        sampling = self.sampling
+        if sampling is not None:
+            if isinstance(sampling, models.JobsS3SamplingResult):
+                is_multi_manual = sampling.divided_counts is not None
+            elif isinstance(sampling, Mapping):
+                is_multi_manual = sampling.get("divided_counts") is not None
+            else:
+                is_multi_manual = False
+
+            if is_multi_manual:
+                return OqtopusMultiManualJobResult.from_raw(
+                    job=job,
+                    client=self._client
+                )
+            return OqtopusSamplingJobResult.from_raw(job=job, client=self._client)
+
+        if self.estimation is not None:
+            return OqtopusEstimationJobResult.from_raw(job=job, client=self._client)
+
+        return OqtopusJobResult.from_raw(job=job, client=self._client)
 
     def _get_log_archive_bytes(self) -> tuple[bytes, str]:
         client = self._require_client()
