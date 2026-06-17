@@ -156,9 +156,10 @@ succeeded
 In an async context, you can submit and wait for multiple jobs with
 `submit_jobs_async()` and `wait_for_jobs_async()`:
 
-Because synchronous `OqtopusClient` methods use `asyncio.run()` internally,
-they cannot be called from inside an async function where an event loop is
-already running. In async contexts, use async APIs such as
+Synchronous `OqtopusClient` methods use `asyncio.run()` internally when no
+event loop is running. In environments such as Jupyter notebooks where an
+event loop is already running, they execute the internal async work in a worker
+thread. For fully non-blocking async code, use async APIs such as
 `submit_jobs_async()` and `wait_for_jobs_async()`.
 
 ```python
