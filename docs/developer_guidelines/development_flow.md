@@ -231,6 +231,9 @@ Prefer a clean history on both `develop` and `main`.
 Before a release, update the package version in `pyproject.toml` and run the
 release checks:
 
+When new commits land on `develop`, GitHub Actions automatically opens or
+updates the `develop` -> `main` release PR.
+
 ```bash
 make check
 make docs
