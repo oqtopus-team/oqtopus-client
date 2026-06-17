@@ -1024,17 +1024,6 @@ class OqtopusClient:  # noqa: PLR0904
         self,
         coro_factory: Callable[[_AsyncOqtopusClient], Coroutine[object, object, _T]],
     ) -> _T:
-        try:
-            asyncio.get_running_loop()
-        except RuntimeError:
-            pass
-        else:
-            msg = (
-                "OqtopusClient cannot be used while an event loop is running. "
-                "Use _AsyncOqtopusClient directly."
-            )
-            raise RuntimeError(msg)
-
         async def _main() -> _T:
             async_client = _AsyncOqtopusClient(
                 self._config,
@@ -1047,7 +1036,16 @@ class OqtopusClient:  # noqa: PLR0904
                 with suppress(Exception):
                     await async_client.close()
 
-        return asyncio.run(_main())
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return asyncio.run(_main())
+
+        def _run_in_thread() -> _T:
+            return asyncio.run(_main())
+
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            return executor.submit(_run_in_thread).result()
 
     async def _run_async_with_client(
         self,

@@ -637,18 +637,38 @@ def test_sync_client_uses_config_from_file_when_omitted(monkeypatch: pytest.Monk
     assert observed["path"] == "~/.config/oqtopus/config.ini"
 
 
-def test_sync_client_fails_with_active_event_loop() -> None:
-    """Test case: test_sync_client_fails_with_active_event_loop."""
+def test_sync_submit_job_uses_worker_thread_with_active_event_loop(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test case: test_sync_submit_job_uses_worker_thread_with_active_event_loop."""
+    observed: dict[str, int] = {}
+
+    async def fake_submit_job(
+        self: _AsyncOqtopusClient,
+        body: OqtopusJobSpec,
+    ) -> models.JobsRegisterJobResponse:
+        observed["worker_thread"] = threading.get_ident()
+        assert body.device_id == "K"
+        return models.JobsRegisterJobResponse(
+            job_id="job-42",
+            presigned_url=models.JobsJobInfoUploadPresignedURL(
+                url="https://example.invalid/upload",
+                fields=models.JobsJobInfoUploadPresignedURLFields(
+                    key="job-42/input.zip"
+                ),
+            ),
+        )
+
+    monkeypatch.setattr(_AsyncOqtopusClient, "submit_job", fake_submit_job)
 
     async def _scenario() -> None:
+        observed["event_loop_thread"] = threading.get_ident()
         client = OqtopusClient(OqtopusConfig(base_url="http://test.local"))
-        with pytest.raises(
-            RuntimeError,
-            match="event loop is running",
-        ):
-            client.list_devices()
+        response = client.submit_job(OqtopusJobSpec.sampling(device_id="K", program="x"))
+        assert response.job_id == "job-42"
 
     asyncio.run(_scenario())
+    assert observed["worker_thread"] != observed["event_loop_thread"]
 
 
 def test_get_job_requires_valid_job_def_shape() -> None:
