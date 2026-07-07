@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
+from urllib.parse import urlparse
+from urllib.request import urlopen
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -119,7 +121,16 @@ class OqtopusDevice:
         parsing or when inspecting malformed values returned by the backend.
 
         """
-        return self.raw.device_info
+        raw_device_info = self.raw.device_info
+        if not raw_device_info:
+            return raw_device_info
+
+        parsed = urlparse(raw_device_info)
+        if parsed.scheme not in {"http", "https", "file"}:
+            return raw_device_info
+
+        with urlopen(raw_device_info) as response:  # noqa: S310
+            return response.read().decode("utf-8")
 
     @property
     def calibrated_at(self) -> datetime | None:
