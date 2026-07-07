@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from io import BytesIO
 from typing import TYPE_CHECKING, Any, cast
 from urllib.parse import urlparse
 from urllib.request import urlopen
+from zipfile import BadZipFile, ZipFile
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -120,6 +122,9 @@ class OqtopusDevice:
         Use this property when you need the original API payload without JSON
         parsing or when inspecting malformed values returned by the backend.
 
+        Raises:
+            ValueError: If the downloaded device_info ZIP archive is malformed.
+
         """
         raw_device_info = self.raw.device_info
         if not raw_device_info:
@@ -130,7 +135,20 @@ class OqtopusDevice:
             return raw_device_info
 
         with urlopen(raw_device_info) as response:  # noqa: S310
-            return response.read().decode("utf-8")
+            payload = response.read()
+
+        try:
+            with ZipFile(BytesIO(payload), "r") as zip_archive:
+                names = zip_archive.namelist()
+                if len(names) != 1:
+                    msg = (
+                        "Expected one file in device_info ZIP archive, "
+                        f"but found {len(names)}."
+                    )
+                    raise ValueError(msg)
+                return zip_archive.read(names[0]).decode("utf-8")
+        except BadZipFile:
+            return payload.decode("utf-8")
 
     @property
     def calibrated_at(self) -> datetime | None:

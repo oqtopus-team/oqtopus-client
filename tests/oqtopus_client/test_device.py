@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from zipfile import ZIP_DEFLATED, ZipFile
 
 import pytest
 
@@ -113,3 +114,28 @@ def test_device_info_downloads_presigned_file_url(tmp_path: Path) -> None:
 
     assert device.device_info_str == '{"backend":"s3"}'
     assert device.device_info == {"backend": "s3"}
+
+
+def test_device_info_downloads_presigned_zip_file_url(tmp_path: Path) -> None:
+    """Test case: test_device_info_downloads_presigned_zip_file_url."""
+    device_info_file = tmp_path / "device_info.zip"
+    with ZipFile(device_info_file, mode="w", compression=ZIP_DEFLATED) as archive:
+        archive.writestr("device_info.json", '{"backend":"zip"}')
+    device = OqtopusDevice(
+        raw=models.DevicesDeviceInfo(
+            device_id="K",
+            device_type="simulator",
+            status="available",
+            available_at=None,
+            n_pending_jobs=0,
+            n_qubits=2,
+            basis_gates=["x", "h"],
+            supported_instructions=["measure"],
+            device_info=device_info_file.as_uri(),
+            calibrated_at=None,
+            description="sim",
+        ),
+    )
+
+    assert device.device_info_str == '{"backend":"zip"}'
+    assert device.device_info == {"backend": "zip"}
