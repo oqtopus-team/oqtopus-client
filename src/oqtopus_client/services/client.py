@@ -110,6 +110,7 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
 
     def _apply_api_token(self, api_token: str) -> None:
         self._headers["q-api-token"] = api_token
+        self._headers["Authorization"] = api_token
 
     def _initialize_rest_api(self) -> None:  # pragma: no cover - integration path
         self._rest_config = RestConfiguration(host=self.base_url)

@@ -333,7 +333,7 @@ client = OqtopusClient(
 By default, automatic retries apply only to HTTP `429` responses. If you need a
 different policy, set `retry_status_codes` explicitly.
 
-The token is sent using the `q-api-token` request header.
+The API token is sent using both the `q-api-token` and `Authorization` request headers with the same value.
 
 Optional variables and settings include:
 
