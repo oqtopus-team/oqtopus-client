@@ -128,6 +128,7 @@ def test_async_client_sets_headers_and_rest_config() -> None:
     """Test case: test_async_client_sets_headers_and_rest_config."""
     async def _assert(client: _AsyncOqtopusClient) -> None:
         assert client._headers["q-api-token"] == "from-config"
+        assert client._headers["Authorization"] == "from-config"
         assert client._headers["X-Test"] == "1"
         assert client._rest_config is not None
         assert client._rest_config.host == "http://test"
