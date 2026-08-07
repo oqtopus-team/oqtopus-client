@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import configparser
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 _DEFAULT_CONFIG_PATH = object()
@@ -25,7 +25,8 @@ class OqtopusConfig:
 
     Attributes:
         base_url: OQTOPUS API base URL.
-        api_token: API token string.
+        api_token: API token string. Excluded from ``repr()``.
+        proxy: Proxy URL. Excluded from ``repr()``.
         timeout: HTTP request timeout seconds.
         retry_max_attempts: Max retry attempts for retryable requests.
         retry_backoff_seconds: Exponential backoff base seconds.
@@ -35,8 +36,8 @@ class OqtopusConfig:
     """
 
     base_url: str
-    api_token: str | None = None
-    proxy: str | None = None
+    api_token: str | None = field(default=None, repr=False)
+    proxy: str | None = field(default=None, repr=False)
     timeout: float = 30.0
     retry_max_attempts: int = 3
     retry_backoff_seconds: float = 0.2

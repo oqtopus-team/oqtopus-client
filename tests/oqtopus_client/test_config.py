@@ -133,6 +133,25 @@ def test_constructor_rejects_url_alias() -> None:
         OqtopusConfig(url="https://api.example.com", api_token="token")  # type: ignore[call-arg]
 
 
+def test_repr_hides_api_token_and_proxy() -> None:
+    """Test case: test_repr_hides_api_token_and_proxy."""
+    config = OqtopusConfig(
+        base_url="https://api.example.com",
+        api_token="sk-live-EXAMPLE",
+        proxy="http://user:pass@proxy.local:8080",
+    )
+
+    text = repr(config)
+
+    assert "sk-live-EXAMPLE" not in text
+    assert "user:pass@proxy.local" not in text
+    assert "api_token" not in text
+    assert "proxy" not in text
+    assert "https://api.example.com" in text
+    assert config.api_token == "sk-live-EXAMPLE"
+    assert config.proxy == "http://user:pass@proxy.local:8080"
+
+
 def test_from_file_returns_empty_config_in_sse_container(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test case: test_from_file_returns_empty_config_in_sse_container."""
     monkeypatch.setenv("OQTOPUS_ENV", "sse_container")
