@@ -607,6 +607,149 @@ def test_get_sselog_passes_explicit_proxy_to_storage(monkeypatch: pytest.MonkeyP
     assert observed["download_proxy"] == "http://proxy.local:8080"
 
 
+def test_get_device_resolves_device_info_with_storage_proxy(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test case: test_get_device_resolves_device_info_with_storage_proxy."""
+    observed: dict[str, object] = {}
+
+    async def _assert(client: _AsyncOqtopusClient) -> None:
+        class _DeviceApi:
+            def get_device(
+                self,
+                device_id: str,
+                _request_timeout: float | None = None,
+            ) -> str:
+                observed["device_id"] = device_id
+                observed["request_timeout"] = _request_timeout
+                return "get-device"
+
+        async def _fake_call_rest(call: object) -> object:
+            if call != "get-device":
+                raise AssertionError(call)
+            return models.DevicesDeviceInfo(
+                device_id="K",
+                device_type="simulator",
+                status="available",
+                n_pending_jobs=0,
+                basis_gates=[],
+                supported_instructions=[],
+                description="sim",
+                device_info="https://example.invalid/device_info.zip",
+            )
+
+        async def _fake_download(
+            presigned_url: str,
+            *,
+            timeout_s: int = 60,
+            allow_non_dict: bool = False,
+            proxy: str | None = None,
+        ) -> dict[str, object]:
+            observed["download_url"] = presigned_url
+            observed["download_timeout"] = timeout_s
+            observed["allow_non_dict"] = allow_non_dict
+            observed["download_proxy"] = proxy
+            return {"backend": "downloaded"}
+
+        client._device_api = _DeviceApi()  # type: ignore[assignment]
+        client._call_rest = _fake_call_rest  # type: ignore[assignment,method-assign]
+        monkeypatch.setattr(
+            "oqtopus_client.services.client.OqtopusStorage.download",
+            _fake_download,
+        )
+
+        device = await client.get_device("K")
+        assert device.device_info == '{"backend": "downloaded"}'
+
+    _run_with_async_client(
+        OqtopusConfig(
+            base_url="http://test.local",
+            timeout=45.0,
+            proxy="http://proxy.local:8080",
+        ),
+        _assert,
+    )
+
+    assert observed["device_id"] == "K"
+    assert observed["request_timeout"] == 45.0
+    assert observed["download_url"] == "https://example.invalid/device_info.zip"
+    assert observed["download_timeout"] == 45
+    assert observed["allow_non_dict"] is False
+    assert observed["download_proxy"] == "http://proxy.local:8080"
+
+
+def test_list_devices_resolves_only_presigned_device_info(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test case: test_list_devices_resolves_only_presigned_device_info."""
+    observed: dict[str, object] = {}
+
+    async def _assert(client: _AsyncOqtopusClient) -> None:
+        class _DeviceApi:
+            def list_devices(self, _request_timeout: float | None = None) -> str:
+                observed["request_timeout"] = _request_timeout
+                return "list-devices"
+
+        async def _fake_call_rest(call: object) -> object:
+            if call != "list-devices":
+                raise AssertionError(call)
+            return [
+                models.DevicesDeviceInfo(
+                    device_id="plain",
+                    device_type="simulator",
+                    status="available",
+                    n_pending_jobs=0,
+                    basis_gates=[],
+                    supported_instructions=[],
+                    description="sim",
+                    device_info='{"backend":"inline"}',
+                ),
+                models.DevicesDeviceInfo(
+                    device_id="remote",
+                    device_type="simulator",
+                    status="available",
+                    n_pending_jobs=0,
+                    basis_gates=[],
+                    supported_instructions=[],
+                    description="sim",
+                    device_info="https://example.invalid/device_info.zip",
+                ),
+            ]
+
+        async def _fake_download(
+            presigned_url: str,
+            *,
+            timeout_s: int = 60,
+            allow_non_dict: bool = False,
+            proxy: str | None = None,
+        ) -> dict[str, object]:
+            observed["download"] = (presigned_url, timeout_s, allow_non_dict, proxy)
+            return {"backend": "downloaded"}
+
+        client._device_api = _DeviceApi()  # type: ignore[assignment]
+        client._call_rest = _fake_call_rest  # type: ignore[assignment,method-assign]
+        monkeypatch.setattr(
+            "oqtopus_client.services.client.OqtopusStorage.download",
+            _fake_download,
+        )
+
+        devices = await client.list_devices()
+        assert [device.device_info for device in devices] == [
+            '{"backend":"inline"}',
+            '{"backend": "downloaded"}',
+        ]
+
+    _run_with_async_client(OqtopusConfig(base_url="http://test.local"), _assert)
+
+    assert observed["request_timeout"] == 30.0
+    assert observed["download"] == (
+        "https://example.invalid/device_info.zip",
+        30,
+        False,
+        None,
+    )
+
+
 def test_sync_client_close_does_not_affect_other_clients() -> None:
     """Test case: test_sync_clients_can_coexist_without_shared_state."""
     client1 = OqtopusClient(OqtopusConfig(base_url="http://test.local"))

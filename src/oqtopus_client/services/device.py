@@ -4,11 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from io import BytesIO
 from typing import TYPE_CHECKING, Any, cast
-from urllib.parse import urlparse
-from urllib.request import urlopen
-from zipfile import BadZipFile, ZipFile
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -106,49 +102,15 @@ class OqtopusDevice:
         payload into a dictionary for easier consumption.
 
         """
-        if not self.device_info_str:
+        raw_device_info = self.raw.device_info
+        if not raw_device_info:
             return None
 
-        parsed = json.loads(self.device_info_str)
+        parsed = json.loads(raw_device_info)
 
         if isinstance(parsed, dict):
             return cast("dict[str, object]", parsed)
         return {"value": cast("Any", parsed)}
-
-    @property
-    def device_info_str(self) -> str | None:
-        """Additional device information as raw JSON text.
-
-        Use this property when you need the original API payload without JSON
-        parsing or when inspecting malformed values returned by the backend.
-
-        Raises:
-            ValueError: If the downloaded device_info ZIP archive is malformed.
-
-        """
-        raw_device_info = self.raw.device_info
-        if not raw_device_info:
-            return raw_device_info
-
-        parsed = urlparse(raw_device_info)
-        if parsed.scheme not in {"http", "https", "file"}:
-            return raw_device_info
-
-        with urlopen(raw_device_info) as response:  # noqa: S310
-            payload = response.read()
-
-        try:
-            with ZipFile(BytesIO(payload), "r") as zip_archive:
-                names = zip_archive.namelist()
-                if len(names) != 1:
-                    msg = (
-                        "Expected one file in device_info ZIP archive, "
-                        f"but found {len(names)}."
-                    )
-                    raise ValueError(msg)
-                return zip_archive.read(names[0]).decode("utf-8")
-        except BadZipFile:
-            return payload.decode("utf-8")
 
     @property
     def calibrated_at(self) -> datetime | None:
