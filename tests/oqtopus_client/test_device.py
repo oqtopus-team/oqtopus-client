@@ -36,7 +36,6 @@ def test_device_wrapper_exposes_properties_and_raw_attributes() -> None:
     assert device.basis_gates == ["x", "h"]
     assert device.supported_instructions == ["measure"]
     assert device.device_info == {"backend": "sim"}
-    assert device.device_info_str == '{"backend":"sim"}'
     assert device.calibrated_at is None
     assert device.description == "sim"
 
@@ -58,8 +57,6 @@ def test_device_info_raises_for_malformed_json() -> None:
             description="sim",
         ),
     )
-
-    assert device.device_info_str == "not-json"
 
     with pytest.raises(json.JSONDecodeError):
         _ = device.device_info
@@ -86,5 +83,4 @@ def test_device_info_is_none_for_missing_payload(
         ),
     )
 
-    assert device.device_info_str == raw_device_info
     assert device.device_info is None

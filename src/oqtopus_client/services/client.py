@@ -424,18 +424,38 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
             }
         )
 
+    async def _resolve_device_info(
+        self,
+        device: models.DevicesDeviceInfo,
+    ) -> models.DevicesDeviceInfo:
+        if not self._looks_like_presigned_url(device.device_info):
+            return device
+        resolved_device_info = await OqtopusStorage.download(
+            str(device.device_info),
+            timeout_s=int(self._rest_timeout or OqtopusStorage.DEFAULT_TIMEOUT_S),
+            proxy=self._proxy,
+        )
+        return device.model_copy(
+            update={"device_info": json.dumps(resolved_device_info)}
+        )
+
     async def list_devices(self) -> list[models.DevicesDeviceInfo]:
         device_api = self._device_api
-        return cast(
+        devices = cast(
             "list[models.DevicesDeviceInfo]",
             await self._call_rest(
                 device_api.list_devices(_request_timeout=self._rest_timeout)
             ),
         )
+        return list(
+            await asyncio.gather(
+                *(self._resolve_device_info(device) for device in devices)
+            )
+        )
 
     async def get_device(self, device_id: str) -> models.DevicesDeviceInfo:
         device_api = self._device_api
-        return cast(
+        device = cast(
             "models.DevicesDeviceInfo",
             await self._call_rest(
                 device_api.get_device(
@@ -444,6 +464,7 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
                 )
             ),
         )
+        return await self._resolve_device_info(device)
 
     async def list_jobs(  # noqa: PLR0913
         self,
