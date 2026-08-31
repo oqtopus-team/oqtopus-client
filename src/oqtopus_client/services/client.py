@@ -69,11 +69,11 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
         default_headers: Mapping[str, str] | None = None,
         user_agent: str | None = None,
     ) -> None:
-        if not config.base_url and not self._is_sse_container():
-            msg = "config.base_url is required."
+        if not config.url and not self._is_sse_container():
+            msg = "config.url is required."
             raise ValueError(msg)
 
-        self.base_url = config.base_url.rstrip("/") if config.base_url else ""
+        self.url = config.url.rstrip("/") if config.url else ""
         self._proxy = config.proxy
         self._headers: dict[str, str] = {
             "User-Agent": user_agent or _resolve_user_agent()
@@ -113,7 +113,7 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
         self._headers["Authorization"] = api_token
 
     def _initialize_rest_api(self) -> None:  # pragma: no cover - integration path
-        self._rest_config = RestConfiguration(host=self.base_url)
+        self._rest_config = RestConfiguration(host=self.url)
         self._rest_config.proxy = self._proxy
         self._rest_config.retries = (
             self._retry_max_attempts if self._retry_max_attempts > 1 else None
@@ -128,6 +128,16 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
         self._device_api = DeviceApi(self._rest_client)
         self._token_api = ApiTokenApi(self._rest_client)
         self._announcements_api = AnnouncementsApi(self._rest_client)
+
+    @property
+    def base_url(self) -> str:
+        """Return the API URL using the backward-compatible attribute name."""
+        return self.url
+
+    @base_url.setter
+    def base_url(self, value: str) -> None:
+        """Set the API URL using the backward-compatible attribute name."""
+        self.url = value
 
     async def close(self) -> None:
         await self._rest_client.close()  # pragma: no cover - integration path
@@ -1000,7 +1010,7 @@ class OqtopusClient:  # noqa: PLR0904
         Args:
             config (Optional): Client configuration bundle. If omitted,
                 `OqtopusConfig.from_file()` is used. In normal mode, the resolved
-                config must provide a non-empty `base_url`.
+                config must provide a non-empty `url`.
             default_headers (Optional): Additional headers merged into every
                 request.
             user_agent (Optional): Custom User-Agent header value.
@@ -1010,9 +1020,7 @@ class OqtopusClient:  # noqa: PLR0904
         self._config = resolved_config
         self._default_headers = dict(default_headers) if default_headers else None
         self._user_agent = user_agent
-        self.base_url = (
-            resolved_config.base_url.rstrip("/") if resolved_config.base_url else ""
-        )
+        self.url = resolved_config.url.rstrip("/") if resolved_config.url else ""
         self.timeout = resolved_config.timeout
         self.retry_max_attempts = resolved_config.retry_max_attempts
         self.retry_backoff_seconds = resolved_config.retry_backoff_seconds
@@ -1020,6 +1028,16 @@ class OqtopusClient:  # noqa: PLR0904
         self.retry_methods = frozenset(
             m.upper() for m in (resolved_config.retry_methods or {"GET", "DELETE"})
         )
+
+    @property
+    def base_url(self) -> str:
+        """Return the API URL using the backward-compatible attribute name."""
+        return self.url
+
+    @base_url.setter
+    def base_url(self, value: str) -> None:
+        """Set the API URL using the backward-compatible attribute name."""
+        self.url = value
 
     def _run(
         self,
