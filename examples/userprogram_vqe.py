@@ -26,8 +26,8 @@ c = measure q;
 
 def main() -> None:
     """Run a simple VQE-style loop from SSE runtime and print the best point."""
-    # In SSE runtime, use base_url="" and device_id="sse".
-    client = OqtopusClient(OqtopusConfig(base_url=""))
+    # In SSE runtime, use url="" and device_id="sse".
+    client = OqtopusClient(OqtopusConfig(url=""))
 
     n_grid = 5
     theta_values = [2.0 * math.pi * i / (n_grid - 1) for i in range(n_grid)]

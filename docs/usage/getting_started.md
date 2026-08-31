@@ -29,7 +29,7 @@ Create the config file in that location:
 
 ```ini
 [default]
-base_url = <url>
+url = <url>
 api_token = <token>
 ```
 
@@ -270,11 +270,11 @@ Add additional sections when you need multiple environments:
 
 ```ini
 [default]
-base_url = <url>
+url = <url>
 api_token = <token>
 
 [oqtopus-dev]
-base_url = <url>
+url = <url>
 api_token = <token>
 ```
 
@@ -300,7 +300,7 @@ client = OqtopusClient(
 ### Load configuration from environment variables
 
 ```bash
-export OQTOPUS_BASE_URL=<url>
+export OQTOPUS_URL=<url>
 export OQTOPUS_API_TOKEN=<token>
 ```
 
@@ -310,8 +310,13 @@ from oqtopus_client import OqtopusClient, OqtopusConfig
 client = OqtopusClient(OqtopusConfig.from_env())
 ```
 
-`from_env()` reads `OQTOPUS_BASE_URL` for the base URL, `OQTOPUS_API_TOKEN` for
-the API token, and `OQTOPUS_PROXY` for the optional proxy by default.
+`from_env()` reads `OQTOPUS_URL` for the API URL, `OQTOPUS_API_TOKEN` for the
+API token, and `OQTOPUS_PROXY` for the optional proxy by default.
+
+For backward compatibility, `base_url` remains available as a Python attribute,
+constructor argument, and config-file key. `OQTOPUS_BASE_URL` is also accepted
+when `OQTOPUS_URL` is not set. When both new and legacy config-file keys or
+environment variables are present, `url` and `OQTOPUS_URL` take precedence.
 
 ### Override configuration explicitly in code
 
@@ -322,7 +327,7 @@ from oqtopus_client import OqtopusClient, OqtopusConfig
 
 client = OqtopusClient(
     OqtopusConfig(
-        base_url="<url>",
+        url="<url>",
         api_token="<token>",
         retry_max_attempts=3,
         retry_backoff_seconds=0.2,

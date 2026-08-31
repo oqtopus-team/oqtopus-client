@@ -71,7 +71,7 @@ def _build_client() -> OqtopusClient:
 
     client._run_async_method = fake_run_async_method  # type: ignore[assignment,method-assign]
     client._run_async_with_client = fake_run_async_with_client  # type: ignore[assignment,method-assign]
-    client.base_url = OqtopusConfig(base_url="https://api.example.com").base_url
+    client.url = OqtopusConfig(url="https://api.example.com").url
     return client
 
 
