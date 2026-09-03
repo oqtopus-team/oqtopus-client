@@ -9,7 +9,7 @@ Most examples assume the recommended default-profile setup:
 
 ```ini
 [default]
-base_url = <url>
+url = <url>
 api_token = <token>
 ```
 

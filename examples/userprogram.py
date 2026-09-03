@@ -15,7 +15,7 @@ h q[0];
 cx q[0], q[1];
 c = measure q;
 """
-    client = OqtopusClient(OqtopusConfig(base_url=""))
+    client = OqtopusClient(OqtopusConfig(url=""))
     result = client.run_sampling(
         OqtopusJobSpec.sampling(
             device_id="sse",

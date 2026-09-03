@@ -107,21 +107,21 @@ def test_resolve_user_agent_falls_back_to_unknown(monkeypatch: pytest.MonkeyPatc
 def test_async_client_constructor_validation_errors() -> None:
     """Test case: test_async_client_constructor_validation_errors."""
     with pytest.raises(ValueError):
-        _AsyncOqtopusClient(OqtopusConfig(base_url=""))
+        _AsyncOqtopusClient(OqtopusConfig(url=""))
     with pytest.raises(ValueError):
-        _AsyncOqtopusClient(OqtopusConfig(base_url="http://test", retry_max_attempts=0))
+        _AsyncOqtopusClient(OqtopusConfig(url="http://test", retry_max_attempts=0))
     with pytest.raises(ValueError):
-        _AsyncOqtopusClient(OqtopusConfig(base_url="http://test", retry_backoff_seconds=-1))
+        _AsyncOqtopusClient(OqtopusConfig(url="http://test", retry_backoff_seconds=-1))
 
 
-def test_async_client_allows_empty_base_url_in_sse_container(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Test case: test_async_client_allows_empty_base_url_in_sse_container."""
+def test_async_client_allows_empty_url_in_sse_container(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test case: test_async_client_allows_empty_url_in_sse_container."""
     monkeypatch.setenv("OQTOPUS_ENV", "sse_container")
 
     async def _assert(client: _AsyncOqtopusClient) -> None:
-        assert client.base_url == ""
+        assert client.url == ""
 
-    _run_with_async_client(OqtopusConfig(base_url=""), _assert)
+    _run_with_async_client(OqtopusConfig(url=""), _assert)
 
 
 def test_async_client_sets_headers_and_rest_config() -> None:
@@ -137,7 +137,7 @@ def test_async_client_sets_headers_and_rest_config() -> None:
 
     _run_with_async_client(
         OqtopusConfig(
-            base_url="http://test",
+            url="http://test",
             api_token="from-config",
             proxy="http://proxy.local:8080",
         ),
@@ -188,7 +188,7 @@ def test_wait_for_job_failure_and_timeout(monkeypatch: pytest.MonkeyPatch) -> No
         with pytest.raises(TimeoutError):
             await client.wait_for_job("job-1", interval=0.001, timeout=0.01)
 
-    _run_with_async_client(OqtopusConfig(base_url="http://test"), _assert)
+    _run_with_async_client(OqtopusConfig(url="http://test"), _assert)
 
 
 def test_run_sse_file_forwards_kwargs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -229,7 +229,7 @@ def test_run_sse_file_forwards_kwargs(tmp_path: Path, monkeypatch: pytest.Monkey
         assert observed["build"]["device_id"] == "K"
         assert observed["run"]["kwargs"]["timeout"] == 5.0
 
-    _run_with_async_client(OqtopusConfig(base_url="http://test"), _assert)
+    _run_with_async_client(OqtopusConfig(url="http://test"), _assert)
 
 
 def test_build_sse_job_request_uses_sse_program(tmp_path: Path) -> None:
@@ -281,7 +281,7 @@ def test_run_job_uses_sse_driver_in_sse_container(monkeypatch: pytest.MonkeyPatc
         )
         assert result.job_id == "job-sse-container"
 
-    _run_with_async_client(OqtopusConfig(base_url=""), _assert)
+    _run_with_async_client(OqtopusConfig(url=""), _assert)
     assert observed["thread_id"] != loop_thread_id
 
 
@@ -321,7 +321,7 @@ def test_run_job_normalizes_flat_sse_container_response(
         assert result.job_info.result is not None
         assert result.job_info.message == "ok"
 
-    _run_with_async_client(OqtopusConfig(base_url=""), _assert)
+    _run_with_async_client(OqtopusConfig(url=""), _assert)
 
 
 def test_run_job_raises_when_sse_driver_missing(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -335,7 +335,7 @@ def test_run_job_raises_when_sse_driver_missing(monkeypatch: pytest.MonkeyPatch)
                 OqtopusJobSpec.sampling(device_id="sse", program="OPENQASM 3;")
             )
 
-    _run_with_async_client(OqtopusConfig(base_url=""), _assert)
+    _run_with_async_client(OqtopusConfig(url=""), _assert)
 
 
 def test_sync_wrappers_delegate_to_call() -> None:
@@ -483,8 +483,8 @@ def test_sync_wrappers_delegate_to_call() -> None:
 
 def test_sync_clients_keep_isolated_configuration() -> None:
     """Test case: test_sync_clients_keep_isolated_configuration."""
-    client1 = OqtopusClient(OqtopusConfig(base_url="http://test.local"))
-    client2 = OqtopusClient(OqtopusConfig(base_url="http://test.local"))
+    client1 = OqtopusClient(OqtopusConfig(url="http://test.local"))
+    client2 = OqtopusClient(OqtopusConfig(url="http://test.local"))
     assert client1 is not client2
     assert client1._config is not client2._config
 
@@ -548,7 +548,7 @@ def test_submit_job_passes_explicit_proxy_to_storage(monkeypatch: pytest.MonkeyP
         assert response.job_id == "job-1"
 
     _run_with_async_client(
-        OqtopusConfig(base_url="http://test.local", proxy="http://proxy.local:8080"),
+        OqtopusConfig(url="http://test.local", proxy="http://proxy.local:8080"),
         _assert,
     )
 
@@ -600,7 +600,7 @@ def test_get_sselog_passes_explicit_proxy_to_storage(monkeypatch: pytest.MonkeyP
         assert base64.b64decode(cast("str", response.file), validate=True) == archive_bytes
 
     _run_with_async_client(
-        OqtopusConfig(base_url="http://test.local", proxy="http://proxy.local:8080"),
+        OqtopusConfig(url="http://test.local", proxy="http://proxy.local:8080"),
         _assert,
     )
 
@@ -608,11 +608,165 @@ def test_get_sselog_passes_explicit_proxy_to_storage(monkeypatch: pytest.MonkeyP
     assert observed["download_proxy"] == "http://proxy.local:8080"
 
 
+def test_get_device_resolves_device_info_with_storage_proxy(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test case: test_get_device_resolves_device_info_with_storage_proxy."""
+    observed: dict[str, object] = {}
+
+    async def _assert(client: _AsyncOqtopusClient) -> None:
+        class _DeviceApi:
+            def get_device(
+                self,
+                device_id: str,
+                _request_timeout: float | None = None,
+            ) -> str:
+                observed["device_id"] = device_id
+                observed["request_timeout"] = _request_timeout
+                return "get-device"
+
+        async def _fake_call_rest(call: object) -> object:
+            if call != "get-device":
+                raise AssertionError(call)
+            return models.DevicesDeviceInfo(
+                device_id="K",
+                device_type="simulator",
+                status="available",
+                n_pending_jobs=0,
+                basis_gates=[],
+                supported_instructions=[],
+                description="sim",
+                device_info="https://example.invalid/device_info.zip",
+            )
+
+        async def _fake_download(
+            presigned_url: str,
+            *,
+            timeout_s: int = 60,
+            allow_non_dict: bool = False,
+            proxy: str | None = None,
+        ) -> dict[str, object]:
+            observed["download_url"] = presigned_url
+            observed["download_timeout"] = timeout_s
+            observed["allow_non_dict"] = allow_non_dict
+            observed["download_proxy"] = proxy
+            return {"backend": "downloaded"}
+
+        client._device_api = _DeviceApi()  # type: ignore[assignment]
+        client._call_rest = _fake_call_rest  # type: ignore[assignment,method-assign]
+        monkeypatch.setattr(
+            "oqtopus_client.services.client.OqtopusStorage.download",
+            _fake_download,
+        )
+
+        device = await client.get_device("K")
+        assert device.device_info == '{"backend": "downloaded"}'
+
+    _run_with_async_client(
+        OqtopusConfig(
+            base_url="http://test.local",
+            timeout=45.0,
+            proxy="http://proxy.local:8080",
+        ),
+        _assert,
+    )
+
+    assert observed["device_id"] == "K"
+    assert observed["request_timeout"] == 45.0
+    assert observed["download_url"] == "https://example.invalid/device_info.zip"
+    assert observed["download_timeout"] == 45
+    assert observed["allow_non_dict"] is False
+    assert observed["download_proxy"] == "http://proxy.local:8080"
+
+
+def test_list_devices_resolves_only_presigned_device_info(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test case: test_list_devices_resolves_only_presigned_device_info."""
+    observed: dict[str, object] = {}
+
+    async def _assert(client: _AsyncOqtopusClient) -> None:
+        class _DeviceApi:
+            def list_devices(self, _request_timeout: float | None = None) -> str:
+                observed["request_timeout"] = _request_timeout
+                return "list-devices"
+
+        async def _fake_call_rest(call: object) -> object:
+            if call != "list-devices":
+                raise AssertionError(call)
+            return [
+                models.DevicesDeviceInfo(
+                    device_id="plain",
+                    device_type="simulator",
+                    status="available",
+                    n_pending_jobs=0,
+                    basis_gates=[],
+                    supported_instructions=[],
+                    description="sim",
+                    device_info='{"backend":"inline"}',
+                ),
+                models.DevicesDeviceInfo(
+                    device_id="remote",
+                    device_type="simulator",
+                    status="available",
+                    n_pending_jobs=0,
+                    basis_gates=[],
+                    supported_instructions=[],
+                    description="sim",
+                    device_info="https://example.invalid/device_info.zip",
+                ),
+            ]
+
+        async def _fake_download(
+            presigned_url: str,
+            *,
+            timeout_s: int = 60,
+            allow_non_dict: bool = False,
+            proxy: str | None = None,
+        ) -> dict[str, object]:
+            observed["download"] = (presigned_url, timeout_s, allow_non_dict, proxy)
+            return {"backend": "downloaded"}
+
+        client._device_api = _DeviceApi()  # type: ignore[assignment]
+        client._call_rest = _fake_call_rest  # type: ignore[assignment,method-assign]
+        monkeypatch.setattr(
+            "oqtopus_client.services.client.OqtopusStorage.download",
+            _fake_download,
+        )
+
+        devices = await client.list_devices()
+        assert [device.device_info for device in devices] == [
+            '{"backend":"inline"}',
+            '{"backend": "downloaded"}',
+        ]
+
+    _run_with_async_client(OqtopusConfig(base_url="http://test.local"), _assert)
+
+    assert observed["request_timeout"] == 30.0
+    assert observed["download"] == (
+        "https://example.invalid/device_info.zip",
+        30,
+        False,
+        None,
+    )
+
+
 def test_sync_client_close_does_not_affect_other_clients() -> None:
     """Test case: test_sync_clients_can_coexist_without_shared_state."""
-    client1 = OqtopusClient(OqtopusConfig(base_url="http://test.local"))
-    client2 = OqtopusClient(OqtopusConfig(base_url="http://test.local"))
-    assert client1.base_url == client2.base_url == "http://test.local"
+    client1 = OqtopusClient(OqtopusConfig(url="http://test.local"))
+    client2 = OqtopusClient(OqtopusConfig(url="http://test.local"))
+    assert client1.url == client2.url == "http://test.local"
+
+
+def test_sync_client_base_url_alias_reads_and_writes_url() -> None:
+    """Test case: test_sync_client_base_url_alias_reads_and_writes_url."""
+    client = OqtopusClient(OqtopusConfig(url="http://test.local"))
+
+    assert client.base_url == client.url
+
+    client.base_url = "http://legacy.test.local"
+
+    assert client.url == "http://legacy.test.local"
 
 
 def test_sync_client_uses_config_from_file_when_omitted(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -625,7 +779,7 @@ def test_sync_client_uses_config_from_file_when_omitted(monkeypatch: pytest.Monk
     ) -> OqtopusConfig:
         observed["section"] = section
         observed["path"] = path
-        return OqtopusConfig(base_url="http://test.local")
+        return OqtopusConfig(url="http://test.local")
 
     monkeypatch.setattr(
         OqtopusConfig,
@@ -633,7 +787,7 @@ def test_sync_client_uses_config_from_file_when_omitted(monkeypatch: pytest.Monk
         classmethod(lambda cls, section="default", path="~/.config/oqtopus/config.ini": _from_file_stub(section, path)),
     )
     client = OqtopusClient()
-    assert client.base_url == "http://test.local"
+    assert client.url == "http://test.local"
     assert observed["section"] == "default"
     assert observed["path"] == "~/.config/oqtopus/config.ini"
 
@@ -664,7 +818,7 @@ def test_sync_submit_job_uses_worker_thread_with_active_event_loop(
 
     async def _scenario() -> None:
         observed["event_loop_thread"] = threading.get_ident()
-        client = OqtopusClient(OqtopusConfig(base_url="http://test.local"))
+        client = OqtopusClient(OqtopusConfig(url="http://test.local"))
         response = client.submit_job(OqtopusJobSpec.sampling(device_id="K", program="x"))
         assert response.job_id == "job-42"
 
@@ -732,7 +886,7 @@ def test_get_job_resolves_plain_text_combined_program(
         assert result.job_info.combined_program == "OPENQASM 3;\nqubit[1] q;\n"
 
     _run_with_async_client(
-        OqtopusConfig(base_url="http://test.local", proxy="http://proxy.local:8080"),
+        OqtopusConfig(url="http://test.local", proxy="http://proxy.local:8080"),
         _assert,
     )
 

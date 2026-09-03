@@ -237,5 +237,5 @@ def test_api_error_propagates() -> None:
 
 def test_client_default_retry_status_codes_excludes_5xx() -> None:
     """Test case: test_client_default_retry_status_codes_excludes_5xx."""
-    client = OqtopusClient(OqtopusConfig(base_url="http://test"))
+    client = OqtopusClient(OqtopusConfig(url="http://test"))
     assert client.retry_status_codes == frozenset({429})
