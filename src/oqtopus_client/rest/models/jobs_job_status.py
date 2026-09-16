@@ -31,6 +31,7 @@ class JobsJobStatus(str, Enum):
     SUBMITTED = 'submitted'
     READY = 'ready'
     RUNNING = 'running'
+    CANCELLING = 'cancelling'
     SUCCEEDED = 'succeeded'
     FAILED = 'failed'
     CANCELLED = 'cancelled'
