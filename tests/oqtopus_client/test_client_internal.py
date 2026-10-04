@@ -124,11 +124,27 @@ def test_async_client_allows_empty_url_in_sse_container(monkeypatch: pytest.Monk
     _run_with_async_client(OqtopusConfig(url=""), _assert)
 
 
+def test_create_api_token_is_deprecated() -> None:
+    """The public sync create_api_token must warn, pointing at the caller."""
+    client = OqtopusClient(OqtopusConfig(url="http://test.local"))
+
+    def fake_run_async_method(_method: Any, *_args: Any, **_kwargs: Any) -> Any:
+        return models.ApiTokenApiToken(
+            api_token_secret="secret", api_token_expiration=None
+        )
+
+    client._run_async_method = fake_run_async_method  # type: ignore[assignment,method-assign]
+    with pytest.warns(DeprecationWarning, match="interactive"):
+        client.create_api_token()
+
+
 def test_async_client_sets_headers_and_rest_config() -> None:
     """Test case: test_async_client_sets_headers_and_rest_config."""
     async def _assert(client: _AsyncOqtopusClient) -> None:
         assert client._headers["q-api-token"] == "from-config"
-        assert client._headers["Authorization"] == "from-config"
+        # The Q-API-Token must NOT also be sent as an Authorization header:
+        # Authorization is reserved for OIDC Bearer tokens.
+        assert "Authorization" not in client._headers
         assert client._headers["X-Test"] == "1"
         assert client._rest_config is not None
         assert client._rest_config.host == "http://test"
@@ -469,7 +485,8 @@ def test_sync_wrappers_delegate_to_call() -> None:
     assert isinstance(client.is_finished("j"), bool)
     assert isinstance(client.cancel_job("j"), models.SuccessSuccessResponse)
     assert isinstance(client.get_sselog("j"), JobsGetSselogResponse)
-    assert isinstance(client.create_api_token(), models.ApiTokenApiToken)
+    with pytest.warns(DeprecationWarning, match="interactive"):
+        assert isinstance(client.create_api_token(), models.ApiTokenApiToken)
     assert isinstance(client.get_api_token_status(), models.ApiTokenApiTokenStatus)
     assert isinstance(client.get_api_token(), models.ApiTokenApiTokenStatus)
     client.delete_api_token()

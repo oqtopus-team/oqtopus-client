@@ -338,7 +338,17 @@ client = OqtopusClient(
 By default, automatic retries apply only to HTTP `429` responses. If you need a
 different policy, set `retry_status_codes` explicitly.
 
-The API token is sent using both the `q-api-token` and `Authorization` request headers with the same value.
+The API token is sent using the `q-api-token` request header. The
+`Authorization` header is **not** used for the API token — it is reserved for
+OIDC Bearer tokens.
+
+!!! warning "Deployment order (upgrading from an older Cloud)"
+    Older OQTOPUS Cloud deployments required the API token to **also** be sent in
+    the `Authorization` header, because the API Gateway authorizer used it as its
+    cache key. Sending `q-api-token` only works against a Cloud that verifies the
+    token in-app (the current architecture). **Deploy/upgrade the Cloud side
+    first**, then upgrade this client; otherwise requests from a client that no
+    longer sends `Authorization` will be rejected by the old authorizer.
 
 Optional variables and settings include:
 

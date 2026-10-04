@@ -6,6 +6,7 @@ import asyncio
 import base64
 import json
 import os
+import warnings
 from collections.abc import Awaitable, Callable, Coroutine, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
@@ -109,8 +110,11 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
         self._initialize_rest_api()
 
     def _apply_api_token(self, api_token: str) -> None:
+        # The User API authenticates CLI callers via the dedicated ``q-api-token``
+        # header. ``Authorization`` is reserved for OIDC Bearer tokens; sending
+        # the Q-API-Token there too used to be required only as the API Gateway
+        # authorizer's cache key, which the server no longer relies on.
         self._headers["q-api-token"] = api_token
-        self._headers["Authorization"] = api_token
 
     def _initialize_rest_api(self) -> None:  # pragma: no cover - integration path
         self._rest_config = RestConfiguration(host=self.url)
@@ -960,6 +964,9 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
         )
 
     async def create_api_token(self) -> models.ApiTokenApiToken:
+        # NOTE: the user-facing DeprecationWarning is emitted by the public
+        # OqtopusClient.create_api_token() wrapper so stacklevel points at the
+        # caller's line (this internal coroutine runs in a worker thread).
         token_api = self._token_api
         token = cast(
             "models.ApiTokenApiToken",
@@ -2010,10 +2017,24 @@ class OqtopusClient:  # noqa: PLR0904
     def create_api_token(self) -> models.ApiTokenApiToken:
         """Create an API token.
 
+        .. deprecated::
+            Issuing a Q-API-Token now requires an interactive (OIDC) session and
+            is handled from the web console. A client authenticated with a
+            Q-API-Token can no longer mint a new token (the server responds with
+            HTTP 403).
+
         Returns:
             The created API token payload.
 
         """
+        warnings.warn(
+            "create_api_token is deprecated: issuing a Q-API-Token now requires "
+            "an interactive (OIDC) session and is handled from the web console. "
+            "A client authenticated with a Q-API-Token can no longer mint a new "
+            "token and will receive HTTP 403.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._run_async_method(_AsyncOqtopusClient.create_api_token)
 
     def get_api_token_status(self) -> models.ApiTokenApiTokenStatus:
