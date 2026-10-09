@@ -44,7 +44,9 @@ python examples/get_devices.py
 - `get_devices.py`: list available devices.
 - `list_devices_and_jobs.py`: inspect devices and recent jobs together.
 - `get_user_and_status.py`: inspect account-level information.
-- `manage_api_token.py`: create and delete API tokens.
+- `manage_api_token.py`: inspect and revoke the current API token. (Issuing a
+  token is deprecated — Q-API-Tokens are created from an interactive OIDC session
+  in the web console; a Q-API-Token caller gets HTTP 403 from `create_api_token`.)
 - `get_announcement_detail.py`: list announcements and fetch a detail entry.
 
 ### Single-job execution

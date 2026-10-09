@@ -6,12 +6,11 @@ import asyncio
 from io import BytesIO
 from pathlib import Path
 from types import TracebackType
-from typing import Any
+from typing import Any, Self
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import aiohttp
 import pytest
-from typing_extensions import Self
 
 from oqtopus_client import rest as models
 from oqtopus_client.services.storage import OqtopusStorage, OqtopusStorageError

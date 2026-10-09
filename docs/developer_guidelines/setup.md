@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- [Python](https://www.python.org/downloads/) >= 3.10
+- [Python](https://www.python.org/downloads/) >= 3.11
 - [uv](https://docs.astral.sh/uv/) >= 0.5
 - [Docker](https://docs.docker.com/get-docker/) (required for `make generate-models`)
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import base64
 import io
 import zipfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -70,7 +70,7 @@ def test_job_result_kind_for_estimation_job_def() -> None:
 
 def test_job_result_from_job_model_like_payload() -> None:
     """Test case: test_job_result_from_job_model_like_payload."""
-    submitted_at = datetime(2025, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
+    submitted_at = datetime(2025, 1, 2, 3, 4, 5, tzinfo=UTC)
     job = models.JobsJob(
         job_id="job-3",
         name="job",

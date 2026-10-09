@@ -1115,6 +1115,7 @@ components:
         - submitted
         - ready
         - running
+        - cancelling
         - succeeded
         - failed
         - cancelled
