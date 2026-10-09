@@ -8,7 +8,7 @@ import io
 import zipfile
 from collections.abc import Callable, Mapping
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, TypeAlias, cast
+from typing import TYPE_CHECKING, Any, Self, TypeAlias, cast
 
 from oqtopus_client import rest as models
 from oqtopus_client.services.result_utils import (
@@ -18,8 +18,6 @@ from oqtopus_client.services.result_utils import (
 
 if TYPE_CHECKING:
     from datetime import datetime
-
-    from typing_extensions import Self
 
     from .client import OqtopusClient
 

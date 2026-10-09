@@ -9,7 +9,7 @@ import sys
 import threading
 import types
 from collections.abc import Callable, Coroutine
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from importlib.metadata import PackageNotFoundError
 from pathlib import Path
 from types import SimpleNamespace
@@ -425,8 +425,8 @@ def test_sync_wrappers_delegate_to_call() -> None:
                         id=1,
                         title="t",
                         content="c",
-                        start_time=datetime(2025, 1, 1, tzinfo=timezone.utc),
-                        end_time=datetime(2025, 12, 31, tzinfo=timezone.utc),
+                        start_time=datetime(2025, 1, 1, tzinfo=UTC),
+                        end_time=datetime(2025, 12, 31, tzinfo=UTC),
                         publishable=True,
                     ),
                 ],
@@ -436,8 +436,8 @@ def test_sync_wrappers_delegate_to_call() -> None:
                 id=1,
                 title="t",
                 content="c",
-                start_time=datetime(2025, 1, 1, tzinfo=timezone.utc),
-                end_time=datetime(2025, 12, 31, tzinfo=timezone.utc),
+                start_time=datetime(2025, 1, 1, tzinfo=UTC),
+                end_time=datetime(2025, 12, 31, tzinfo=UTC),
                 publishable=True,
             )
         raise AssertionError(method_name)

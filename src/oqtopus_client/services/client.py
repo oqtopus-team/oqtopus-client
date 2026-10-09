@@ -531,7 +531,7 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
         interval: float = 1.0,
         interval_backoff: float = 1.0,
         max_interval: float | None = None,
-        timeout: float | None = 300.0,
+        timeout: float | None = 300.0,  # noqa: ASYNC109
         terminal_statuses: set[models.JobsJobStatus] | None = None,
         failure_statuses: set[models.JobsJobStatus] | None = None,
         on_status: Callable[[models.JobsGetJobStatusResponse], None] | None = None,
@@ -575,7 +575,7 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
         interval: float = 1.0,
         interval_backoff: float = 1.0,
         max_interval: float | None = None,
-        timeout: float | None = 300.0,
+        timeout: float | None = 300.0,  # noqa: ASYNC109
         terminal_statuses: set[models.JobsJobStatus] | None = None,
         failure_statuses: set[models.JobsJobStatus] | None = None,
         on_status: Callable[[models.JobsGetJobStatusResponse], None] | None = None,
@@ -600,7 +600,7 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
         interval: float = 1.0,
         interval_backoff: float = 1.0,
         max_interval: float | None = None,
-        timeout: float | None = 300.0,
+        timeout: float | None = 300.0,  # noqa: ASYNC109
         terminal_statuses: set[models.JobsJobStatus] | None = None,
         failure_statuses: set[models.JobsJobStatus] | None = None,
         on_status: Callable[[models.JobsGetJobStatusResponse], None] | None = None,
@@ -624,7 +624,7 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
         interval: float = 1.0,
         interval_backoff: float = 1.0,
         max_interval: float | None = None,
-        timeout: float | None = 300.0,
+        timeout: float | None = 300.0,  # noqa: ASYNC109
         terminal_statuses: set[models.JobsJobStatus] | None = None,
         failure_statuses: set[models.JobsJobStatus] | None = None,
         on_status: Callable[[models.JobsGetJobStatusResponse], None] | None = None,
@@ -648,7 +648,7 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
         interval: float = 1.0,
         interval_backoff: float = 1.0,
         max_interval: float | None = None,
-        timeout: float | None = 300.0,
+        timeout: float | None = 300.0,  # noqa: ASYNC109
         terminal_statuses: set[models.JobsJobStatus] | None = None,
         failure_statuses: set[models.JobsJobStatus] | None = None,
         on_status: Callable[[models.JobsGetJobStatusResponse], None] | None = None,
@@ -672,7 +672,7 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
         interval: float = 1.0,
         interval_backoff: float = 1.0,
         max_interval: float | None = None,
-        timeout: float | None = 300.0,
+        timeout: float | None = 300.0,  # noqa: ASYNC109
         terminal_statuses: set[models.JobsJobStatus] | None = None,
         failure_statuses: set[models.JobsJobStatus] | None = None,
         on_status: Callable[[models.JobsGetJobStatusResponse], None] | None = None,
@@ -750,7 +750,7 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
         interval: float = 1.0,
         interval_backoff: float = 1.0,
         max_interval: float | None = None,
-        timeout: float | None = 300.0,
+        timeout: float | None = 300.0,  # noqa: ASYNC109
         terminal_statuses: set[models.JobsJobStatus] | None = None,
         failure_statuses: set[models.JobsJobStatus] | None = None,
         on_status: Callable[[models.JobsGetJobStatusResponse], None] | None = None,
@@ -872,7 +872,7 @@ class _AsyncOqtopusClient:  # noqa: PLR0904
         interval: float = 1.0,
         interval_backoff: float = 1.0,
         max_interval: float | None = None,
-        timeout: float | None = 300.0,
+        timeout: float | None = 300.0,  # noqa: ASYNC109
         terminal_statuses: set[models.JobsJobStatus] | None = None,
         failure_statuses: set[models.JobsJobStatus] | None = None,
         on_status: Callable[[models.JobsGetJobStatusResponse], None] | None = None,
@@ -1836,7 +1836,7 @@ class OqtopusClient:  # noqa: PLR0904
         interval: float = 1.0,
         interval_backoff: float = 1.0,
         max_interval: float | None = None,
-        timeout: float | None = 300.0,
+        timeout: float | None = 300.0,  # noqa: ASYNC109
         max_workers: int = 4,
     ) -> list[OqtopusJobResult]:
         """Wait multiple jobs concurrently in an async context.

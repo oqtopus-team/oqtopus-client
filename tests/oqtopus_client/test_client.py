@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -37,10 +37,10 @@ def _job(
         result = models.JobsS3JobResult(
             sampling=models.JobsS3SamplingResult(counts={"00": 1})
         )
-    submitted_at = datetime(2025, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
-    ready_at = datetime(2025, 1, 2, 3, 4, 6, tzinfo=timezone.utc)
-    running_at = datetime(2025, 1, 2, 3, 4, 7, tzinfo=timezone.utc)
-    ended_at = datetime(2025, 1, 2, 3, 4, 8, tzinfo=timezone.utc)
+    submitted_at = datetime(2025, 1, 2, 3, 4, 5, tzinfo=UTC)
+    ready_at = datetime(2025, 1, 2, 3, 4, 6, tzinfo=UTC)
+    running_at = datetime(2025, 1, 2, 3, 4, 7, tzinfo=UTC)
+    ended_at = datetime(2025, 1, 2, 3, 4, 8, tzinfo=UTC)
     return models.JobsJob(
         job_id="job-1",
         name="job",
@@ -118,10 +118,10 @@ def test_get_job_returns_extended_job_result() -> None:
     assert result.transpiler_info == {"backend": "oqtopus"}
     assert result.simulator_info == {"seed": 7}
     assert result.mitigation_info == {"enabled": True}
-    assert result.submitted_at == datetime(2025, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
-    assert result.ready_at == datetime(2025, 1, 2, 3, 4, 6, tzinfo=timezone.utc)
-    assert result.running_at == datetime(2025, 1, 2, 3, 4, 7, tzinfo=timezone.utc)
-    assert result.ended_at == datetime(2025, 1, 2, 3, 4, 8, tzinfo=timezone.utc)
+    assert result.submitted_at == datetime(2025, 1, 2, 3, 4, 5, tzinfo=UTC)
+    assert result.ready_at == datetime(2025, 1, 2, 3, 4, 6, tzinfo=UTC)
+    assert result.running_at == datetime(2025, 1, 2, 3, 4, 7, tzinfo=UTC)
+    assert result.ended_at == datetime(2025, 1, 2, 3, 4, 8, tzinfo=UTC)
     assert result.message == "queued"
     assert isinstance(result.transpile_result, models.JobsS3TranspileResult)
 
@@ -162,7 +162,7 @@ def test_run_helpers_return_typed_results() -> None:
         3,
         4,
         5,
-        tzinfo=timezone.utc,
+        tzinfo=UTC,
     )
     assert isinstance(
         client.run_estimation(OqtopusJobSpec.estimation(device_id="K", program="x", operator=[{"pauli": "Z0", "coeff": 1}])),
@@ -189,7 +189,7 @@ def test_wait_for_job_returns_failed_result() -> None:
 
 def test_list_jobs_and_filters_passthrough() -> None:
     """Test case: test_list_jobs_and_filters_passthrough."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     def fake_call(method_name: str, *args: Any, **kwargs: Any) -> Any:
         assert method_name == "list_jobs"
