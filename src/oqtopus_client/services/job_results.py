@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import binascii
 import io
+import json
 import zipfile
 from collections.abc import Callable, Mapping
 from pathlib import Path
@@ -25,6 +26,7 @@ SamplingPayload: TypeAlias = models.JobsS3SamplingResult | Mapping[str, Any] | N
 EstimationPayload: TypeAlias = (
     models.JobsS3EstimationResult | Mapping[str, Any] | None
 )
+MitigationDetailsPayload: TypeAlias = str | None
 
 
 def _mapping_like_to_dict(value: object) -> dict[str, Any] | None:
@@ -37,6 +39,17 @@ def _mapping_like_to_dict(value: object) -> dict[str, Any] | None:
     if isinstance(value, Mapping):
         return dict(value)
     return None
+
+
+def _to_json_string(value: object) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return value
+    payload = _mapping_like_to_dict(value)
+    if payload is None:
+        return None
+    return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
 
 
 def _with_legacy_job_info_aliases(job_info: dict[str, Any]) -> dict[str, Any]:
@@ -538,6 +551,33 @@ class OqtopusJobResult:  # noqa: PLR0904
                 "EstimationPayload",
                 self._extract_branch(job_info.get("result"), "estimation"),
             )
+        return None
+
+    @property
+    def mitigation_details(self) -> MitigationDetailsPayload:
+        """Return intermediate error-mitigation details when available.
+
+        Returns:
+            Opaque mitigation details encoded as a JSON string when available.
+
+        """
+        job_info = self.job_info
+        if isinstance(job_info, models.JobsJobInfo):
+            result = job_info.result
+        elif isinstance(job_info, Mapping):
+            result = job_info.get("result")
+        else:
+            return None
+
+        if isinstance(result, models.JobsS3JobResult):
+            mitigation_details = getattr(result, "mitigation_details", None)
+            if mitigation_details is None:
+                mitigation_details = result.additional_properties.get(
+                    "mitigation_details"
+                )
+            return _to_json_string(mitigation_details)
+        if isinstance(result, Mapping):
+            return _to_json_string(result.get("mitigation_details"))
         return None
 
 
