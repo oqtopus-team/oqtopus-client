@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import io
+import json
 import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
@@ -43,6 +44,80 @@ def test_job_result_kind_for_model_sampling() -> None:
     assert result.job_type == models.JobsJobType.SAMPLING
     assert result.is_sampling() is True
     assert result.is_estimation() is False
+
+
+def test_job_result_exposes_mitigation_details_as_json_string() -> None:
+    """Test case: mitigation details are exposed as an opaque JSON string."""
+    raw_result = models.JobsS3JobResult.from_dict({
+        "sampling": {"counts": {"00": 100}},
+        "mitigation_details": {
+            "ro_error_mitigation": {
+                "method": "local_readout_mitigation",
+                "raw_counts": {"00": 90, "01": 10},
+                "quasi_probabilities": {"00": 1.01, "01": -0.01},
+                "expectation_values": None,
+            }
+        },
+    })
+    assert raw_result is not None
+    result = OqtopusJobResult(
+        job_id="job-rem",
+        job_type=models.JobsJobType.SAMPLING,
+        status=models.JobsJobStatus.SUCCEEDED,
+        name="job-rem",
+        device_id="Kawasaki",
+        shots=100,
+        job_info=models.JobsJobInfo(
+            input=models.JobsS3SubmitJobInfo(program=["OPENQASM 3;"]),
+            result=raw_result,
+        ),
+    )
+
+    assert result.mitigation_details is not None
+    decoded_details = json.loads(result.mitigation_details)
+    assert raw_result.additional_properties["mitigation_details"] == decoded_details
+    assert decoded_details == {
+        "ro_error_mitigation": {
+            "method": "local_readout_mitigation",
+            "raw_counts": {"00": 90, "01": 10},
+            "quasi_probabilities": {"00": 1.01, "01": -0.01},
+            "expectation_values": None,
+        }
+    }
+
+
+def test_job_result_exposes_mapping_mitigation_details_as_json_string() -> None:
+    """Test case: mapping payloads expose mitigation details as JSON."""
+    mitigation_details = {
+        "ro_error_mitigation": {
+            "method": "local_readout_mitigation",
+            "expectation_values": [{
+                "pauli": "X 0 X 1",
+                "coefficient": 1.5,
+                "before_expectation_value": 0.8,
+                "after_expectation_value": 1.0,
+                "standard_deviation_upper_bound": 0.04,
+            }],
+        }
+    }
+    result = OqtopusJobResult(
+        job_id="job-rem-map",
+        job_type=models.JobsJobType.ESTIMATION,
+        status=models.JobsJobStatus.SUCCEEDED,
+        name="job-rem-map",
+        device_id="Kawasaki",
+        shots=100,
+        job_info={
+            "input": {"program": ["OPENQASM 3;"]},
+            "result": {
+                "estimation": {"exp_value": 1.0},
+                "mitigation_details": mitigation_details,
+            },
+        },
+    )
+
+    assert result.mitigation_details is not None
+    assert json.loads(result.mitigation_details) == mitigation_details
 
 
 def test_job_result_kind_for_estimation_job_def() -> None:
